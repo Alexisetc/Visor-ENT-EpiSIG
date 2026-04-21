@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visor EpiSIG INSPI · Hot Spots Parroquiales</title>
+
+    <!-- Fuentes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Librerías Geoespaciales y de Visualización -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Plugin Leaflet.heat para los Hot Spots -->
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    
+    <!-- Plotly y FontAwesome -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/js/all.min.js"></script>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --c-azul: #2c2d8f;
+            --c-azul-dark: #1a1b4a;
+            --c-amarillo: #fbc400;
+            --c-rojo: #ea1d2c;
+            --c-gris: #f4f6f9;
+            --c-texto: #333333;
+        }
+
+        html, body {
+            font-family: 'Roboto', sans-serif;
+            background: #111;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* --- MOTOR DE DIAPOSITIVAS INTEGRADO --- */
+        #deck-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+        }
+
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            position: relative;
+            background-color: #ffffff;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            transform-origin: center center;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            display: none;
+            background-color: #ffffff;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        .slide.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* --- ESTILOS DE LA PLANTILLA INSPI --- */
+        .title-font { font-family: 'Oswald', sans-serif; margin: 0; line-height: 1.05; letter-spacing: 0.01em; }
+        .rombo { position: absolute; display: block; z-index: 10; }
+        .footer-lockup { display: flex; align-items: center; gap: 22px; }
+        .f-text { font-family: 'Roboto', sans-serif; font-size: 19px; color: var(--c-azul); line-height: 1.3; font-weight: 500; }
+        .f-text.white { color: #ffffff; }
+
+        /* Controles de Navegación */
+        .nav-btn {
+            position: absolute; bottom: 20px; z-index: 9999;
+            background: rgba(255,255,255,0.2); color: white; border: none;
+            padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px;
+            transition: all 0.2s; backdrop-filter: blur(5px);
+        }
+        .nav-btn:hover { background: var(--c-amarillo); color: var(--c-azul-dark); }
+        #prev-btn { left: 20px; }
+        #next-btn { right: 20px; }
+        .slide-counter {
+            position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
+            color: white; font-family: 'Oswald'; z-index: 9999; font-size: 18px; opacity: 0.6;
+        }
+
+        /* --- ESTILOS DEL DASHBOARD EPISIG (SLIDE 3) --- */
+        .dashboard-layout {
+            display: flex;
+            height: calc(100% - 92px);
+            margin-top: 56px;
+            background: var(--c-gris);
+        }
+
+        .dash-sidebar {
+            width: 290px; background: #fff; border-right: 1px solid #e0e0e0;
+            padding: 20px; display: flex; flex-direction: column; gap: 18px;
+            z-index: 10; box-shadow: 2px 0 10px rgba(0,0,0,0.05); overflow-y:auto;
+        }
+        
+        .control-group label {
+            display: block; font-family: 'Oswald'; font-size: 16px; color: var(--c-azul);
+            margin-bottom: 8px; font-weight: 500; text-transform: uppercase;
+        }
+
+        .ent-btn {
+            display: block; width: 100%; padding: 8px 10px; margin-bottom: 6px;
+            background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px;
+            text-align: left; cursor: pointer; font-family: 'Roboto'; font-size: 13px;
+            transition: all 0.2s; color: var(--c-texto); font-weight: 500;
+        }
+        .ent-btn i { width: 25px; text-align: center; color: var(--c-azul); }
+        .ent-btn:hover { background: #eef0f7; border-color: var(--c-azul); }
+        .ent-btn.active { background: var(--c-azul); color: #fff; border-color: var(--c-azul); }
+        .ent-btn.active i { color: var(--c-amarillo); }
+
+        /* Toggle Layer Style */
+        .layer-toggle {
+            display: flex; background: #eee; border-radius: 6px; overflow: hidden; margin-top: 5px;
+        }
+        .toggle-btn {
+            flex: 1; padding: 8px 0; text-align: center; font-size: 12px; font-weight: 600;
+            cursor: pointer; transition: 0.3s; color: #555;
+        }
+        .toggle-btn.active { background: var(--c-rojo); color: white; }
+
+        .slider-container { margin-top: 5px; }
+        input[type=range] { width: 100%; accent-color: var(--c-rojo); cursor: pointer; }
+        .year-display {
+            text-align: center; font-size: 26px; font-family: 'Oswald';
+            color: var(--c-azul-dark); font-weight: 700; margin-top: 5px;
+        }
+
+        .dash-map { flex: 1; position: relative; }
+        #leaflet-map { width: 100%; height: 100%; background: #e5e9ec; }
+        
+        .map-legend {
+            position: absolute; bottom: 20px; left: 20px; background: white;
+            padding: 12px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            z-index: 1000; font-size: 12px;
+        }
+        .legend-scale { display: flex; align-items: center; margin-top: 5px; }
+        .color-box { width: 30px; height: 12px; }
+
+        .dash-panel {
+            width: 360px; background: #fff; border-left: 1px solid #e0e0e0;
+            padding: 20px; display: flex; flex-direction: column; gap: 15px;
+            z-index: 10; box-shadow: -2px 0 10px rgba(0,0,0,0.05); overflow-y: auto;
+        }
+        .ficha-header { border-bottom: 2px solid var(--c-amarillo); padding-bottom: 10px; }
+        .ficha-title { font-family: 'Oswald'; font-size: 22px; color: var(--c-azul-dark); line-height: 1.2; }
+        .ficha-subtitle { font-size: 13px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .kpi-box { display: flex; justify-content: space-between; align-items: center; background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid var(--c-rojo); }
+        .kpi-value { font-family: 'Oswald'; font-size: 32px; color: var(--c-rojo); font-weight: 700; line-height: 1; }
+        .kpi-label { font-size: 12px; color: #555; }
+        
+        .priority-badge {
+            display: inline-block; padding: 4px 10px; border-radius: 12px;
+            font-size: 11px; font-weight: 700; text-transform: uppercase; color: white;
+        }
+        
+        .chart-container { width: 100%; height: 160px; margin-top: 5px; }
+
+        .determinants { margin-top: 5px; }
+        .det-item { margin-bottom: 10px; }
+        .det-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; font-weight: 500;}
+        .progress-bg { width: 100%; height: 6px; background: #eee; border-radius: 3px; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--c-azul); transition: width 0.5s ease; }
+
+        /* --- MCDA / MGWR / badge --- */
+        .sim-badge {
+            position: absolute; top: 10px; right: 18px; z-index: 200;
+            background: #e88a2c; color: #fff; padding: 5px 11px; border-radius: 14px;
+            font-size: 11px; font-weight: 600; font-family: 'Roboto'; cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3); letter-spacing: .3px;
+            border: 1.5px solid #fff;
+        }
+        .sim-badge:hover { background:#d67a1c; }
+        .sim-modal-bg {
+            position:absolute; inset:0; background:rgba(0,0,0,0.55); z-index:9000;
+            display:none; align-items:center; justify-content:center;
+        }
+        .sim-modal-bg.active { display:flex; }
+        .sim-modal {
+            background:#fff; max-width:640px; width:90%; padding:22px 26px;
+            border-radius:10px; font-size:12.5px; line-height:1.55; color:#333;
+            max-height:80%; overflow-y:auto; box-shadow:0 12px 40px rgba(0,0,0,0.4);
+        }
+        .sim-modal h3 { font-family:'Oswald'; color:var(--c-azul-dark); font-size:18px; margin-bottom:8px; }
+        .sim-modal h4 { font-family:'Oswald'; color:var(--c-azul); font-size:14px; margin-top:12px; margin-bottom:4px; }
+        .sim-modal .close-x {
+            float:right; cursor:pointer; color:#888; font-size:20px; margin-top:-4px;
+        }
+        .ranking-list { display:flex; flex-direction:column; gap:5px; margin-top:4px; }
+        .rank-row {
+            display:flex; align-items:center; gap:8px; font-size:12px;
+            padding:4px 7px; border-radius:4px; background:#f8f9fa;
+        }
+        .rank-num {
+            width:18px; height:18px; border-radius:50%; background:var(--c-azul);
+            color:#fff; font-size:10px; font-weight:700; display:flex;
+            align-items:center; justify-content:center; flex-shrink:0;
+        }
+        .rank-bar-bg { flex:1; height:6px; background:#e4e7eb; border-radius:3px; overflow:hidden; }
+        .rank-bar { height:100%; border-radius:3px; }
+        .rank-score { font-size:10.5px; color:#555; font-weight:600; width:38px; text-align:right; }
+        .heredada-flag { font-size:10px; color:#e88a2c; margin-left:4px; font-weight:600; }
+        .mgwr-line {
+            font-size:11.5px; color:#555; background:#f0f3fa; padding:6px 8px;
+            border-radius:4px; line-height:1.45;
+        }
+        .mgwr-line b { color:var(--c-azul-dark); }
+        .r2-pill {
+            display:inline-block; background:var(--c-azul); color:#fff;
+            padding:1px 8px; border-radius:10px; font-size:10px; font-weight:600;
+        }
+        .prior-legend-row { display:flex; align-items:center; gap:6px; margin-bottom:3px; font-size:11px; }
+        .prior-sw { width:14px; height:14px; border-radius:3px; flex-shrink:0; }
+
+        #map-loader {
+            position: absolute; inset: 0; background: rgba(255,255,255,0.8); z-index: 2000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--c-azul); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div id="deck-stage">
+    <div class="slide-container" id="slide-container">
+        
+        <!-- Diapositiva 1 · Portada -->
+        <div class="slide active" id="slide-1">
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 540px; background-color: var(--c-azul);"></div>
+            <div class="rombo" style="top: 0; left: 25px; width: 226px; height: 226px; background: var(--c-amarillo); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); opacity:0.8;"></div>
+            
+            <div style="position: absolute; top: 175px; left: 0; width: 100%; text-align: center;">
+                <h2 class="title-font" style="color: #ffffff; font-size: 56px; font-weight: 400; margin-bottom: 2px;">Sistema de Vigilancia Espacial</h2>
+                <h1 class="title-font" style="color: #ffffff; font-size: 108px; font-weight: 700;">EpiSIG Ecuador</h1>
+            </div>
+
+            <div class="rombo" style="top: 430px; right: 50px; width: 200px; height: 200px; background: var(--c-rojo); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); z-index: 11;"></div>
+
+            <div style="position: absolute; bottom: 60px; left: 0; width: 100%; display: flex; justify-content: center;">
+                <div class="footer-lockup">
+                    <div style="width: 64px; height: 64px; background: var(--c-azul); border-radius: 50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold;">INSPI</div>
+                    <p class="f-text">Instituto Nacional de Investigación en Salud Pública – INSPI –<br>“Dr. Leopoldo Izquieta Pérez”</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Diapositiva 2 · Separador -->
+        <div class="slide" id="slide-2">
+            <div style="position:absolute; inset:0; z-index:0; background: linear-gradient(rgba(44,45,143,0.9), rgba(44,45,143,0.9));"></div>
+            <div style="position:absolute; top:50%; left:50%; transform: translate(-50%,-50%); width: 830px; text-align: center; z-index:2;">
+                <h1 class="title-font" style="color: var(--c-amarillo); font-size: 84px; font-weight: 600;">Enfermedades No Transmisibles</h1>
+                <p style="color: white; font-size: 24px; margin-top: 20px;">Análisis a Nivel Parroquial y Hot Spots</p>
+            </div>
+            <div style="position:absolute; bottom:55px; left:0; width:100%; display:flex; justify-content:center; z-index:3;">
+                <p class="f-text white">Instituto Nacional de Investigación en Salud Pública – INSPI –</p>
+            </div>
+        </div>
+
+        <!-- Diapositiva 3 · VISOR DASHBOARD -->
+        <div class="slide" id="slide-3">
+            
+            <div style="position:absolute; top:0; left:0; width:100%; height:56px; background: linear-gradient(90deg, #2c2d8f 0%, #232a76 100%); display:flex; align-items:center; gap:14px; padding:0 18px; z-index:100;">
+                <i class="fa-solid fa-satellite-dish" style="color: var(--c-amarillo); font-size: 24px;"></i>
+                <div style="font-family:'Oswald',sans-serif; color:#fff; font-size:22px; font-weight:600; letter-spacing:1px; line-height:1;">
+                    EpiSIG · Visor ENT
+                    <div style="font-size:11px; font-weight:400; letter-spacing:2px; opacity:0.8; margin-top:2px;">
+                        SALUD PÚBLICA DE PRECISIÓN · HOT SPOTS
+                    </div>
+                </div>
+                <div style="margin-left:auto; font-family:'Roboto',sans-serif; font-size:13px; color:rgba(255,255,255,0.9); display:flex; gap:20px;">
+                    <span id="layer-indicator"><b style="color:#fbc400;">Capa:</b> Parroquias OTP (local)</span>
+                </div>
+            </div>
+
+            <div class="dashboard-layout">
+                
+                <div class="dash-sidebar">
+                    <div class="control-group">
+                        <label><i class="fa-solid fa-layer-group"></i> Visualización</label>
+                        <div class="layer-toggle">
+                            <div class="toggle-btn active" id="btn-coropleta" onclick="setLayerType('coropleta')">Coropletas</div>
+                            <div class="toggle-btn" id="btn-heatmap" onclick="setLayerType('heatmap')">Puntos Calientes</div>
+                            <div class="toggle-btn" id="btn-prior" onclick="setLayerType('priorizacion')">Priorización</div>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label><i class="fa-solid fa-viruses"></i> Grupo ENT</label>
+                        <button class="ent-btn active" data-ent="todas">
+                            <i class="fa-solid fa-layer-group"></i> Todas las ENT
+                        </button>
+                        <button class="ent-btn" data-ent="circulatorio">
+                            <i class="fa-solid fa-heart-pulse"></i> Circulatorio (I00-I99)
+                        </button>
+                        <button class="ent-btn" data-ent="neoplasia">
+                            <i class="fa-solid fa-disease"></i> Neoplasias (C00-D48)
+                        </button>
+                        <button class="ent-btn" data-ent="metabolica">
+                            <i class="fa-solid fa-cubes-stacked"></i> Metabólicas (E00-E90)
+                        </button>
+                        <button class="ent-btn" data-ent="respiratorio">
+                            <i class="fa-solid fa-lungs"></i> Respiratorio (J00-J99)
+                        </button>
+                        <button class="ent-btn" data-ent="nervioso">
+                            <i class="fa-solid fa-brain"></i> Nervioso (G00-G99)
+                        </button>
+                    </div>
+
+                    <div class="control-group">
+                        <label><i class="fa-solid fa-map-location-dot"></i> Provincia (zoom)</label>
+                        <select id="prov-selector" style="width:100%; padding:7px; border:1px solid var(--c-azul); border-radius:4px; font-family:Roboto; font-size:13px; color:var(--c-azul); background:#fff; cursor:pointer;">
+                            <option value="">— Nacional —</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group" style="margin-top: auto;">
+                        <label><i class="fa-regular fa-calendar-days"></i> Evolución Temporal</label>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <button id="btn-play" style="flex:0 0 auto; background:var(--c-amarillo); color:var(--c-azul-dark); border:0; border-radius:50%; width:34px; height:34px; font-size:14px; cursor:pointer; font-weight:700;" title="Reproducir animación 2013→2023">▶</button>
+                            <div class="year-display" id="lbl-year" style="flex:1">2023</div>
+                        </div>
+                        <div class="slider-container" style="margin-top:6px;">
+                            <input type="range" id="year-slider" min="2013" max="2023" value="2023" step="1">
+                            <div style="display:flex; justify-content:space-between; font-size:11px; color:#888; margin-top:5px;">
+                                <span>2013</span><span>2023</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dash-map">
+                    <div class="sim-badge" onclick="document.getElementById('sim-modal-bg').classList.add('active')">
+                        <i class="fa-solid fa-flask"></i> Simulación estructurada · metodología
+                    </div>
+                    <div class="sim-modal-bg" id="sim-modal-bg" onclick="if(event.target===this) this.classList.remove('active')">
+                        <div class="sim-modal">
+                            <span class="close-x" onclick="document.getElementById('sim-modal-bg').classList.remove('active')">&times;</span>
+                            <h3>Determinantes, priorización MCDA y MGWR: simulación estructurada</h3>
+                            <p>Los tres capas adicionales de este visor son <b>simulaciones defendibles</b>, no datos oficiales. Se construyen como <i>preview</i> de dos proyectos INSPI 2026-2028 que aún no se ejecutan.</p>
+                            <h4>Determinantes por parroquia</h4>
+                            <p>Valor provincial base (ENSANUT-ECU 2018, STEPS-OMS, GBD 2021, CPV 2022) × factor urbano/rural × ruido gaussiano σ=8%. Acceso a salud: distancia euclidiana al centroide de la cabecera cantonal (EPSG:32717).</p>
+                            <h4>Priorización MCDA</h4>
+                            <p>Suma ponderada (Marsh/ISPOR 2016, Baltussen 2006) con 6 criterios: mortalidad (0.30), egresos (0.20), AVAD-GBD (0.15), tendencia CAGR (0.15), costo-sistema (0.10), brecha urbano-rural (0.10). Parroquias con &lt;10 casos heredan el ranking cantonal.</p>
+                            <h4>MGWR local</h4>
+                            <p>Regresión geográficamente ponderada multiescala (Oshan 2020) simulada: β nacional base × kernel gaussiano anclado en focos reales (Quito/Guayaquil para PM2.5; Amazonía para pobreza; Costa urbana para obesidad).</p>
+                            <h4>Reemplazo</h4>
+                            <p>Sustituir por resultados reales del Proyecto Econométrico Espacial INSPI F-I+D+i-075 (Núñez-ESPE 2026-2027) y del Proyecto de Priorización MCDA (Duque 2026-2028) cuando estén disponibles. Los egresos 2013-2023 <b>sí son reales</b> (microdato MSP/INEC procesado).</p>
+                        </div>
+                    </div>
+                    <div id="map-loader">
+                        <div class="spinner"></div>
+                        <p id="loader-text" style="margin-top:10px; font-family:'Oswald'; color:var(--c-azul);">Cargando capa parroquial (OTP CONALI, ~6 MB)...</p>
+                    </div>
+                    <div id="leaflet-map"></div>
+                    
+                    <div class="map-legend" id="legend-container">
+                        <strong id="legend-title" style="color:var(--c-azul-dark); font-family:'Oswald';">Tasa por 100k hab.</strong>
+                        <div class="legend-scale" id="legend-scale"></div>
+                    </div>
+                </div>
+
+                <div class="dash-panel">
+                    <div class="ficha-header">
+                        <div class="ficha-subtitle" id="f-ent-name">Enfermedades Cardiovasculares</div>
+                        <div class="ficha-title" id="f-geo-name">Nacional (Ecuador)</div>
+                    </div>
+
+                    <div class="kpi-box">
+                        <div>
+                            <div class="kpi-label">Prevalencia Estimada</div>
+                            <div class="kpi-value" id="f-kpi-val">245.3</div>
+                            <div style="font-size:10px; color:#777;">Tasa est. por 100k hab.</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="kpi-label" style="margin-bottom:5px;">Prioridad</div>
+                            <span class="priority-badge" id="f-priority" style="background:#ea1d2c;">ALTA</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="font-family:'Oswald'; font-size:14px; color:var(--c-azul);">Tendencia (2013-2023)</label>
+                        <div id="plotly-chart" class="chart-container"></div>
+                    </div>
+
+                    <div class="control-group" style="margin-top:6px;">
+                        <label><i class="fa-solid fa-ranking-star"></i> Ranking MCDA <span id="mcda-flag" class="heredada-flag"></span></label>
+                        <div class="ranking-list" id="mcda-ranking"></div>
+                    </div>
+
+                    <div class="control-group" style="margin-top:6px;">
+                        <label><i class="fa-solid fa-chart-pie"></i> Determinantes (simul.)</label>
+                        <div class="determinants">
+                            <div class="det-item">
+                                <div class="det-header"><span>Consumo de Tabaco</span> <span id="det-tabaco-val">15%</span></div>
+                                <div class="progress-bg"><div class="progress-bar" id="det-tabaco-bar" style="width: 15%;"></div></div>
+                            </div>
+                            <div class="det-item">
+                                <div class="det-header"><span>Sedentarismo</span> <span id="det-fis-val">38%</span></div>
+                                <div class="progress-bg"><div class="progress-bar" id="det-fis-bar" style="width: 38%; background:#fbc400;"></div></div>
+                            </div>
+                            <div class="det-item">
+                                <div class="det-header"><span>Obesidad</span> <span id="det-obe-val">28%</span></div>
+                                <div class="progress-bg"><div class="progress-bar" id="det-obe-bar" style="width: 28%; background:#ea1d2c;"></div></div>
+                            </div>
+                            <div class="det-item">
+                                <div class="det-header"><span>PM2.5 (µg/m³)</span> <span id="det-pm-val">45</span></div>
+                                <div class="progress-bg"><div class="progress-bar" id="det-pm-bar" style="width: 45%; background:#7f8c8d;"></div></div>
+                            </div>
+                            <div class="det-item">
+                                <div class="det-header"><span>Pobreza / NBI / Acceso-salud</span> <span id="det-extra-val">—</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="control-group" style="margin-top:6px;">
+                        <label><i class="fa-solid fa-diagram-project"></i> Interpretación MGWR <span id="mgwr-r2" class="r2-pill" style="float:right;">R²=—</span></label>
+                        <div class="mgwr-line" id="mgwr-text">Selecciona una parroquia para ver los determinantes locales dominantes de la ENT priorizada.</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div style="position:absolute; bottom:0; left:0; width:100%; height:36px; background:#1a1b4a; color:#fff; display:flex; align-items:center; justify-content:space-between; padding:0 18px; z-index:100; font-family:'Roboto',sans-serif; font-size:13px;">
+                <span style="letter-spacing:0.5px;">INSPI — Dept. de Epidemiología Espacial</span>
+                <span style="color:#fbc400; font-weight:500;">
+                    <i class="fa-solid fa-circle-info"></i> Clic en el mapa para deseleccionar. En «Puntos calientes» el foco es visual; usa «Coropletas» para elegir parroquia.
+                </span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Navegación UI -->
+    <button id="prev-btn" class="nav-btn"><i class="fa-solid fa-chevron-left"></i> Anterior</button>
+    <div class="slide-counter"><span id="curr-slide">1</span> / 3</div>
+    <button id="next-btn" class="nav-btn">Siguiente <i class="fa-solid fa-chevron-right"></i></button>
+</div>
+
+<script>
+/** 1. GESTIÓN DE LA PRESENTACIÓN */
+let currentSlide = 0;
+const slides = document.querySelectorAll('.slide');
+const container = document.getElementById('slide-container');
+
+function updateScale() {
+    const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+    container.style.transform = `scale(${scale})`;
+}
+window.addEventListener('resize', updateScale);
+updateScale();
+
+function showSlide(index) {
+    slides.forEach(s => s.classList.remove('active'));
+    slides[index].classList.add('active');
+    document.getElementById('curr-slide').innerText = index + 1;
+    
+    if(index === 2 && map) {
+        setTimeout(() => {
+            map.invalidateSize();
+            Plotly.Plots.resize(document.getElementById('plotly-chart'));
+        }, 300);
+    }
+}
+
+document.getElementById('prev-btn').addEventListener('click', () => { if (currentSlide > 0) { currentSlide--; showSlide(currentSlide); }});
+document.getElementById('next-btn').addEventListener('click', () => { if (currentSlide < slides.length - 1) { currentSlide++; showSlide(currentSlide); }});
+document.addEventListener('keydown', (e) => {
+    if(e.key === 'ArrowRight') document.getElementById('next-btn').click();
+    if(e.key === 'ArrowLeft') document.getElementById('prev-btn').click();
+});
+
+/** 2. MOTOR GEOESPACIAL Y DATOS */
+let map;
+let geojsonLayer;
+let heatLayer;
+let provinciasLayer;          // overlay de delimitación provincial
+let provinciasData = null;
+let geojsonData = null;
+let didFitParroquialBounds = false;
+
+let state = {
+    ent: 'todas',
+    year: 2023,
+    selectedFeature: null,
+    selectedProv: '',       // código DPA 2 díg, '' = nacional
+    layerType: 'coropleta', // 'coropleta' o 'heatmap'
+    playing: false,
+    playTimer: null
+};
+
+// JSONs simulados (MCDA / MGWR / determinantes) cargados en initMap
+let DET_DATA = null, MCDA_DATA = null, MGWR_DATA = null;
+const ENT_COLOR = { circulatorio:'#ea1d2c', neoplasia:'#756bb1', metabolica:'#e88a2c', respiratorio:'#31a354', nervioso:'#6c7a89' };
+const ENT_LABEL = { circulatorio:'Circulatorio', neoplasia:'Neoplasias', metabolica:'Metabólica (DM2)', respiratorio:'Respiratorio', nervioso:'Nervioso' };
+const DET_LABEL = { pobreza:'Pobreza', pm25:'PM2.5', sedentarismo:'Sedentarismo', acceso_salud_km:'Acceso a salud', obesidad:'Obesidad', tabaquismo:'Tabaquismo' };
+
+// Agrupaciones ENT segun clasificacion Leonel Morales (ENT_ART / Grupos_ent.R)
+// basada en CIE-10: 5 grupos formales + agregado nacional.
+const entNames = {
+    todas:        "Todas las ENT (agregado)",
+    circulatorio: "Enfermedades del Circulatorio (I00-I99)",
+    neoplasia:    "Neoplasias (C00-D48)",
+    metabolica:   "Endocrinas, nutricionales y metabólicas (E00-E90)",
+    respiratorio: "Enfermedades del Respiratorio (J00-J99)",
+    nervioso:     "Enfermedades del Sistema Nervioso (G00-G99)"
+};
+
+const colorScales = {
+    todas:        ['#eef0f8','#9ba0d6','#5a5fb8','#2c2d8f','#1a1b4a'],
+    circulatorio: ['#fee5d9','#fcae91','#fb6a4a','#de2d26','#a50f15'],
+    neoplasia:    ['#f2f0f7','#cbc9e2','#9e9ac8','#756bb1','#54278f'],
+    metabolica:   ['#feedde','#fdbe85','#fd8d3c','#e6550d','#a63603'],
+    respiratorio: ['#edf8e9','#bae4b3','#74c476','#31a354','#006d2c'],
+    nervioso:     ['#f0f0f0','#cccccc','#969696','#636363','#252525']
+};
+
+function pseudoRandom(seed) {
+    let x = Math.sin(seed++) * 10000;
+    return x - Math.floor(x);
+}
+
+/** Datos reales — egresos hospitalarios INEC/MSP 2013-2023 (L. Morales, ENT_ART) */
+let ENT_DATA = null;
+let POB_DATA = null;
+
+/** Mapeo disease-id del visor -> clave(s) en el JSON real. */
+const ENT_MAP = {
+    todas:        {type: '__sum_grupos__', key: null},           // suma de 5 grupos
+    circulatorio: {type: 'grupos', key: 'circulatorio'},         // I00-I99
+    neoplasia:    {type: 'grupos', key: 'neoplasia'},            // C00-D48
+    metabolica:   {type: 'grupos', key: 'metabolica'},           // E00-E90
+    respiratorio: {type: 'grupos', key: 'respiratorio'},         // J00-J99
+    nervioso:     {type: 'grupos', key: 'nervioso'}              // G00-G99
+};
+
+async function loadRealData() {
+    try {
+        const [eR, pR] = await Promise.all([
+            fetch('assets/ent_parroquial.json'),
+            fetch('assets/pob_parroquial.json')
+        ]);
+        if (eR.ok) ENT_DATA = await eR.json();
+        if (pR.ok) POB_DATA = await pR.json();
+        if (ENT_DATA) {
+            console.log('[EpiSIG] Datos reales OK:',
+                Object.keys(ENT_DATA.parroquias).length, 'parroquias ·',
+                ENT_DATA.fuente);
+            const ind = document.getElementById('layer-indicator');
+            if (ind) ind.innerHTML += ' · <b style="color:#fbc400">Datos:</b> reales 2013–2023';
+        }
+    } catch (err) {
+        console.warn('[EpiSIG] Fallback a simulación:', err);
+    }
+}
+
+/** Clave estable: código DPA parroquia (6 dígitos con padding) o nombre. */
+function getParroquiaKey(props) {
+    if (!props) return 'NACIONAL';
+    const code = (props.DPA_PARROQ != null && String(props.DPA_PARROQ).trim()) || '';
+    if (code) return String(code).padStart(6, '0');
+    return (props.DPA_DESPAR || props.name || 'NACIONAL').toString();
+}
+
+function getParroquiaLabel(props) {
+    if (!props) return 'Nacional (Ecuador)';
+    const par = props.DPA_DESPAR || props.name || '—';
+    const can = props.DPA_DESCAN || '';
+    const prov = props.DPA_DESPRO || '';
+    if (can && prov) return par + ' · ' + can + ' · ' + prov;
+    if (can) return par + ' · ' + can;
+    return par;
+}
+
+function generateData(geoKey, disease, year) {
+    // ====== MODO DATOS REALES ======
+    if (ENT_DATA && ENT_MAP[disease]) {
+        const parr = ENT_DATA.parroquias[geoKey];
+        const yi = ENT_DATA.anios.indexOf(year);
+        if (parr && yi >= 0) {
+            const m = ENT_MAP[disease];
+            let casos = 0, muertes = 0;
+            if (m.type === '__sum_grupos__') {
+                // "Todas las ENT": sumar los 5 grupos CIE-10
+                const grupos = ENT_DATA.grupos || [];
+                for (const g of grupos) {
+                    const b = parr.data.grupos && parr.data.grupos[g];
+                    if (b) {
+                        casos   += b.casos[yi]   || 0;
+                        muertes += b.muertes[yi] || 0;
+                    }
+                }
+            } else {
+                const bucket = parr.data[m.type] ? parr.data[m.type][m.key] : null;
+                casos   = bucket ? (bucket.casos[yi]   || 0) : 0;
+                muertes = bucket ? (bucket.muertes[yi] || 0) : 0;
+            }
+            const pob = (POB_DATA && POB_DATA.poblacion[geoKey]) || 0;
+            const rate = pob > 0 ? (casos / pob * 100000) : 0;
+            // Determinantes aun no tienen fuente parroquial; se muestran como
+            // promedio nacional aproximado (no individualizar hasta tener data).
+            let dSeed = year * 131;
+            for (let i = 0; i < geoKey.length; i++) dSeed += geoKey.charCodeAt(i) * (i + 3);
+            return {
+                rate: parseFloat(rate.toFixed(1)),
+                casos, muertes, pob,
+                _real: true,
+                tabaco:   Math.floor((pseudoRandom(dSeed)   * 20) + 5),
+                fisica:   Math.floor((pseudoRandom(dSeed+1) * 40) + 20),
+                obesidad: Math.floor((pseudoRandom(dSeed+2) * 35) + 15),
+                pm25:     Math.floor((pseudoRandom(dSeed+3) * 60) + 10)
+            };
+        }
+        // parroquia sin registros reales
+        const pob = (POB_DATA && POB_DATA.poblacion[geoKey]) || 0;
+        return {rate: 0, casos: 0, muertes: 0, pob, _real: true,
+                tabaco: 0, fisica: 0, obesidad: 0, pm25: 0};
+    }
+
+    // ====== MODO SIMULACIÓN (fallback) ======
+    let seed = year * 131;
+    for (let i = 0; i < geoKey.length; i++) seed += geoKey.charCodeAt(i) * (i + 3);
+    const bases = { cardio: 220, diabetes: 150, cancer: 110, resp: 80 };
+    let base = bases[disease];
+    const g = String(geoKey);
+    if (g.includes('Tarqui') || g.includes('Ximena')) base *= 1.4;
+    if (g.includes('Iñaquito') || g.includes('Calderon') || g.includes('IÑAQUITO')) base *= 1.3;
+    let yearFactor = 1 + ((year - 2017) * 0.02);
+    let noise = (pseudoRandom(seed) * 0.4) + 0.8;
+    let rate = base * yearFactor * noise;
+    let dSeed = seed * 2;
+    return {
+        rate: parseFloat(rate.toFixed(1)),
+        casos: 0, muertes: 0, pob: 0, _real: false,
+        tabaco: Math.floor((pseudoRandom(dSeed) * 20) + 5),
+        fisica: Math.floor((pseudoRandom(dSeed+1) * 40) + 20),
+        obesidad: Math.floor((pseudoRandom(dSeed+2) * 35) + 15),
+        pm25: Math.floor((pseudoRandom(dSeed+3) * 60) + 10)
+    };
+}
+
+const DEMO_NACIONAL_KEY = '170150';
+
+// Calculadora de Centroides para el Heatmap (Aproximación por Bounding Box)
+function getBoundsCenter(feature) {
+    let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+    const processCoord = (coord) => {
+        if (coord[0] < minLng) minLng = coord[0];
+        if (coord[0] > maxLng) maxLng = coord[0];
+        if (coord[1] < minLat) minLat = coord[1];
+        if (coord[1] > maxLat) maxLat = coord[1];
+    };
+    
+    const extract = (array) => {
+        if(typeof array[0] === 'number') { processCoord(array); }
+        else { array.forEach(extract); }
+    }
+    extract(feature.geometry.coordinates);
+    return [(minLat + maxLat)/2, (minLng + maxLng)/2];
+}
+
+function initMap() {
+    // Zoom tope a nivel provincial (Ecuador): z=9 es suficiente para ver una
+    // provincia completa sin poder entrar a detalle cantonal/parroquial.
+    map = L.map('leaflet-map', {
+        zoomControl: false,
+        attributionControl: false,
+        preferCanvas: true,
+        maxZoom: 9,
+        minZoom: 6
+    }).setView([-1.8312, -78.1834], 7);
+    L.control.zoom({ position: 'topright' }).addTo(map);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', { maxZoom: 9 }).addTo(map);
+    fetchSimJSONs();
+    fetchGeoJSON();
+}
+
+async function fetchSimJSONs() {
+    const load = async (name) => {
+        try {
+            const r = await fetch(new URL('assets/' + name, window.location.href).href);
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return await r.json();
+        } catch (e) {
+            console.warn('[EpiSIG] No se pudo cargar', name, e);
+            return null;
+        }
+    };
+    [DET_DATA, MCDA_DATA, MGWR_DATA] = await Promise.all([
+        load('determinantes_parroquial.json'),
+        load('priorizacion_mcda.json'),
+        load('mgwr_betas.json')
+    ]);
+    if (geojsonData) { renderMap(); updateDashboard(); }
+    else updateDashboard();
+}
+
+// Generador de respaldo en caso de no tener internet o bloqueo estricto de red
+function getSimulatedProvinces() {
+    const features = [];
+    const provinces = ["Azuay", "Bolívar", "Cañar", "Carchi", "Chimborazo", "Cotopaxi", "El Oro", "Esmeraldas", "Galápagos", "Guayas", "Imbabura", "Loja", "Los Ríos", "Manabí", "Morona Santiago", "Napo", "Orellana", "Pastaza", "Pichincha", "Santa Elena", "Santo Domingo", "Sucumbíos", "Tungurahua", "Zamora Chinchipe"];
+    let lat = 1.0, lon = -81.0;
+    for(let i = 0; i < provinces.length; i++) {
+        let pLat = lat - Math.floor(i / 5) * 1.2;
+        let pLon = lon + (i % 5) * 1.2;
+        features.push({ "type": "Feature", "properties": { "DPA_DESPRO": provinces[i], "name": provinces[i] }, "geometry": { "type": "Polygon", "coordinates": [[[pLon, pLat], [pLon + 1.1, pLat], [pLon + 1.1, pLat - 1.1], [pLon, pLat - 1.1], [pLon, pLat]]] } });
+    }
+    return { "type": "FeatureCollection", "features": features };
+}
+
+async function fetchGeoJSON() {
+    const setLayerText = (html) => { document.getElementById('layer-indicator').innerHTML = html; };
+
+    try {
+        document.getElementById('loader-text').innerText = 'Cargando capa parroquial (OTP CONALI, ~6 MB)...';
+        const localUrl = new URL('assets/parroquias_otp_simpl.geojson', window.location.href);
+        const response = await fetch(localUrl.href);
+        if (!response.ok) throw new Error('No se encontró el GeoJSON local.');
+        geojsonData = await response.json();
+        const n = geojsonData.features ? geojsonData.features.length : 0;
+        setLayerText('<b style="color:#fbc400;">Capa:</b> Parroquial OTP · ' + n + ' polígonos (local)');
+
+        // Overlay de delimitación provincial (opcional, si está disponible)
+        try {
+            const provResp = await fetch(new URL('assets/provincias_otp.geojson', window.location.href).href);
+            if (provResp.ok) {
+                provinciasData = await provResp.json();
+                console.log('[EpiSIG] Delimitación provincial cargada:', provinciasData.features.length, 'provincias');
+            }
+        } catch (ep) { console.warn('[EpiSIG] Sin overlay provincial:', ep); }
+    } catch (err) {
+        console.warn('Capa parroquial local no disponible:', err);
+        document.getElementById('loader-text').innerText = 'Intentando cantones (red)...';
+        try {
+            const response = await fetch('https://raw.githubusercontent.com/matallo/mapas-ecuador/master/geojson/cantones.geojson');
+            if (!response.ok) throw new Error('Fallo la red.');
+            geojsonData = await response.json();
+            setLayerText('<b style="color:#fbc400;">Capa:</b> Cantonal (red · respaldo)');
+        } catch (err2) {
+            console.warn('Fallo cantones, intentando provincias...', err2);
+            document.getElementById('loader-text').innerText = 'Cargando mapa provincial (respaldo)...';
+            try {
+                const provResponse = await fetch('https://raw.githubusercontent.com/matallo/mapas-ecuador/master/geojson/provincias.geojson');
+                if (!provResponse.ok) throw new Error('Fallo provincias.');
+                geojsonData = await provResponse.json();
+                setLayerText('<b style="color:#fbc400;">Capa:</b> Provincial (respaldo)');
+            } catch (err3) {
+                console.error('Sin red ni capa local. Modo simulado.', err3);
+                document.getElementById('loader-text').innerText = 'Modo demostración (sin geometría OTP)...';
+                geojsonData = getSimulatedProvinces();
+                setLayerText('<b style="color:#fbc400;">Capa:</b> Demostración (provincias ficticias)');
+            }
+        }
+    }
+
+    document.getElementById('map-loader').style.display = 'none';
+    poblarSelectorProvincias();
+    renderMap();
+    updateDashboard();
+}
+
+function setLayerType(type) {
+    state.layerType = type;
+    document.getElementById('btn-coropleta').classList.toggle('active', type === 'coropleta');
+    document.getElementById('btn-heatmap').classList.toggle('active', type === 'heatmap');
+    const bp = document.getElementById('btn-prior');
+    if (bp) bp.classList.toggle('active', type === 'priorizacion');
+
+    // Leyenda: siempre visible, cambia el contenido segun el modo
+    document.getElementById('legend-container').style.display = 'block';
+    if (type === 'heatmap') renderHeatLegend();
+    else if (type === 'priorizacion') renderPriorLegend();
+
+    if(geojsonData) renderMap();
+}
+
+function renderHeatLegend() {
+    const title = document.getElementById('legend-title');
+    if (title) title.innerText = 'KDE · densidad de casos (YlOrRd)';
+    const stops = ['#fff5f0','#fcbba1','#fc9272','#fb6a4a','#ef3b2c','#cb181d','#a50f15','#67000d'];
+    const ramp = `linear-gradient(to right, ${stops.join(',')})`;
+    document.getElementById('legend-scale').innerHTML =
+        `<div style="display:flex; flex-direction:column; gap:3px;">
+            <div style="width:180px; height:12px; background:${ramp}; border:1px solid #ccc; border-radius:2px;"></div>
+            <div style="display:flex; justify-content:space-between; font-size:10px; color:#555;">
+                <span>bajo</span><span>alto</span>
+            </div>
+         </div>`;
+}
+
+function renderPriorLegend() {
+    const title = document.getElementById('legend-title');
+    if (title) title.innerText = 'ENT #1 priorizada (MCDA)';
+    const ents = ['circulatorio','neoplasia','metabolica','respiratorio','nervioso'];
+    let html = '<div style="display:flex; flex-direction:column; gap:2px;">';
+    ents.forEach(e => {
+        html += `<div class="prior-legend-row"><div class="prior-sw" style="background:${ENT_COLOR[e]}"></div> ${ENT_LABEL[e]}</div>`;
+    });
+    html += '<div class="prior-legend-row"><div class="prior-sw" style="background:#ccc; border:1px dashed #888;"></div> heredada del cantón</div></div>';
+    document.getElementById('legend-scale').innerHTML = html;
+}
+
+function topRankEnt(dpa) {
+    if (!MCDA_DATA) return null;
+    const pr = MCDA_DATA.parroquias[dpa];
+    if (!pr || !pr.ranking || !pr.ranking.length) return null;
+    return pr.ranking[0];
+}
+
+/** Quintiles dinamicos por (disease, year) calculados una vez al cambiar de
+ *  estado. Cuando hay ENT_DATA real, se usan; si no, fallback a los limites
+ *  fijos de la simulacion. */
+const LIMITS_SIM = {
+    todas:        [300, 450, 600, 800],
+    circulatorio: [150, 190, 230, 270],
+    neoplasia:    [ 70,  95, 120, 145],
+    metabolica:   [100, 130, 160, 190],
+    respiratorio: [ 50,  70,  90, 110],
+    nervioso:     [ 30,  50,  70,  90]
+};
+let LIMITS_CACHE = {};
+
+function computeQuintiles(disease, year) {
+    const cacheKey = disease + '|' + year;
+    if (LIMITS_CACHE[cacheKey]) return LIMITS_CACHE[cacheKey];
+    if (!ENT_DATA || !geojsonData) return LIMITS_SIM[disease];
+    const vals = [];
+    geojsonData.features.forEach(f => {
+        const key = getParroquiaKey(f.properties);
+        const d = generateDataRaw(key, disease, year);
+        if (d.rate > 0) vals.push(d.rate);
+    });
+    if (vals.length < 5) return LIMITS_SIM[disease];
+    vals.sort((a,b) => a - b);
+    const q = p => vals[Math.floor(vals.length * p)];
+    const lim = [q(0.25), q(0.5), q(0.75), q(0.9)];
+    LIMITS_CACHE[cacheKey] = lim;
+    return lim;
+}
+
+// Version "raw" sin usar getColor (evita recursion en computeQuintiles)
+function generateDataRaw(geoKey, disease, year) {
+    return generateData(geoKey, disease, year);
+}
+
+function getColor(d, disease) {
+    const scale = colorScales[disease];
+    const l = ENT_DATA
+        ? computeQuintiles(disease, state.year)
+        : LIMITS_SIM[disease];
+    return d > l[3] ? scale[4] : d > l[2] ? scale[3] : d > l[1] ? scale[2] : d > l[0] ? scale[1] : scale[0];
+}
+
+function style(feature) {
+    const key = getParroquiaKey(feature.properties);
+    const data = generateData(key, state.ent, state.year);
+
+    if(state.layerType === 'coropleta') {
+        return { fillColor: getColor(data.rate, state.ent), weight: 0.3, opacity: 1, color: '#ffffff', fillOpacity: 0.95 };
+    } else {
+        // En modo Heatmap, las parroquias son solo líneas sutiles de fondo
+        return { fillColor: 'transparent', weight: 0.3, opacity: 0.5, color: '#999', fillOpacity: 0 };
+    }
+}
+
+/** Estilo unificado (coropleta + hot spots + dim fuera de la prov seleccionada). */
+function parroquiaStyle(feature) {
+    const key = getParroquiaKey(feature.properties);
+    const provCode = String(
+        feature.properties.DPA_PROVIN || key.slice(0, 2) || ''
+    ).padStart(2, '0');
+    const dimmed = state.selectedProv && provCode !== state.selectedProv;
+
+    // MODO PRIORIZACION MCDA (color por ENT #1 del ranking)
+    if (state.layerType === 'priorizacion') {
+        if (dimmed) {
+            return { fillColor: '#d0d0d0', fillOpacity: 0.22,
+                     color: '#bbb', weight: 0.2, opacity: 0.5 };
+        }
+        const t = topRankEnt(key);
+        if (!t) return { fillColor:'#dddddd', weight:0.3, opacity:1, color:'#fff', fillOpacity:0.7 };
+        const pr = MCDA_DATA.parroquias[key];
+        const heredada = pr && pr.fuente === 'heredada_canton';
+        return {
+            fillColor: t.color || ENT_COLOR[t.ent] || '#999',
+            weight: 0.4, opacity: 1, color: heredada ? '#888' : '#ffffff',
+            dashArray: heredada ? '3,3' : null,
+            fillOpacity: heredada ? 0.65 : 0.92
+        };
+    }
+
+    // MODO HOT SPOTS (KDE qgis2web): polígonos transparentes, solo
+    // trazo muy sutil como referencia geográfica. El color proviene
+    // exclusivamente del L.heatLayer (YlOrRd 9-stop) renderizado en
+    // renderMap(). Dimming si hay provincia seleccionada.
+    if (state.layerType === 'heatmap') {
+        if (dimmed) {
+            return { fillColor: 'transparent', fillOpacity: 0,
+                     color: '#ccc', weight: 0.2, opacity: 0.4 };
+        }
+        return {
+            fillColor: 'transparent', fillOpacity: 0,
+            color: '#999', weight: 0.25, opacity: 0.35
+        };
+    }
+
+    // MODO COROPLETA
+    const data = generateData(key, state.ent, state.year);
+    if (dimmed) {
+        return { fillColor: '#d0d0d0', fillOpacity: 0.22,
+                 color: '#bbb', weight: 0.2, opacity: 0.5 };
+    }
+    return {
+        fillColor: getColor(data.rate, state.ent),
+        weight: 0.3, opacity: 1, color: '#ffffff', fillOpacity: 0.95
+    };
+}
+
+function renderMap() {
+    if(geojsonLayer) map.removeLayer(geojsonLayer);
+    if(heatLayer) map.removeLayer(heatLayer);
+    if(provinciasLayer) map.removeLayer(provinciasLayer);
+
+    geojsonLayer = L.geoJson(geojsonData, {
+        style: parroquiaStyle,
+        onEachFeature: (feature, layer) => {
+            const key = getParroquiaKey(feature.properties);
+            const label = getParroquiaLabel(feature.properties);
+            layer.on({
+                mouseover: (e) => {
+                    const l = e.target;
+                    l.setStyle({ weight: 2, color: '#000' });
+                    if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+                        l.bringToFront();
+                        if (provinciasLayer) provinciasLayer.bringToFront();
+                    }
+
+                    const d = generateData(key, state.ent, state.year);
+                    const casos = (d.casos || 0).toLocaleString('es-EC');
+                    let tt;
+                    if (state.layerType === 'priorizacion' && MCDA_DATA) {
+                        const pr = MCDA_DATA.parroquias[key];
+                        if (pr && pr.ranking && pr.ranking.length) {
+                            const top3 = pr.ranking.slice(0,3).map(r =>
+                                `<span style="color:${r.color||ENT_COLOR[r.ent]};">&#9632;</span> ${ENT_LABEL[r.ent]||r.ent} (${r.score})`
+                            ).join('<br>');
+                            const heredada = pr.fuente === 'heredada_canton'
+                                ? '<br><i style="color:#e88a2c;">ranking heredado del cantón</i>' : '';
+                            tt = `<b>${label}</b><br>DPA ${key}${heredada}<br><hr style="margin:3px 0;">${top3}`;
+                        } else {
+                            tt = `<b>${label}</b><br>DPA ${key}<br>Sin ranking MCDA`;
+                        }
+                    } else if (state.layerType === 'heatmap') {
+                        tt = `<b>${label}</b><br>DPA: ${key}<br>Casos: ${casos}`;
+                    } else {
+                        tt = `<b>${label}</b><br>DPA: ${key}<br>Tasa: ${d.rate} / 100k`;
+                        if (d._real) {
+                            tt += `<br>Casos: <b>${casos}</b>`;
+                            if (d.muertes > 0) tt += `<br>Muertes: ${d.muertes}`;
+                            if (d.pob > 0)     tt += `<br>Pob. 2022: ${d.pob.toLocaleString('es-EC')}`;
+                        }
+                    }
+                    l.bindTooltip(tt, {sticky: true}).openTooltip();
+                },
+                mouseout: (e) => { geojsonLayer.resetStyle(e.target); e.target.closeTooltip(); },
+                click: (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    state.selectedFeature = feature;
+                    map.fitBounds(e.target.getBounds(), {padding: [50,50], maxZoom: 9});
+                    updateDashboard();
+                }
+            });
+        }
+    }).addTo(map);
+
+    // Modo Hot Spots: KDE con Leaflet.heat (paleta YlOrRd 9 stops,
+    // radius=8, weight = casos). Replica el export QGIS qgis2web
+    // "Hot Spot OVITRAMPAS Pacto 2020" (Núñez/INSPI 2026).
+    if (state.layerType === 'heatmap') {
+        let heatPoints = [];
+        let maxCasos = 1;
+        if (ENT_DATA) {
+            geojsonData.features.forEach(f => {
+                const d = generateData(getParroquiaKey(f.properties), state.ent, state.year);
+                if (d.casos > maxCasos) maxCasos = d.casos;
+            });
+        }
+        geojsonData.features.forEach(f => {
+            const key = getParroquiaKey(f.properties);
+            const d = generateData(key, state.ent, state.year);
+            const center = getBoundsCenter(f);
+            const casos = d.casos || 0;
+            if (casos <= 0) return;
+            heatPoints.push([center[0], center[1], casos]);  // peso crudo = casos
+        });
+        // Paleta YlOrRd 9 stops (ColorBrewer 2.0) — idéntica a qgis2web
+        const GRADIENT_QGIS = {
+            0.0:  '#fff5f0',
+            0.01: '#fcbba1',
+            0.1:  '#fc9272',
+            0.2:  '#fb6a4a',
+            0.4:  '#ef3b2c',
+            0.6:  '#cb181d',
+            0.8:  '#a50f15',
+            1.0:  '#67000d'
+        };
+        heatLayer = L.heatLayer(heatPoints, {
+            radius: 8,
+            blur: 12,
+            maxZoom: 9,
+            minOpacity: 0.55,
+            max: maxCasos,     // casos máximos del (ENT, año) actual
+            gradient: GRADIENT_QGIS
+        }).addTo(map);
+    }
+
+    // Overlay de delimitación provincial (líneas oscuras sobre las parroquias).
+    // Solo trazo, sin fill, no interactúa con clicks/hover.
+    if (provinciasData) {
+        provinciasLayer = L.geoJson(provinciasData, {
+            style: {
+                color: '#1a1b4a',
+                weight: 1.1,
+                opacity: 0.9,
+                fill: false,
+                interactive: false
+            }
+        }).addTo(map);
+        provinciasLayer.bringToFront();
+    }
+
+    if (!didFitParroquialBounds && geojsonLayer) {
+        // Centro y zoom fijos sobre Ecuador continental (Riobamba-ish, z=6.5).
+        // Galápagos sigue accesible con pan. Evita que fitBounds sobre-zoomee.
+        map.setView([-1.55, -78.3], 6.5);
+        didFitParroquialBounds = true;
+    }
+
+    if(state.layerType === 'coropleta') updateLegend();
+}
+
+function updateLegend() {
+    // Restaurar titulo (si venia de KDE)
+    const title = document.getElementById('legend-title');
+    if (title) title.innerText = 'Tasa por 100k hab.';
+    // Con data real: etiquetas basadas en cuartiles reales (redondeados).
+    // Sin data real: etiquetas fijas para la simulacion.
+    let lbls;
+    if (ENT_DATA) {
+        const q = computeQuintiles(state.ent, state.year);
+        const r = v => Math.round(v);
+        lbls = [`< ${r(q[0])}`, `${r(q[0])}-${r(q[1])}`, `${r(q[1])}-${r(q[2])}`, `${r(q[2])}-${r(q[3])}`, `> ${r(q[3])}`];
+    } else {
+        const sim = {
+            todas:    ['< 300', '300-450', '450-600', '600-800', '> 800'],
+            cardio:   ['< 150', '150-190', '190-230', '230-270', '> 270'],
+            diabetes: ['< 100', '100-130', '130-160', '160-190', '> 190'],
+            cancer:   ['< 70',  '70-95',   '95-120',  '120-145', '> 145'],
+            resp:     ['< 50',  '50-70',   '70-90',   '90-110',  '> 110']
+        };
+        lbls = sim[state.ent];
+    }
+    const scale = colorScales[state.ent];
+    
+    let html = '';
+    for(let i=0; i<5; i++){
+        html += `<div style="display:flex; flex-direction:column; align-items:center; margin-right:5px;">
+                    <div class="color-box" style="background:${scale[i]}"></div>
+                    <span style="font-size:10px; margin-top:2px;">${lbls[i]}</span>
+                 </div>`;
+    }
+    document.getElementById('legend-scale').innerHTML = html;
+}
+
+/** 3. ACTUALIZACIÓN DE FICHA */
+function updateDashboard() {
+    document.getElementById('f-ent-name').innerText = entNames[state.ent];
+
+    let dataKey = DEMO_NACIONAL_KEY;
+    let displayLabel = 'Nacional (referencia DPA ' + DEMO_NACIONAL_KEY + ')';
+    if (state.selectedFeature) {
+        dataKey = getParroquiaKey(state.selectedFeature.properties);
+        displayLabel = getParroquiaLabel(state.selectedFeature.properties);
+    }
+    document.getElementById('f-geo-name').innerText = displayLabel;
+
+    const currentData = generateData(dataKey, state.ent, state.year);
+
+    document.getElementById('f-kpi-val').innerText = currentData.rate;
+    
+    let priority, pColor;
+    const l = { cardio: 230, diabetes: 160, cancer: 120, resp: 90 }[state.ent];
+    if(currentData.rate > l) { priority = "ALTA"; pColor = "var(--c-rojo)"; }
+    else if(currentData.rate > l * 0.8) { priority = "MEDIA"; pColor = "var(--c-amarillo)"; }
+    else { priority = "BAJA"; pColor = "#2ecc71"; }
+    
+    const pBadge = document.getElementById('f-priority');
+    pBadge.innerText = priority;
+    pBadge.style.background = pColor;
+    pBadge.style.color = priority === "MEDIA" ? "#000" : "#fff";
+
+    // Determinantes reales del JSON simulado (fallback a pseudo-random si falta)
+    const det = (DET_DATA && DET_DATA.parroquias) ? DET_DATA.parroquias[dataKey] : null;
+    const vTab = det ? det.tabaquismo   : currentData.tabaco;
+    const vFis = det ? det.sedentarismo : currentData.fisica;
+    const vObe = det ? det.obesidad     : currentData.obesidad;
+    const vPm  = det ? det.pm25         : currentData.pm25;
+    document.getElementById('det-tabaco-val').innerText = (+vTab).toFixed(1) + '%'; document.getElementById('det-tabaco-bar').style.width = Math.min(vTab,100) + '%';
+    document.getElementById('det-fis-val').innerText    = (+vFis).toFixed(1) + '%'; document.getElementById('det-fis-bar').style.width = Math.min(vFis,100) + '%';
+    document.getElementById('det-obe-val').innerText    = (+vObe).toFixed(1) + '%'; document.getElementById('det-obe-bar').style.width = Math.min(vObe,100) + '%';
+    document.getElementById('det-pm-val').innerText     = (+vPm).toFixed(1) + ' µg'; document.getElementById('det-pm-bar').style.width = Math.min(vPm*1.3,100) + '%';
+    const extraEl = document.getElementById('det-extra-val');
+    if (extraEl) {
+        extraEl.innerText = det
+            ? `Pob ${det.pobreza.toFixed(1)}% · NBI ${det.nbi.toFixed(1)}% · ${det.acceso_salud_km.toFixed(1)} km`
+            : '—';
+    }
+
+    renderMcdaPanel(dataKey);
+    renderMgwrPanel(dataKey);
+    drawChart(dataKey);
+}
+
+function renderMcdaPanel(dpa) {
+    const box = document.getElementById('mcda-ranking');
+    const flag = document.getElementById('mcda-flag');
+    if (!box) return;
+    if (!MCDA_DATA || !MCDA_DATA.parroquias[dpa]) {
+        box.innerHTML = '<div style="font-size:11px; color:#888;">Sin ranking disponible para esta parroquia.</div>';
+        if (flag) flag.innerText = ''; return;
+    }
+    const pr = MCDA_DATA.parroquias[dpa];
+    if (flag) flag.innerText = (pr.fuente === 'heredada_canton') ? '· heredado del cantón' : '';
+    const top = (pr.ranking || []).slice(0,5);
+    const max = top.length ? top[0].score : 1;
+    box.innerHTML = top.map(r => {
+        const w = max > 0 ? Math.round(100 * r.score / max) : 0;
+        const color = r.color || ENT_COLOR[r.ent] || '#999';
+        return `<div class="rank-row">
+            <div class="rank-num" style="background:${color};">${r.rank}</div>
+            <div style="flex:1;">
+                <div style="font-size:11.5px; color:#333; margin-bottom:2px;">${ENT_LABEL[r.ent] || r.ent}</div>
+                <div class="rank-bar-bg"><div class="rank-bar" style="width:${w}%; background:${color};"></div></div>
+            </div>
+            <div class="rank-score">${(+r.score).toFixed(2)}</div>
+        </div>`;
+    }).join('');
+}
+
+function renderMgwrPanel(dpa) {
+    const line = document.getElementById('mgwr-text');
+    const pill = document.getElementById('mgwr-r2');
+    if (!line || !pill) return;
+    if (!MGWR_DATA || !MGWR_DATA.parroquias[dpa] || !MCDA_DATA || !MCDA_DATA.parroquias[dpa]) {
+        line.innerHTML = 'Selecciona una parroquia para ver los determinantes locales dominantes.';
+        pill.innerText = 'R²=—'; return;
+    }
+    const top1 = (MCDA_DATA.parroquias[dpa].ranking || [])[0];
+    const m = MGWR_DATA.parroquias[dpa];
+    pill.innerText = 'R²=' + m.r2_local.toFixed(2);
+    if (!top1) { line.innerHTML = 'Sin ENT priorizada.'; return; }
+    const bs = m.betas[top1.ent];
+    if (!bs) { line.innerHTML = 'Sin betas locales para ' + (ENT_LABEL[top1.ent]||top1.ent) + '.'; return; }
+    const ranked = Object.entries(bs)
+        .map(([k,v]) => ({k, v, abs: Math.abs(v)}))
+        .sort((a,b) => b.abs - a.abs).slice(0,3);
+    const pretty = ranked.map(r => `<b>${DET_LABEL[r.k] || r.k}</b> β=${r.v.toFixed(2)}`).join(' · ');
+    line.innerHTML = `La ENT prioritaria <b style="color:${ENT_COLOR[top1.ent]};">${ENT_LABEL[top1.ent]}</b> se explica localmente por: ${pretty}.`;
+}
+
+function drawChart(dataKey) {
+    let years = ENT_DATA ? ENT_DATA.anios : [2017, 2018, 2019, 2020, 2021, 2022, 2023];
+    let yData = years.map(y => generateData(dataKey, state.ent, y).rate);
+    let lineColor = colorScales[state.ent][4];
+
+    var trace1 = { x: years, y: yData, type: 'scatter', mode: 'lines+markers', line: {color: lineColor, width: 3}, marker: {size: 6, color: '#fff', line: {color: lineColor, width: 2}}, fill: 'tozeroy', fillcolor: lineColor + '33' };
+    var layout = { margin: { t: 10, b: 20, l: 30, r: 10 }, xaxis: { fixedrange: true, tickfont: {size: 10} }, yaxis: { fixedrange: true, tickfont: {size: 10} }, height: 160, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', hovermode: 'x unified' };
+    Plotly.newPlot('plotly-chart', [trace1], layout, {displayModeBar: false});
+}
+
+/** 4. EVENTOS */
+document.querySelectorAll('.ent-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.ent-btn').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        state.ent = e.currentTarget.dataset.ent;
+        if(geojsonData) renderMap();
+        updateDashboard();
+    });
+});
+
+document.getElementById('year-slider').addEventListener('input', (e) => {
+    state.year = parseInt(e.target.value);
+    document.getElementById('lbl-year').innerText = state.year;
+    if(geojsonData) renderMap();
+    updateDashboard();
+});
+
+/** Selector provincial: lleno las 24 provincias dinamicamente desde el GeoJSON
+ *  una vez que esta cargado. On-change: fitBounds a todas las parroquias de
+ *  esa provincia. Opcion vacia = vuelve a vista nacional. */
+function poblarSelectorProvincias() {
+    if (!geojsonData) return;
+    const sel = document.getElementById('prov-selector');
+    if (!sel || sel.options.length > 1) return;  // ya poblado
+    const provs = new Map();  // code -> {name, features[]}
+    geojsonData.features.forEach(f => {
+        const p = f.properties;
+        const code = (p.DPA_PROVIN || p.DPA_PARROQ?.slice(0, 2) || '').toString().padStart(2, '0');
+        const name = (p.DPA_DESPRO || '').toString();
+        if (!code || !name) return;
+        // Filtrar entidades espurias del shapefile CONALI (ISLA sin provincia,
+        // zonas en estudio 90/99, etc.). Solo provincias DPA válidas 01-24.
+        if (!/^(0[1-9]|1[0-9]|2[0-4])$/.test(code)) return;
+        if (!provs.has(code)) provs.set(code, { name, features: [] });
+        provs.get(code).features.push(f);
+    });
+    const arr = [...provs.entries()].sort((a, b) => a[1].name.localeCompare(b[1].name, 'es'));
+    for (const [code, info] of arr) {
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = info.name;
+        sel.appendChild(opt);
+    }
+}
+
+document.getElementById('prov-selector').addEventListener('change', (e) => {
+    const code = e.target.value;
+    state.selectedProv = code || '';
+    // Redibujar para aplicar el dim sobre las otras provincias
+    if (geojsonData) renderMap();
+    if (!code) {
+        map.setView([-1.55, -78.3], 6.5);
+        return;
+    }
+    // Compone bounds de todos los features de esa provincia
+    let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+    geojsonData.features.forEach(f => {
+        const p = f.properties;
+        const pCode = (p.DPA_PROVIN || p.DPA_PARROQ?.slice(0, 2) || '').toString().padStart(2, '0');
+        if (pCode !== code) return;
+        const extract = arr => {
+            if (typeof arr[0] === 'number') {
+                if (arr[0] < minLng) minLng = arr[0];
+                if (arr[0] > maxLng) maxLng = arr[0];
+                if (arr[1] < minLat) minLat = arr[1];
+                if (arr[1] > maxLat) maxLat = arr[1];
+            } else arr.forEach(extract);
+        };
+        extract(f.geometry.coordinates);
+    });
+    if (minLat < maxLat && minLng < maxLng) {
+        map.fitBounds([[minLat, minLng], [maxLat, maxLng]], { padding: [20, 20], maxZoom: 9 });
+    }
+});
+
+/** Play/Pause: anima el slider de año ciclicamente (2013 → 2023 → reset). */
+const btnPlay = document.getElementById('btn-play');
+function stopPlay() {
+    if (state.playTimer) { clearInterval(state.playTimer); state.playTimer = null; }
+    state.playing = false;
+    btnPlay.innerText = '▶';
+    btnPlay.style.background = 'var(--c-amarillo)';
+}
+function startPlay() {
+    state.playing = true;
+    btnPlay.innerText = '⏸';
+    btnPlay.style.background = 'var(--c-rojo)';
+    btnPlay.style.color = '#fff';
+    const slider = document.getElementById('year-slider');
+    const yMin = parseInt(slider.min), yMax = parseInt(slider.max);
+    // Si ya esta en el max, arranca desde yMin
+    if (state.year >= yMax) {
+        state.year = yMin;
+        slider.value = yMin;
+        document.getElementById('lbl-year').innerText = yMin;
+        if (geojsonData) renderMap();
+        updateDashboard();
+    }
+    state.playTimer = setInterval(() => {
+        let y = state.year + 1;
+        if (y > yMax) y = yMin;
+        state.year = y;
+        slider.value = y;
+        document.getElementById('lbl-year').innerText = y;
+        if (geojsonData) renderMap();
+        updateDashboard();
+    }, 900);
+}
+btnPlay.addEventListener('click', () => {
+    if (state.playing) stopPlay(); else startPlay();
+});
+
+window.onload = async () => {
+    // Cargar data real (ent_parroquial.json + pob_parroquial.json) antes de renderizar
+    await loadRealData();
+    initMap();
+    map.on('click', function () {
+        state.selectedFeature = null;
+        // No resetear zoom aquí si hay provincia seleccionada
+        if (!document.getElementById('prov-selector').value) {
+            map.setView([-1.55, -78.3], 6.5);
+        }
+        updateDashboard();
+    });
+};
+</script>
+</body>
+</html>
