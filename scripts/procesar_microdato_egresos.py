@@ -361,6 +361,11 @@ def main():
     size_mb = OUT_JSON.stat().st_size / 1024 / 1024
     print(f"\n  OK -> {OUT_JSON}  ({size_mb:.2f} MB)")
     print(f"  Parroquias con datos: {len(parroquias_out)}")
+    # Copiar a webapp/assets/ para que el servidor lo sirva directamente
+    import shutil
+    dest = ASSETS / "ent_parroquial.json"
+    shutil.copy2(OUT_JSON, dest)
+    print(f"  Copiado -> {dest}")
 
 
 if __name__ == "__main__":

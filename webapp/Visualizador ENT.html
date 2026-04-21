@@ -640,8 +640,9 @@ function generateData(geoKey, disease, year) {
     // ====== MODO SIMULACIÓN (fallback) ======
     let seed = year * 131;
     for (let i = 0; i < geoKey.length; i++) seed += geoKey.charCodeAt(i) * (i + 3);
-    const bases = { cardio: 220, diabetes: 150, cancer: 110, resp: 80 };
-    let base = bases[disease];
+    const bases = { cardio: 220, diabetes: 150, cancer: 110, resp: 80,
+                    todas: 750, circulatorio: 220, metabolica: 150, neoplasia: 110, respiratorio: 80, nervioso: 60 };
+    let base = bases[disease] || 100;
     const g = String(geoKey);
     if (g.includes('Tarqui') || g.includes('Ximena')) base *= 1.4;
     if (g.includes('Iñaquito') || g.includes('Calderon') || g.includes('IÑAQUITO')) base *= 1.3;

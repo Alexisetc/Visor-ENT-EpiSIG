@@ -110,6 +110,10 @@ def main():
     print(f"\n  OK -> {OUT} ({OUT.stat().st_size // 1024} KB)")
     print(f"  Total parroquias con pob real CPV 2022: {len(pob)}")
     print(f"  Poblacion total cubierta: {sum(pob.values()):,}")
+    import shutil
+    dest = ASSETS / "pob_parroquial.json"
+    shutil.copy2(OUT, dest)
+    print(f"  Copiado -> {dest}")
 
 
 if __name__ == "__main__":
