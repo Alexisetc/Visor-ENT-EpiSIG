@@ -87,43 +87,118 @@ PROV_EXCLUIDAS_LABEL = {
 # Se aplican en orden: la primera que matchee gana — excluye luego inclusiones
 # duplicadas. Esto es consistente con Morales (no hay superposición esperable).
 
-# Patrones regex sobre el prefijo 3-char. Validados contra el R original.
-ENT_GRUPOS = {
-    # Neoplasias — C00-C97 + D00-D48 (excepto D64.9 que es anemia aplásica)
-    'neoplasia': {
-        'label': 'Neoplasias',
-        'regex_include': re.compile(r'^(C\d{2}|D0\d|D1\d|D2\d|D3\d|D4[0-8])$'),
-        'regex_exclude': re.compile(r'^D649$'),  # anemia — no es neoplasia
+# Patrones regex sobre el prefijo 3-char. TRES esquemas paralelos, emitidos
+# como columnas `grupo_morales`, `grupo_ncd`, `grupo_visor` en el parquet
+# limpio de Fase 2. El visor consume `grupo_visor` (= esquema actual del
+# frontend); los otros dos permiten auditoría cruzada contra el artículo
+# Morales y migración futura a OMS estricto sin re-procesar 13,5 M registros.
+
+ENT_SCHEMES: dict[str, dict[str, dict]] = {
+
+    # ─── Esquema "morales" — réplica de codigo_new/Grupos_ent.R líneas 47-52 ──
+    # Es la agrupación de 5 categorías amplias que usa el artículo Morales.
+    # Incluye deliberadamente neumonías agudas (J18) y meningitis aguda (G00-G03)
+    # que NO son NCDs según OMS — se preserva para comparabilidad literal.
+    'morales': {
+        'neoplasia': {
+            'label': 'Neoplasias',
+            'regex_include': re.compile(r'^(C\d{2}|D0\d|D1\d|D2\d|D3\d|D4[0-8])$'),
+            'regex_exclude': None,
+        },
+        'circulatorio': {
+            'label': 'Sist. circulatorio',
+            'regex_include': re.compile(r'^I\d{2}$'),  # I00-I99
+            'regex_exclude': None,
+        },
+        'metabolicas': {
+            'label': 'Metabólicas',
+            'regex_include': re.compile(r'^E[0-9]\d$'),  # E00-E99 (Morales limita a E00-E90 pero E91+ no existe en CIE-10)
+            'regex_exclude': None,
+        },
+        'respiratorio': {
+            'label': 'Aparato respiratorio',
+            'regex_include': re.compile(r'^J\d{2}$'),  # J00-J99 (incluye agudas)
+            'regex_exclude': None,
+        },
+        'nervioso': {
+            'label': 'Sist. nervioso',
+            'regex_include': re.compile(r'^G\d{2}$'),  # G00-G99
+            'regex_exclude': None,
+        },
     },
-    # Cardiovasculares — todo el capítulo I (I00-I99)
-    'cardio': {
-        'label': 'Cardiovasculares',
-        'regex_include': re.compile(r'^I\d{2}$'),
-        'regex_exclude': None,
+
+    # ─── Esquema "ncd" — OMS/GBD estricto (sin agudas) ───────────────────────
+    # Defendible epidemiológicamente: solo condiciones crónicas reconocidas
+    # como NCD por la OMS. Excluye explícitamente neumonías agudas,
+    # meningitis, infecciones respiratorias, anemias, etc.
+    'ncd': {
+        'neoplasia': {
+            'label': 'Neoplasias',
+            'regex_include': re.compile(r'^(C\d{2}|D0\d|D1\d|D2\d|D3\d|D4[0-8])$'),
+            'regex_exclude': re.compile(r'^D649$'),
+        },
+        'cardio': {
+            'label': 'Cardiovasculares',
+            'regex_include': re.compile(r'^I\d{2}$'),
+            'regex_exclude': None,
+        },
+        'resp_cron': {
+            'label': 'Respiratorias crónicas',
+            'regex_include': re.compile(r'^J([3-9]\d)$'),  # J30-J99
+            'regex_exclude': re.compile(r'^(J69|J96|J97|J99)$'),
+        },
+        'diabren_cron': {
+            'label': 'Diabetes + renales crónicas',
+            'regex_include': re.compile(r'^(E1[0-4]|N0\d|N1\d|N2[0-9])$'),  # E10-E14 + N00-N29
+            'regex_exclude': None,
+        },
+        'digest_cron': {
+            'label': 'Digestivas crónicas',
+            'regex_include': re.compile(r'^(K2[5-9]|K3[01]|K7[0-7])$'),  # úlcera K25-K31 + hígado K70-K77
+            'regex_exclude': None,
+        },
     },
-    # Respiratorias crónicas — J30-J98 EXCEPTO J69 (neumonía aspiración),
-    # J96 (insuf. respiratoria aguda), J97 (no listado por Morales), J99.
-    # Replica R: ^J3[0-9]|^J4[0-9]|^J5[0-9]|^J6[0-8]|^J7[0-9]|^J8[0-9]|^J9[0-58]
-    'resp': {
-        'label': 'Respiratorias crónicas',
-        'regex_include': re.compile(r'^J([3-9]\d)$'),  # J30-J99
-        'regex_exclude': re.compile(r'^(J69|J96|J97|J99)$'),
-    },
-    # Diabetes + renales crónicas — E10-E14 + N00-N18
-    'diabren': {
-        'label': 'Diabetes y renales crónicas',
-        'regex_include': re.compile(r'^(E1[0-4]|N0\d|N1[0-8])$'),
-        'regex_exclude': None,
-    },
-    # Digestivas — K00-K92 (todo el capítulo K sin K93+)
-    'digest': {
-        'label': 'Enfermedades digestivas',
-        'regex_include': re.compile(r'^K([0-8]\d|9[0-2])$'),
-        'regex_exclude': None,
+
+    # ─── Esquema "visor" — compatibilidad con frontend React actual ──────────
+    # Cero cambios en webapp-react/ ni en el schema de ent_parroquial.json.
+    # Es lo que ya consume el visor hoy. Default para Fase 3-5.
+    'visor': {
+        'neoplasia': {
+            'label': 'Neoplasias',
+            'regex_include': re.compile(r'^(C\d{2}|D0\d|D1\d|D2\d|D3\d|D4[0-8])$'),
+            'regex_exclude': re.compile(r'^D649$'),
+        },
+        'cardio': {
+            'label': 'Cardiovasculares',
+            'regex_include': re.compile(r'^I\d{2}$'),
+            'regex_exclude': None,
+        },
+        'resp': {
+            'label': 'Respiratorias crónicas',
+            'regex_include': re.compile(r'^J([3-9]\d)$'),
+            'regex_exclude': re.compile(r'^(J69|J96|J97|J99)$'),
+        },
+        'diabren': {
+            'label': 'Diabetes y renales crónicas',
+            'regex_include': re.compile(r'^(E1[0-4]|N0\d|N1[0-8])$'),
+            'regex_exclude': None,
+        },
+        'digest': {
+            'label': 'Enfermedades digestivas',
+            'regex_include': re.compile(r'^K([0-8]\d|9[0-2])$'),
+            'regex_exclude': None,
+        },
     },
 }
 
-ENT_KEYS = list(ENT_GRUPOS.keys())  # ['neoplasia','cardio','resp','diabren','digest']
+# Retrocompatibilidad: el perfilado (01_profile.py) todavía lee `ENT_GRUPOS`
+# y `ENT_KEYS`. Apuntan al esquema 'visor' para no romper nada.
+ENT_GRUPOS = ENT_SCHEMES['visor']
+ENT_KEYS   = list(ENT_GRUPOS.keys())  # ['neoplasia','cardio','resp','diabren','digest']
+
+# Default para export al visor. Fase 3-5 lo respeta.
+DEFAULT_SCHEME = 'visor'
+
 
 # ─── NORMALIZACIÓN CIE-10 ───────────────────────────────────────────────────
 # Quita puntos, mayúsculas, primeros 3 caracteres para clasificar.
@@ -134,16 +209,60 @@ def normalize_cie10(code) -> str:
     s = str(code).strip().upper().replace('.', '').replace(' ', '')
     return s[:3] if len(s) >= 3 else ''
 
-def classify_cie10(code_norm: str) -> str | None:
-    """Devuelve la clave del grupo ENT o None si no encaja."""
+def classify_cie10(code_norm: str, scheme: str = DEFAULT_SCHEME) -> str | None:
+    """Devuelve la clave del grupo ENT o None si no encaja.
+
+    scheme ∈ {'morales', 'ncd', 'visor'} — selecciona uno de los tres
+    esquemas paralelos definidos en ENT_SCHEMES.
+    """
     if not code_norm:
         return None
-    for key, spec in ENT_GRUPOS.items():
+    grupos = ENT_SCHEMES.get(scheme)
+    if grupos is None:
+        raise ValueError(f"scheme debe ser uno de {list(ENT_SCHEMES)}, recibí {scheme!r}")
+    for key, spec in grupos.items():
         if spec['regex_include'].match(code_norm):
             if spec['regex_exclude'] and spec['regex_exclude'].match(code_norm):
                 continue
             return key
     return None
+
+
+# ─── PARÁMETROS DE FASE 2 (decisiones aprobadas 2026-04-21) ────────────────
+# Ver plan `continua-delegated-squid.md` sección 2.4 para justificación.
+
+# Rango anual válido. Descarta datos espurios (defunciones tiene 383 meses
+# contaminados 1898-1912 en fecha_fall).
+VALID_YEAR_RANGE: tuple[int, int] = (2013, 2024)
+
+# Edad válida para estadística. `edad == 999` es sentinel INEC de "no especif".
+MAX_EDAD_VALID: int     = 120
+EDAD_SENTINEL_NA: int   = 999
+
+# Años de pandemia — se marcan con `periodo='pandemia'` en el parquet limpio.
+# Fase 4 corre Mann-Kendall en dos variantes (con y sin estos años).
+PANDEMIC_YEARS: set[int] = {2020, 2021}
+
+# Política de huérfanos urbanos (DPA6 que no matchea GeoJSON).
+# 'aggregate' remapea a la cabecera cantonal; 'keep' preserva el código
+# original (aparecen sin geo en el visor); 'drop' los elimina.
+ORPHAN_POLICY: str = 'aggregate'
+
+# Política para defunciones 2015+ (perdió cant_res/parr_res en 86,96 %).
+# 'parr_res_or_fall' usa residencia cuando existe, cae a lugar de fallecimiento;
+# 'parr_res_strict' solo residencia (pierde 87 % post-2015);
+# 'parr_fall_always' lugar de fallecimiento en todos los años.
+DEF_GEO_SOURCE: str = 'parr_res_or_fall'
+
+# Política pandemia. 'flag' agrega columna `periodo` y Fase 4 corre dos
+# variantes; 'exclude' filtra los años del dataset clean.
+PANDEMIC_POLICY: str = 'flag'
+
+# Provincias excluidas del análisis (réplica Morales 2017-2023).
+# 20=Galápagos, 88=Zonas No Delimitadas, 90=No Especificada/Extranjero.
+# Ya definido como PROV_EXCLUIDAS más arriba — aquí aliased para consistencia
+# con la terminología del plan Fase 2.
+EXCLUDE_PROVS: set[str] = set(PROV_EXCLUIDAS)
 
 # ─── METADATA PARA PERFILADO ────────────────────────────────────────────────
 # Columnas "críticas" que se analizan en el Bloque B del HTML (missing %, top-5).
