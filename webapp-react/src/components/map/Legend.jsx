@@ -1,11 +1,15 @@
 // Legend — Leyenda flotante bottom-left. Cambia según módulo + layerType:
 //
 //   module='carga' + layer='coropleta'         → 5 swatches por quintil (paleta ENT)
-//                  + layer='heatmap' (hot-spot)→ escala bipolar RdBu + rótulo z-score
+//                  + layer='heatmap' (hot-spot)→ bipolar RdBu + tamaño |z|, puntos en centroides
 //   module='determinantes' + layer='coropleta' → 7 swatches categóricos (DET_COLOR)
-//                          + layer='heatmap'   → bipolar RdBu (vulnerabilidad)
+//                          + layer='heatmap'   → bipolar RdBu (vulnerabilidad) en centroides
 //   module='mcda' + layer='coropleta'          → 5 swatches categóricos (ENT_COLOR)
-//                 + layer='heatmap'            → bipolar RdBu (score MCDA)
+//                 + layer='heatmap'            → bipolar RdBu (score MCDA) en centroides
+//
+// Nota: en modo hot-spot (puntos) el color refleja la dirección del z-score
+// (cold-spot azul / hot-spot rojo) y el tamaño del círculo la magnitud (|z|).
+// Parroquias con valor 0 o sin dato se omiten tanto del cálculo como del mapa.
 
 import { useMemo } from 'react'
 import { useStore } from '../../store'
@@ -60,6 +64,7 @@ export default function Legend() {
       {/* ===== Modo HOT-SPOT (bipolar RdBu) — aplica a los 3 módulos ===== */}
       {isHot && (
         <div>
+          {/* Color: z-score bipolar */}
           <div className="flex items-center">
             {HOTSPOT_BIPOLAR.map((c, i) => (
               <div key={i} className="h-3 flex-1" style={{ background: c }} title={`stop ${i}`} />
@@ -75,8 +80,37 @@ export default function Legend() {
             <span>0</span>
             <span>z≥+2.5</span>
           </div>
+
+          {/* Tamaño: |z| → radio */}
+          <div className="mt-2 flex items-end justify-between">
+            <div className="flex flex-col items-center">
+              <svg width="10" height="10" viewBox="0 0 14 14">
+                <circle cx="7" cy="7" r="4" fill="#64748b" fillOpacity="0.75" stroke="#1a1b4a" strokeWidth="0.6" />
+              </svg>
+              <div className="mt-0.5 font-mono text-[9px] text-slate-500">|z|≈0</div>
+            </div>
+            <div className="flex flex-col items-center">
+              <svg width="16" height="16" viewBox="0 0 16 16">
+                <circle cx="8" cy="8" r="7" fill="#64748b" fillOpacity="0.75" stroke="#1a1b4a" strokeWidth="0.6" />
+              </svg>
+              <div className="mt-0.5 font-mono text-[9px] text-slate-500">|z|≈1</div>
+            </div>
+            <div className="flex flex-col items-center">
+              <svg width="22" height="22" viewBox="0 0 22 22">
+                <circle cx="11" cy="11" r="10" fill="#64748b" fillOpacity="0.75" stroke="#1a1b4a" strokeWidth="0.6" />
+              </svg>
+              <div className="mt-0.5 font-mono text-[9px] text-slate-500">|z|≈2</div>
+            </div>
+            <div className="flex flex-col items-center">
+              <svg width="28" height="28" viewBox="0 0 28 28">
+                <circle cx="14" cy="14" r="13" fill="#64748b" fillOpacity="0.75" stroke="#1a1b4a" strokeWidth="0.6" />
+              </svg>
+              <div className="mt-0.5 font-mono text-[9px] text-slate-500">|z|≥3</div>
+            </div>
+          </div>
+
           <div className="mt-1 text-[9px] italic text-slate-500">
-            z-score vs. media nacional · escala RdBu diverging
+            Puntos en centroides · color=dirección, tamaño=magnitud · excluye valores 0
           </div>
         </div>
       )}
