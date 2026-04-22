@@ -2,3 +2,11 @@ intermediate/
 *.log
 __pycache__/
 *.pyc
+
+# Microdatos INEC — demasiado pesados para git (2.3 GB en total).
+# Se documentan por hash SHA256 en `intermediate/{egresos,defunciones}_info.json`.
+inputs/egresos/raw/*.sav
+inputs/egresos/raw/*.csv
+inputs/defunciones/raw/*.sav
+inputs/defunciones/raw/*.csv
+inputs/_legacy/*.xlsx

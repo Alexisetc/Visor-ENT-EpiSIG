@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Perfil de calidad — {{ meta.tipo|capitalize }} INEC</title>
+<style>
+  :root {
+    --navy: #1a1b4a;
+    --gold: #fbc400;
+    --bg:   #f8fafc;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #0f172a;
+    --muted: #64748b;
+    --ok:   #059669;
+    --warn: #d97706;
+    --bad:  #dc2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.5;
+  }
+  .container { max-width: 1180px; margin: 0 auto; }
+
+  header {
+    background: linear-gradient(135deg, var(--navy) 0%, #2a2c6a 100%);
+    color: white; padding: 28px 32px; border-radius: 12px; margin-bottom: 28px;
+    box-shadow: 0 4px 12px rgba(26,27,74,0.25);
+  }
+  header h1 { margin: 0 0 6px; font-size: 24px; font-weight: 700; letter-spacing: -0.3px; }
+  header .sub { opacity: 0.85; font-size: 13px; }
+  header .meta-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.15);
+  }
+  header .meta-grid > div { font-size: 12px; opacity: 0.9; }
+  header .meta-grid b { display: block; font-size: 18px; font-weight: 600; }
+
+  nav.toc {
+    background: var(--card); padding: 12px 18px; border-radius: 8px;
+    border: 1px solid var(--border); margin-bottom: 24px;
+    display: flex; flex-wrap: wrap; gap: 6px;
+    position: sticky; top: 8px; z-index: 10;
+  }
+  nav.toc a {
+    background: #f1f5f9; color: var(--navy); padding: 6px 12px;
+    border-radius: 16px; text-decoration: none; font-size: 12px; font-weight: 600;
+    border: 1px solid var(--border); transition: all .15s;
+  }
+  nav.toc a:hover { background: var(--navy); color: white; border-color: var(--navy); }
+
+  section.block {
+    background: var(--card); padding: 24px 28px; margin-bottom: 20px;
+    border-radius: 10px; border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  section.block h2 {
+    margin: 0 0 16px; font-size: 18px; color: var(--navy);
+    border-bottom: 2px solid var(--gold); padding-bottom: 8px;
+  }
+  section.block .note {
+    background: #fef3c7; border-left: 3px solid var(--gold); padding: 10px 14px;
+    font-size: 13px; color: #78350f; margin: 12px 0; border-radius: 4px;
+  }
+
+  table {
+    width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px;
+  }
+  th, td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: #f8fafc; font-weight: 600; color: var(--navy); }
+  tr:hover { background: #f8fafc; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.pct  { text-align: right; font-weight: 600; }
+  td.pct.bad  { color: var(--bad); }
+  td.pct.warn { color: var(--warn); }
+  td.pct.ok   { color: var(--ok); }
+
+  .chart { margin: 16px 0; text-align: center; }
+  .chart img { max-width: 100%; height: auto; border-radius: 4px; border: 1px solid var(--border); }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 12px 0; }
+  .kpi {
+    background: #f8fafc; border: 1px solid var(--border); padding: 12px; border-radius: 6px;
+  }
+  .kpi .label { font-size: 10px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px; }
+  .kpi .val { font-size: 22px; font-weight: 700; color: var(--navy); margin-top: 4px; }
+  .kpi .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .pill {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 600;
+  }
+  .pill.ok   { background: #d1fae5; color: #065f46; }
+  .pill.warn { background: #fef3c7; color: #78350f; }
+  .pill.bad  { background: #fee2e2; color: #991b1b; }
+
+  code {
+    background: #f1f5f9; padding: 1px 6px; border-radius: 3px;
+    font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 12px;
+  }
+
+  details { margin: 8px 0; }
+  details summary {
+    cursor: pointer; padding: 6px 10px; background: #f1f5f9;
+    border-radius: 4px; font-weight: 600; font-size: 13px;
+  }
+  details[open] summary { margin-bottom: 8px; }
+
+  footer {
+    text-align: center; padding: 24px; color: var(--muted); font-size: 11px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>Perfil de calidad — {{ meta.tipo|capitalize }} INEC</h1>
+  <div class="sub">Pipeline ENT EpiSIG · v{{ meta.pipeline_version }} · generado {{ meta.generado }}</div>
+  <div class="meta-grid">
+    <div><b>{{ '{:,}'.format(meta.n_rows) }}</b> registros</div>
+    <div><b>{{ meta.n_cols }}</b> columnas comunes</div>
+    <div><b>{{ meta.years|length }}</b> años ({{ meta.years[0] }}–{{ meta.years[-1] }})</div>
+    <div><b>{{ meta.hashes|length }}</b> archivos fuente</div>
+  </div>
+</header>
+
+<nav class="toc">
+  {% for key, block in blocks.items() %}
+    <a href="#block-{{ key }}">{{ block.title }}</a>
+  {% endfor %}
+</nav>
+
+{# ═══ Bloque A ═══ #}
+{% if blocks.A %}
+<section class="block" id="block-A">
+  <h2>{{ blocks.A.title }}</h2>
+
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="label">Total registros</div>
+      <div class="val">{{ '{:,}'.format(blocks.A.total_rows) }}</div>
+      <div class="sub">suma todos los años</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Archivos fuente</div>
+      <div class="val">{{ blocks.A.hashes|length }}</div>
+      <div class="sub">con hash SHA256</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Cambios de schema</div>
+      <div class="val">{{ blocks.A.schema_changes|length }}</div>
+      <div class="sub">años con cols extra / ausentes</div>
+    </div>
+  </div>
+
+  <div class="chart"><img src="data:image/png;base64,{{ blocks.A.plot_rows }}" alt="Registros por año"></div>
+
+  {% if blocks.A.schema_changes %}
+  <details>
+    <summary>Cambios de schema por año ({{ blocks.A.schema_changes|length }})</summary>
+    <table>
+      <tr><th>Año</th><th>Columnas extra (no comunes)</th><th>Columnas ausentes del set común</th></tr>
+      {% for sc in blocks.A.schema_changes %}
+        <tr>
+          <td><b>{{ sc.anio }}</b></td>
+          <td>{% for c in sc.columnas_extra %}<code>{{ c }}</code> {% endfor %}</td>
+          <td>{% for c in sc.columnas_ausentes %}<code>{{ c }}</code> {% endfor %}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  </details>
+  {% endif %}
+
+  <details>
+    <summary>Hashes SHA256 de archivos fuente ({{ blocks.A.hashes|length }})</summary>
+    <table>
+      <tr><th>Archivo</th><th>SHA256</th></tr>
+      {% for f, h in blocks.A.hashes.items() %}
+        <tr><td><code>{{ f }}</code></td><td><code style="font-size: 10px;">{{ h }}</code></td></tr>
+      {% endfor %}
+    </table>
+  </details>
+
+  <div class="note">{{ blocks.A.note }}</div>
+</section>
+{% endif %}
+
+{# ═══ Bloque B ═══ #}
+{% if blocks.B %}
+<section class="block" id="block-B">
+  <h2>{{ blocks.B.title }}</h2>
+  <table>
+    <tr>
+      <th>Columna</th><th>Existe</th><th>% missing</th><th>#missing</th>
+      <th>Top-5 valores</th><th>Stats</th>
+    </tr>
+    {% for c in blocks.B.cols %}
+      {% set pct_class = 'ok' if c.pct_missing < 1 else ('warn' if c.pct_missing < 10 else 'bad') %}
+      <tr>
+        <td><code>{{ c.col }}</code></td>
+        <td>{% if c.exists %}<span class="pill ok">sí</span>{% else %}<span class="pill bad">no</span>{% endif %}</td>
+        <td class="pct {{ pct_class }}">{{ c.pct_missing }}%</td>
+        <td class="num">{{ '{:,}'.format(c.n_missing) if c.exists else '—' }}</td>
+        <td style="font-size: 11px;">
+          {% for t in c.top5 %}
+            <code>{{ t.val }}</code> <span style="color:var(--muted)">({{ '{:,}'.format(t.n) }}, {{ '%.1f'|format(t.pct) }}%)</span>{% if not loop.last %} · {% endif %}
+          {% endfor %}
+        </td>
+        <td style="font-size: 11px;">
+          {% if c.stats %}
+            {% if c.stats.min is defined %}
+              min={{ '%.0f'|format(c.stats.min) }} · max={{ '%.0f'|format(c.stats.max) }} ·
+              med={{ '%.1f'|format(c.stats.median) }} ·
+            {% endif %}
+            nunique={{ c.stats.n_unique }}
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  </table>
+  <div class="chart"><img src="data:image/png;base64,{{ blocks.B.heatmap }}" alt="Heatmap missing"></div>
+</section>
+{% endif %}
+
+{# ═══ Bloque C ═══ #}
+{% if blocks.C %}
+<section class="block" id="block-C">
+  <h2>{{ blocks.C.title }}</h2>
+  {% if blocks.C.error %}
+    <div class="note">{{ blocks.C.error }}</div>
+  {% else %}
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="label">Parroquias únicas en datos</div>
+        <div class="val">{{ blocks.C.parrs_unicas_data }}</div>
+        <div class="sub">sin excluir nada</div>
+      </div>
+      {% if blocks.C.orphans %}
+      <div class="kpi">
+        <div class="label">Parroquias en GeoJSON</div>
+        <div class="val">{{ blocks.C.orphans.geo_n }}</div>
+        <div class="sub">referencia territorial</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Huérfanos (no cruzan)</div>
+        <div class="val">{{ '%.2f'|format(blocks.C.orphans.pct) }}%</div>
+        <div class="sub">{{ '{:,}'.format(blocks.C.orphans.n) }} registros</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <h3 style="font-size:14px; color:var(--navy); margin:16px 0 8px;">Exclusiones provinciales Morales</h3>
+    <table>
+      <tr><th>Código</th><th>Provincia</th><th># registros</th><th>% del total</th></tr>
+      {% for pcode, info in blocks.C.exclusiones.items() %}
+        <tr>
+          <td><code>{{ pcode }}</code></td>
+          <td>{{ info.nombre }}</td>
+          <td class="num">{{ '{:,}'.format(info.n) }}</td>
+          <td class="pct">{{ info.pct }}%</td>
+        </tr>
+      {% endfor %}
+    </table>
+
+    {% if blocks.C.orphans and blocks.C.orphans.top %}
+      <details>
+        <summary>Top DPA huérfanos ({{ blocks.C.orphans.top|length }})</summary>
+        <table>
+          <tr><th>Parroquia key</th><th># registros</th></tr>
+          {% for k, v in blocks.C.orphans.top.items() %}
+            <tr><td><code>{{ k }}</code></td><td class="num">{{ '{:,}'.format(v) }}</td></tr>
+          {% endfor %}
+        </table>
+      </details>
+    {% endif %}
+
+    <div class="note">{{ blocks.C.note }}</div>
+  {% endif %}
+</section>
+{% endif %}
+
+{# ═══ Bloque D ═══ #}
+{% if blocks.D %}
+<section class="block" id="block-D">
+  <h2>{{ blocks.D.title }}</h2>
+  <p style="color:var(--muted); font-size:13px;">
+    Columna de causa utilizada: <code>{{ blocks.D.cause_col }}</code> ·
+    {{ '{:,}'.format(blocks.D.n_total) }} registros con causa no nula.
+  </p>
+
+  <h3 style="font-size:14px; color:var(--navy); margin:16px 0 8px;">Clasificación en 5 grupos ENT (Morales)</h3>
+  <table>
+    <tr><th>Grupo</th><th>Label</th><th># registros</th><th>% del total clasificable</th></tr>
+    {% for row in blocks.D.clasif %}
+      {% set cls = 'bad' if row.grupo == 'no_clasificado' else 'ok' %}
+      <tr>
+        <td><code>{{ row.grupo }}</code></td>
+        <td>{{ row.label }}</td>
+        <td class="num">{{ '{:,}'.format(row.n) }}</td>
+        <td class="pct {{ cls }}">{{ row.pct }}%</td>
+      </tr>
+    {% endfor %}
+  </table>
+
+  <div class="chart"><img src="data:image/png;base64,{{ blocks.D.plot_trend }}" alt="Tendencia ENT"></div>
+
+  <details>
+    <summary>Top 50 códigos CIE-10 ({{ blocks.D.top50|length }})</summary>
+    <table>
+      <tr><th>#</th><th>Código</th><th># registros</th><th>% del total</th></tr>
+      {% for t in blocks.D.top50 %}
+        <tr><td>{{ loop.index }}</td><td><code>{{ t.code }}</code></td>
+            <td class="num">{{ '{:,}'.format(t.n) }}</td>
+            <td class="pct">{{ '%.2f'|format(t.pct) }}%</td></tr>
+      {% endfor %}
+    </table>
+  </details>
+
+  <div class="note">{{ blocks.D.note }}</div>
+</section>
+{% endif %}
+
+{# ═══ Bloque E ═══ #}
+{% if blocks.E %}
+<section class="block" id="block-E">
+  <h2>{{ blocks.E.title }}</h2>
+  {% if blocks.E.plots.sexo %}<div class="chart"><img src="data:image/png;base64,{{ blocks.E.plots.sexo }}" alt="sexo"></div>{% endif %}
+  {% if blocks.E.plots.edad %}<div class="chart"><img src="data:image/png;base64,{{ blocks.E.plots.edad }}" alt="edad"></div>{% endif %}
+  {% if blocks.E.plots.etnia %}<div class="chart"><img src="data:image/png;base64,{{ blocks.E.plots.etnia }}" alt="etnia"></div>{% endif %}
+</section>
+{% endif %}
+
+{# ═══ Bloque F ═══ #}
+{% if blocks.F %}
+<section class="block" id="block-F">
+  <h2>{{ blocks.F.title }}</h2>
+
+  {% if blocks.F.pandemic %}
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="label">Media 2017-2019</div>
+      <div class="val">{{ '{:,.0f}'.format(blocks.F.pandemic.pre_2020_avg or 0) }}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Registros 2020</div>
+      <div class="val">{{ '{:,}'.format(blocks.F.pandemic.n_2020) }}</div>
+      <div class="sub">Δ vs pre-pandemia: <b>{{ blocks.F.pandemic.delta_2020_pct }}%</b></div>
+    </div>
+    <div class="kpi">
+      <div class="label">Registros 2021</div>
+      <div class="val">{{ '{:,}'.format(blocks.F.pandemic.n_2021) }}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Meses con cero registros</div>
+      <div class="val">{{ blocks.F.n_zero_months_total }}</div>
+      <div class="sub">posibles huecos de reporte</div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if blocks.F.zero_months %}
+  <details>
+    <summary>Meses con cero registros (primeros 30)</summary>
+    <table>
+      <tr><th>Año</th><th>Mes</th></tr>
+      {% for z in blocks.F.zero_months %}
+        <tr><td>{{ z.anio }}</td><td>{{ z.mes }}</td></tr>
+      {% endfor %}
+    </table>
+  </details>
+  {% endif %}
+</section>
+{% endif %}
+
+{# ═══ Bloque G ═══ #}
+{% if blocks.G %}
+<section class="block" id="block-G">
+  <h2>{{ blocks.G.title }}</h2>
+  {% if blocks.G.rows %}
+  <table>
+    <tr><th>Grupo ENT</th><th>Egresos</th><th>Defunciones</th><th>Ratio Muertes / Egresos</th></tr>
+    {% for r in blocks.G.rows %}
+      <tr>
+        <td><code>{{ r.grupo }}</code> — {{ r.label }}</td>
+        <td class="num">{{ '{:,}'.format(r.egresos) }}</td>
+        <td class="num">{{ '{:,}'.format(r.defunciones) }}</td>
+        <td class="pct">{% if r.ratio_mort_sobre_egr_pct is not none %}{{ r.ratio_mort_sobre_egr_pct }}%{% else %}—{% endif %}</td>
+      </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+  <div class="note">{{ blocks.G.note }}</div>
+</section>
+{% endif %}
+
+<footer>
+  Visor ENT EpiSIG · pipeline v{{ meta.pipeline_version }} · generado {{ meta.generado }}<br>
+  Lee este HTML, anota reglas de limpieza que quieras aplicar, y proseguimos a la Fase 2.
+</footer>
+
+</div>
+</body>
+</html>
