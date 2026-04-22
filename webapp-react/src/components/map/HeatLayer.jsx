@@ -31,13 +31,16 @@ export default function HeatLayer() {
   const pobData    = useStore(s => s.pobData)
   const ent        = useStore(s => s.ent)
   const year       = useStore(s => s.year)
+  const mapMetric  = useStore(s => s.mapMetric)
   const provFilter = useStore(s => s.provFilter)
 
   useEffect(() => {
     if (!geoParr || typeof L.heatLayer !== 'function') return
 
+    const isMort = mapMetric === 'mortalidad'
+
     const points = []
-    let maxCasos = 1
+    let maxW = 1
     for (const f of geoParr.features) {
       const p = f.properties || {}
       const provKey = getParroquiaProvKey(p)
@@ -46,10 +49,14 @@ export default function HeatLayer() {
       if (!c) continue
       const key = getParroquiaKey(p)
       const d = generateData(key, ent, year, entData, pobData)
-      const w = d.casos > 0 ? d.casos : (d.rate > 0 ? d.rate : 0)
+      // Peso = conteo absoluto de la métrica activa (casos o muertes).
+      // Fallback a la tasa /100k solo si no tenemos conteos (modo simulación).
+      const count = isMort ? d.muertes : d.casos
+      const rate  = isMort ? d.mortRate : d.rate
+      const w = count > 0 ? count : (rate > 0 ? rate : 0)
       if (w > 0) {
         points.push([c[0], c[1], w])
-        if (w > maxCasos) maxCasos = w
+        if (w > maxW) maxW = w
       }
     }
 
@@ -57,13 +64,13 @@ export default function HeatLayer() {
       radius: 14,
       blur: 18,
       maxZoom: 12,
-      max: maxCasos,
+      max: maxW,
       gradient: GRADIENT_QGIS,
       minOpacity: 0.35,
     })
     layer.addTo(map)
     return () => { map.removeLayer(layer) }
-  }, [map, geoParr, entData, pobData, ent, year, provFilter])
+  }, [map, geoParr, entData, pobData, ent, year, mapMetric, provFilter])
 
   return null
 }

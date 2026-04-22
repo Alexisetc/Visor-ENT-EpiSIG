@@ -18,6 +18,7 @@ export const useStore = create((set, get) => ({
   ent:           'todas',         // todas | circulatorio | neoplasia | metabolica | respiratorio | nervioso
   year:          2023,            // 2013..2023
   layerType:     'coropleta',     // coropleta | heatmap
+  mapMetric:     'morbilidad',    // morbilidad | mortalidad — qué tasa grafica el mapa
   provFilter:    null,            // '01'..'24' o null
   selectedDpa:   null,            // '170150' (Iñaquito) o null
   selectedProps: null,            // props del feature seleccionado
@@ -28,6 +29,7 @@ export const useStore = create((set, get) => ({
   setEnt:           (e)        => set({ ent: e }),
   setYear:          (y)        => set({ year: y }),
   setLayerType:     (t)        => set({ layerType: t }),
+  setMapMetric:     (m)        => set({ mapMetric: m }),
 
   // Al cambiar de provincia, si la parroquia seleccionada NO pertenece a la
   // nueva provincia se limpia (antes la ficha mostraba datos de una parroquia

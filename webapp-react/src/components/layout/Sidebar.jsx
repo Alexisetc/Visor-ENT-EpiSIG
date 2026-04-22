@@ -4,11 +4,12 @@
 // - Determinantes IA (Sprint 3): MGWR betas locales
 // - Priorización MCDA (Sprint 3): ranking y top-ENT por parroquia
 
-import { Activity, BrainCircuit, Star, Layers, Stethoscope, MapPin, Calendar } from 'lucide-react'
+import { Activity, BrainCircuit, Star, Layers, Stethoscope, MapPin, Calendar, Gauge } from 'lucide-react'
 import { useStore } from '../../store'
 import EntSelector   from '../controls/EntSelector'
 import YearSlider    from '../controls/YearSlider'
 import LayerToggle   from '../controls/LayerToggle'
+import MetricToggle  from '../controls/MetricToggle'
 import ProvinceSelect from '../controls/ProvinceSelect'
 
 const MODULES = [
@@ -70,6 +71,10 @@ export default function Sidebar() {
 
       <ControlGroup icon={Layers} label="Visualización">
         <LayerToggle />
+      </ControlGroup>
+
+      <ControlGroup icon={Gauge} label="Métrica del mapa">
+        <MetricToggle />
       </ControlGroup>
 
       <ControlGroup icon={Stethoscope} label="Grupo ENT">

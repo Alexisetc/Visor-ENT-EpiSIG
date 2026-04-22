@@ -13,14 +13,19 @@ export default function Legend() {
   const layerType = useStore(s => s.layerType)
   const ent       = useStore(s => s.ent)
   const year      = useStore(s => s.year)
+  const mapMetric = useStore(s => s.mapMetric)
   const geoParr   = useStore(s => s.geoParr)
   const entData   = useStore(s => s.entData)
   const pobData   = useStore(s => s.pobData)
 
   const limits = useMemo(
-    () => computeQuintiles(ent, year, geoParr, entData, pobData),
-    [ent, year, geoParr, entData, pobData]
+    () => computeQuintiles(ent, year, geoParr, entData, pobData, mapMetric),
+    [ent, year, geoParr, entData, pobData, mapMetric]
   )
+
+  const isMort = mapMetric === 'mortalidad'
+  const metricLabel = isMort ? 'mortalidad' : 'morbilidad'
+  const kdeLabel    = isMort ? 'Densidad de muertes (KDE)' : 'Densidad de casos (KDE)'
 
   const scale = colorScales[ent] || colorScales.todas
   const stops = useMemo(() => {
@@ -37,8 +42,8 @@ export default function Legend() {
     <div className="pointer-events-none absolute bottom-3 left-3 z-[400] rounded-lg border border-slate-200 bg-white/95 px-3 py-2 shadow-lg backdrop-blur">
       <div className="mb-1 font-display text-[11px] font-semibold uppercase tracking-wider text-inspi-navy">
         {layerType === 'heatmap'
-          ? 'Densidad de casos (KDE)'
-          : `Tasa /100k · ${ENT_LABEL[ent]}`}
+          ? kdeLabel
+          : `Tasa ${metricLabel} /100k · ${ENT_LABEL[ent]}`}
       </div>
 
       {layerType === 'coropleta' && (

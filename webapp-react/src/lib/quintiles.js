@@ -1,6 +1,13 @@
-// Cálculo dinámico de quintiles por (disease, year) — portado desde
+// Cálculo dinámico de quintiles por (disease, year, metric) — portado desde
 // Visualizador ENT.html L.831-872. Cachea resultados para evitar recomputo
-// en cada render del mapa (hay 1053 features × 5 ENT × 11 años potenciales).
+// en cada render del mapa (hay 1053 features × 5 ENT × 11 años × 2 métricas
+// potenciales = ~58 k combinaciones teóricas, típicamente <20 calculadas).
+//
+// El parámetro `metric` decide si los cortes vienen de `rate` (morbilidad
+// hospitalaria) o `mortRate` (mortalidad). Esto mantiene las coropletas
+// calibradas a la distribución real de la métrica activa, en vez de
+// colorear tasas de mortalidad (~5-50 /100k) contra cortes de morbilidad
+// (~100-1000 /100k) que las aplastarían al quintil más bajo.
 
 import { LIMITS_SIM, colorScales } from './colors'
 import { getParroquiaKey } from './parroquia'
@@ -12,16 +19,18 @@ export function clearQuintilesCache() {
   LIMITS_CACHE.clear()
 }
 
-export function computeQuintiles(disease, year, geojsonData, entData, pobData) {
-  const cacheKey = `${disease}|${year}`
+export function computeQuintiles(disease, year, geojsonData, entData, pobData, metric = 'morbilidad') {
+  const cacheKey = `${disease}|${year}|${metric}`
   if (LIMITS_CACHE.has(cacheKey)) return LIMITS_CACHE.get(cacheKey)
   if (!entData || !geojsonData) return LIMITS_SIM[disease] || LIMITS_SIM.todas
 
+  const field = metric === 'mortalidad' ? 'mortRate' : 'rate'
   const vals = []
   for (const f of geojsonData.features) {
     const key = getParroquiaKey(f.properties)
     const d = generateData(key, disease, year, entData, pobData)
-    if (d.rate > 0) vals.push(d.rate)
+    const v = d[field]
+    if (v > 0) vals.push(v)
   }
   if (vals.length < 5) {
     const fallback = LIMITS_SIM[disease] || LIMITS_SIM.todas
@@ -46,7 +55,7 @@ export function getColor(rate, disease, limits) {
 }
 
 // Helper conveniente: combina computeQuintiles + getColor en una llamada
-export function colorForRate(rate, disease, year, geojsonData, entData, pobData) {
-  const limits = computeQuintiles(disease, year, geojsonData, entData, pobData)
+export function colorForRate(rate, disease, year, geojsonData, entData, pobData, metric = 'morbilidad') {
+  const limits = computeQuintiles(disease, year, geojsonData, entData, pobData, metric)
   return getColor(rate, disease, limits)
 }
