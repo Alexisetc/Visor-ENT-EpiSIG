@@ -6,47 +6,19 @@
 // provocaba que Leaflet se metiera con el flujo absoluto y los botones se
 // renderizaran superpuestos.
 //
-// "Restablecer" lleva a:
-//   · Vista nacional Ecuador continental (-1.6, -78.3 z=7) si no hay provFilter
-//   · Bounds de la provincia activa si provFilter está set
+// "Restablecer" SIEMPRE lleva a la vista nacional inicial (todo Ecuador
+// continental, -1.6, -78.3 z=7), sin importar el provFilter — es el "home"
+// del mapa.
 
 import { ZoomIn, ZoomOut, Home } from 'lucide-react'
-import { useStore } from '../../store'
 
 const DEFAULT_CENTER = [-1.6, -78.3]
 const DEFAULT_ZOOM   = 7
 
 export default function ZoomControls({ map }) {
-  const geoProv    = useStore(s => s.geoProv)
-  const provFilter = useStore(s => s.provFilter)
-
   if (!map) return null
 
   const reset = () => {
-    if (provFilter && geoProv) {
-      const f = (geoProv.features || []).find(ft => {
-        const p = ft.properties || {}
-        const code = String(p.DPA_PROVIN ?? p.dpa_provin ?? p.PROV_CODE ?? p.code ?? '').padStart(2, '0')
-        return code === provFilter
-      })
-      if (f) {
-        const coords = []
-        const walk = c => {
-          if (typeof c[0] === 'number') coords.push([c[1], c[0]])
-          else c.forEach(walk)
-        }
-        walk(f.geometry.coordinates)
-        if (coords.length) {
-          const lats = coords.map(c => c[0])
-          const lngs = coords.map(c => c[1])
-          map.fitBounds(
-            [[Math.min(...lats), Math.min(...lngs)], [Math.max(...lats), Math.max(...lngs)]],
-            { padding: [20, 20], animate: true }
-          )
-          return
-        }
-      }
-    }
     map.setView(DEFAULT_CENTER, DEFAULT_ZOOM, { animate: true })
   }
 
