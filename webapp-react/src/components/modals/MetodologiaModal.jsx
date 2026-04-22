@@ -43,11 +43,14 @@ export default function MetodologiaModal() {
           </p>
 
           <div>
-            <h3 className="font-display text-sm font-semibold text-inspi-navy">Egresos hospitalarios 2013–2023</h3>
+            <h3 className="font-display text-sm font-semibold text-inspi-navy">Egresos hospitalarios y defunciones 2013–2024</h3>
             <p className="text-xs">
-              <b>Reales.</b> Microdato MSP / INEC procesado por <code>scripts/procesar_microdato_egresos.py</code>.
-              Clasificación CIE-10 según los 5 grupos de Leonel Morales (circulatorio I00-I99,
-              neoplasias C00-D48, metabólicas E00-E90, respiratorio J00-J99, nervioso G00-G99).
+              <b>Reales.</b> Microdato crudo INEC (EGH + EDG) procesado por el pipeline
+              Python <code>scripts/ent_pipeline/</code> (Fases 0-5, reemplaza el
+              <code> CONSOLIDADO_egresos.xlsx</code> opaco). Clasificación CIE-10 según los
+              5 grupos de Leonel Morales (circulatorio I00-I99, neoplasias C00-D48,
+              metabólicas E00-E90, respiratorio J00-J99, nervioso G00-G99).
+              Tendencias con Mann-Kendall (τ) + pendiente de Sen + FDR Benjamini-Hochberg.
             </p>
           </div>
 

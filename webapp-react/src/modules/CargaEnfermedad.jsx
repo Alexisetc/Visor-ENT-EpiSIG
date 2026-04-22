@@ -1,18 +1,19 @@
-// CargaEnfermedad — Módulo principal Sprint 2.2
-// Enfoque: MORBILIDAD HOSPITALARIA (egresos) y MORTALIDAD — dos indicadores
-// clave con análisis de tendencia estadística siguiendo la metodología Morales
-// aplicada a la serie 2013-2024 de la unidad activa (parroquia, provincia,
-// nacional).
+// CargaEnfermedad — Módulo principal del visor (MORBILIDAD HOSPITALARIA y
+// MORTALIDAD). La métrica activa sigue siempre al toggle del sidebar para
+// no duplicar indicadores y confundir al lector. Análisis de tendencia
+// Mann-Kendall + pendiente de Sen + FDR Benjamini-Hochberg pre-computado
+// en Fase 5 del pipeline Python (12 años 2013-2024).
 //
-// Ficha derecha (pensada para tomadores de decisiones · solo indicadores clave):
-//   · Encabezado con unidad seleccionada
-//   · KPI Morbilidad Hospitalaria + KPI Mortalidad
+// Ficha derecha (tomadores de decisiones · una sola métrica a la vez):
+//   · Encabezado con unidad seleccionada (parroquia/provincia/nacional)
+//   · KPI de la métrica activa
 //       ─ valor actual
 //       ─ Δ vs año anterior (verde si baja, rojo si sube — en salud sube = peor)
 //       ─ píldora tendencia 2013-2024 (Ascendente / Descendente / Estable + %/año)
+//   · Cifras base (casos O muertes + población) del año activo
 //   · Gráfico Tendencia Temporal 2013-2024
-//   · Resumen compacto del análisis estadístico (pendiente, p-valor, R², IC95)
-//   · Desglose por sexo y área (solo agregado nacional, del estudio 2017-2023)
+//   · Tarjeta de análisis estadístico (τ Kendall, Sen/año, p(FDR), n)
+//   · Desglose por sexo y área (solo mortalidad nacional 2017-2023, estudio Morales)
 
 import { useMemo } from 'react'
 import {
@@ -45,7 +46,7 @@ export default function CargaEnfermedad() {
   const estudioData   = useStore(s => s.estudioData)
   const mapMetric     = useStore(s => s.mapMetric)
 
-  // Serie 2013→2023 de la unidad activa (siempre completa)
+  // Serie 2013→2024 de la unidad activa (siempre completa — 12 años)
   const series = useMemo(() => {
     if (selectedDpa && selectedProps) {
       const key = getParroquiaKey(selectedProps)
@@ -159,7 +160,7 @@ export default function CargaEnfermedad() {
   const activeCountLabel = isMort ? 'Muertes' : 'Casos'
 
   return (
-    <div className="flex h-full flex-col gap-3 overflow-y-auto p-3">
+    <div className="flex flex-col gap-3 p-3">
       {/* Header */}
       <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-inspi-navy to-inspi-navy-2 p-3 text-white">
         <div className="flex items-start justify-between gap-2">

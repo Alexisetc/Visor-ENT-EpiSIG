@@ -24,13 +24,20 @@ export default function ProvinceSelect() {
       .sort((a, b) => a.name.localeCompare(b.name, 'es'))
   }, [geoProv])
 
+  // Mientras geoProv aún no carga (loading inicial) mostramos placeholder
+  // neutral en vez de "0 provincias" — más honesto que un conteo vacío.
+  const loading = !geoProv
+
   return (
     <select
       value={provFilter || ''}
       onChange={e => setProvFilter(e.target.value || null)}
-      className="w-full rounded border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 shadow-sm focus:border-inspi-navy focus:outline-none focus:ring-1 focus:ring-inspi-navy"
+      disabled={loading}
+      className="w-full rounded border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 shadow-sm focus:border-inspi-navy focus:outline-none focus:ring-1 focus:ring-inspi-navy disabled:cursor-wait disabled:text-slate-400"
     >
-      <option value="">— Nacional ({options.length} provincias) —</option>
+      <option value="">
+        {loading ? '— Cargando provincias… —' : `— Nacional (${options.length} provincias) —`}
+      </option>
       {options.map(o => (
         <option key={o.code} value={o.code}>{o.name}</option>
       ))}

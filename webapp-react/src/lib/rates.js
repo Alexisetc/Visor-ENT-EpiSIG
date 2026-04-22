@@ -1,6 +1,6 @@
 // Cálculo de tasas por parroquia — portado desde Visualizador ENT.html (L.595-660)
 // Devuelve {rate, mortRate, casos, muertes, pob, _real} usando ENT_DATA + POB_DATA
-// (egresos reales 2013-2023) o fallback simulado si los JSONs no han cargado.
+// (egresos + defunciones INEC 2013-2024) o fallback simulado si los JSONs no han cargado.
 //   · rate     = tasa de prevalencia (egresos/100k)
 //   · mortRate = tasa de mortalidad (muertes/100k)
 

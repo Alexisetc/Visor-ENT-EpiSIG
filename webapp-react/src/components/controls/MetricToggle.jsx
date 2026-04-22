@@ -1,11 +1,8 @@
 // MetricToggle — Selector de qué tasa grafica el mapa (morbilidad vs
-// mortalidad). Reutilizable: afecta coropleta, heatmap, leyenda y tooltip.
-//
-// El KPIBlock + píldora de tendencia de la ficha derecha siempre muestran
-// AMBAS métricas en paralelo (morbilidad arriba, mortalidad abajo) — este
-// toggle solo decide cuál se grafica espacialmente en el mapa. Esa es la
-// división deliberada: el panel lateral compara los dos indicadores
-// simultáneamente, el mapa enfoca uno a la vez para no saturar el color.
+// mortalidad). Es la fuente de verdad única: afecta coropleta, heatmap,
+// leyenda, tooltip del mapa Y todo el panel derecho (KPI, conteos,
+// gráfica temporal y píldora de tendencia). Una sola métrica a la vez
+// evita la confusión de leer dos indicadores en paralelo.
 
 import { HeartPulse, Skull } from 'lucide-react'
 import { useStore } from '../../store'

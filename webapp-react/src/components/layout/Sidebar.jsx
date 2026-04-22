@@ -1,8 +1,8 @@
 // Sidebar — Panel izquierdo con módulos analíticos + controles globales.
 // Reemplaza .dash-sidebar del legacy. Estructura por módulos a la Gemini:
-// - Carga de Enfermedad (Sprint 2): coropletas + hot spots + tendencia
-// - Determinantes IA (Sprint 3): MGWR betas locales
-// - Priorización MCDA (Sprint 3): ranking y top-ENT por parroquia
+// - Carga de Enfermedad: coropletas + hot spots + tendencia MK+Sen+FDR
+// - Determinantes IA:    MGWR betas locales + 7 determinantes parroquiales
+// - Priorización MCDA:   ranking y top-ENT por parroquia (6 criterios)
 
 import { Activity, BrainCircuit, Star, Layers, Stethoscope, MapPin, Calendar, Gauge } from 'lucide-react'
 import { useStore } from '../../store'
@@ -13,9 +13,9 @@ import MetricToggle  from '../controls/MetricToggle'
 import ProvinceSelect from '../controls/ProvinceSelect'
 
 const MODULES = [
-  { id: 'carga',         label: 'Carga de Enfermedad', icon: Activity,     ready: true,  color: 'text-rose-600'   },
-  { id: 'determinantes', label: 'Determinantes IA',     icon: BrainCircuit, ready: false, color: 'text-violet-600' },
-  { id: 'mcda',          label: 'Priorización MCDA',    icon: Star,         ready: false, color: 'text-amber-600'  },
+  { id: 'carga',         label: 'Carga de Enfermedad', icon: Activity,     ready: true, color: 'text-rose-600'   },
+  { id: 'determinantes', label: 'Determinantes IA',    icon: BrainCircuit, ready: true, color: 'text-violet-600' },
+  { id: 'mcda',          label: 'Priorización MCDA',   icon: Star,         ready: true, color: 'text-amber-600'  },
 ]
 
 function ControlGroup({ icon: Icon, label, children }) {
@@ -56,11 +56,10 @@ export default function Sidebar() {
                       ? 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                       : 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-400'
                 }`}
-                title={m.ready ? m.label : `${m.label} (Sprint 3)`}
+                title={m.label}
               >
                 <Icon size={14} className={active ? m.color : ''} />
                 <span className="font-medium">{m.label}</span>
-                {!m.ready && <span className="ml-auto text-[9px] uppercase">próx.</span>}
               </button>
             )
           })}

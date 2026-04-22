@@ -2,13 +2,15 @@
 // al store zustand. Se ejecuta una sola vez al montar <App />.
 //
 // Datasets servidos desde /assets/* (ver vite.config.js legacyAssetsMiddleware):
-//   ent_parroquial.json         egresos reales 2013-2023, 1035+ parroquias
+//   ent_parroquial.json         Fase 5 del pipeline Python — egresos + defunciones
+//                               INEC 2013-2024, 1056 parroquias, + tendencias
+//                               MK+Sen+FDR embebidas por parroquia/provincia/nacional
 //   pob_parroquial.json         denominadores CPV 2022, 1040 parroquias
 //   parroquias_otp_simpl.geojson  1053 polígonos parroquiales (CONALI)
 //   provincias_otp.geojson      24 polígonos provinciales (INEC)
-//   priorizacion_mcda.json      ranking MCDA por parroquia
-//   mgwr_betas.json             β locales MGWR por parroquia
-//   determinantes_parroquial.json  7 determinantes simulados por parroquia
+//   priorizacion_mcda.json      ranking MCDA por parroquia (simulación)
+//   mgwr_betas.json             β locales MGWR por parroquia (simulación)
+//   determinantes_parroquial.json  7 determinantes por parroquia (simulación)
 //   estudio_ent.json            estudio mortalidad ENT 2017-2023 (nacional)
 
 import { useEffect } from 'react'
@@ -61,7 +63,9 @@ export function useDataLoader() {
           if (key === 'estudioData') summary.push(`estudio: ${Object.keys(json.grupos || {}).length} grupos × ${(json.anios || []).length} años`)
         }
       }
-      console.log('[EpiSIG] Datos cargados →', summary.join(' · '))
+      if (import.meta.env.DEV) {
+        console.log('[EpiSIG] Datos cargados →', summary.join(' · '))
+      }
       setLoading(false)
     }).catch(err => {
       if (cancelled) return
