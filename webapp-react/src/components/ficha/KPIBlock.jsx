@@ -1,24 +1,30 @@
-// KPIBlock — tarjeta de un solo indicador con variación interanual (YoY).
-// Se usa para mostrar Prevalencia y Mortalidad por separado en el módulo Carga
-// de Enfermedad.
-//   · title     'Tasa Est. Prevalencia' | 'Tasa de Mortalidad' …
+// KPIBlock — tarjeta de un solo indicador con variación interanual (YoY) y
+// píldora de tendencia estadística (metodología Morales).
+//
+//   · title     'Tasa de Morbilidad Hospitalaria' | 'Tasa de Mortalidad' …
 //   · value     número (la tasa del año actual)
 //   · prev      número (tasa del año anterior) · opcional
-//   · prevYear  etiqueta numérica para mostrar en el delta ('2022' → "↑ 12% vs 2022")
+//   · prevYear  etiqueta para mostrar junto al delta ('2022' → "↑ 12% vs 2022")
 //   · unit      'por 100k hab.'
 //   · casos / muertes / pob  · opcional — grid inferior con conteos
+//   · trend     output de computeTrend() — opcional; píldora con clase + % anual
+//
+// Convención de colores (métricas de salud: subir es malo):
+//   · Ascendente  → rojo
+//   · Descendente → verde
+//   · Estable     → gris
 
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, ArrowUpRight, ArrowDownRight, MoveRight } from 'lucide-react'
 import { deltaYoY } from '../../lib/trend'
 
 export default function KPIBlock({
   title, value, prev, prevYear, unit = 'por 100k hab.',
   casos, muertes, pob, real = true, accent = 'navy',
+  trend,
 }) {
   const delta = deltaYoY(value, prev)
   const accentColor = accent === 'red' ? 'text-rose-600' : 'text-inspi-navy'
 
-  // Colores del delta: subida = rojo (peor) para mort/prev, bajada = verde
   const deltaColor =
     !delta || delta.dir === 'flat' ? 'text-slate-400'
     : delta.dir === 'up'            ? 'text-rose-600'
@@ -28,6 +34,17 @@ export default function KPIBlock({
     !delta || delta.dir === 'flat' ? Minus
     : delta.dir === 'up'            ? TrendingUp
     :                                  TrendingDown
+
+  // Estilos de la píldora de tendencia
+  const trendStyles = {
+    up:   'bg-rose-50    text-rose-700    ring-rose-200',
+    down: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+    flat: 'bg-slate-100  text-slate-600   ring-slate-200',
+  }
+  const TrendIcon = !trend?.valid ? null
+    : trend.dir === 'up'   ? ArrowUpRight
+    : trend.dir === 'down' ? ArrowDownRight
+    :                         MoveRight
 
   return (
     <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-3 shadow-sm">
@@ -53,6 +70,22 @@ export default function KPIBlock({
         </div>
       ) : (
         <div className="mt-1.5 text-[10px] italic text-slate-300">— sin año base —</div>
+      )}
+
+      {/* Píldora de tendencia estadística (Morales) */}
+      {trend?.valid && TrendIcon && (
+        <div className="mt-2">
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${trendStyles[trend.dir]}`}
+            title={`p=${trend.pValue < 0.001 ? '<0.001' : trend.pValue.toFixed(3)} · R²=${trend.r2}`}
+          >
+            <TrendIcon size={10} strokeWidth={2.5} />
+            {trend.clase}
+            <span className="font-mono font-normal opacity-80">
+              {trend.annualPct >= 0 ? '+' : ''}{trend.annualPct}%/año
+            </span>
+          </span>
+        </div>
       )}
 
       {(casos > 0 || muertes > 0 || pob > 0) && (

@@ -2,8 +2,8 @@
 // la unidad seleccionada (parroquia, provincia agregada o nacional).
 //
 // Recibe `series: [{year, rate, mortRate}]` y dibuja dos líneas:
-//   · rate      (tasa de prevalencia)  → color del grupo ENT
-//   · mortRate  (tasa de mortalidad)   → inspi-navy
+//   · rate      (morbilidad hospitalaria — egresos /100k)  → color del grupo ENT
+//   · mortRate  (mortalidad — muertes /100k)               → inspi-navy
 //
 // La línea vertical punteada indica el año actualmente seleccionado y NO corta
 // la serie: siempre se muestran los 11 años.
@@ -46,7 +46,7 @@ export default function TendenciaChart({ series, disease, year }) {
             <Tooltip
               contentStyle={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: `1px solid ${color}` }}
               formatter={(v, n) => {
-                if (n === 'rate')     return [Number(v).toFixed(1), 'Prevalencia /100k']
+                if (n === 'rate')     return [Number(v).toFixed(1), 'Morbilidad Hosp. /100k']
                 if (n === 'mortRate') return [Number(v).toFixed(1), 'Mortalidad /100k']
                 return [v, n]
               }}
@@ -93,7 +93,7 @@ export default function TendenciaChart({ series, disease, year }) {
               height={18}
               iconSize={8}
               wrapperStyle={{ fontSize: 10, paddingTop: 2 }}
-              formatter={(v) => v === 'rate' ? 'Prevalencia' : v === 'mortRate' ? 'Mortalidad' : v}
+              formatter={(v) => v === 'rate' ? 'Morbilidad hospitalaria' : v === 'mortRate' ? 'Mortalidad' : v}
             />
           </AreaChart>
         </ResponsiveContainer>

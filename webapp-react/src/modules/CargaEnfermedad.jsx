@@ -1,32 +1,34 @@
-// CargaEnfermedad — Módulo principal Sprint 2.1
-// Representa los resultados del estudio "Evolución de la mortalidad por
-// enfermedades no transmisibles en Ecuador (2017-2023)" sobre el visor
-// parroquial 2013-2023.
+// CargaEnfermedad — Módulo principal Sprint 2.2
+// Enfoque: MORBILIDAD HOSPITALARIA (egresos) y MORTALIDAD — dos indicadores
+// clave con análisis de tendencia estadística siguiendo la metodología Morales
+// aplicada a la serie 2013-2023 de la unidad activa (parroquia, provincia,
+// nacional).
 //
-// Ficha derecha:
-//   · Encabezado con unidad seleccionada (parroquia / provincia / nacional)
-//   · 2 KPI: Tasa Prevalencia + Tasa Mortalidad · ambos con Δ YoY
-//   · Tendencia Temporal 2013-2023 (curvas prev + mort)
+// Ficha derecha (pensada para tomadores de decisiones · solo indicadores clave):
+//   · Encabezado con unidad seleccionada
+//   · KPI Morbilidad Hospitalaria + KPI Mortalidad
+//       ─ valor actual
+//       ─ Δ vs año anterior (verde si baja, rojo si sube — en salud sube = peor)
+//       ─ píldora tendencia 2013-2023 (Ascendente / Descendente / Estable + %/año)
+//   · Gráfico Tendencia Temporal 2013-2023
+//   · Resumen compacto del análisis estadístico (pendiente, p-valor, R², IC95)
 //   · Desglose por sexo y área (solo agregado nacional, del estudio 2017-2023)
-//   · Tendencia estadística (pendiente, p-valor) del estudio
-//
-// Lógica de unidad agregada:
-//   - selectedDpa null → agrega TODAS las parroquias del provFilter (o nacional)
-//   - selectedDpa set  → datos de esa parroquia exacta
 
 import { useMemo } from 'react'
-import { Crosshair, X, Activity, Users, MapPin } from 'lucide-react'
+import {
+  Crosshair, X, Activity, Users, MapPin,
+  ArrowUpRight, ArrowDownRight, MoveRight,
+} from 'lucide-react'
 import { useStore } from '../store'
 import { usePlay, YEARS } from '../hooks/usePlay'
 import { ENT_LABEL } from '../lib/colors'
 import { getParroquiaKey, getParroquiaLabel } from '../lib/parroquia'
-import { generateData } from '../lib/rates'
-import { buildYearSeries, buildAggregateSeries } from '../lib/trend'
+import { buildYearSeries, buildAggregateSeries, computeTrend } from '../lib/trend'
 import KPIBlock from '../components/ficha/KPIBlock'
 import TendenciaChart from '../components/ficha/TendenciaChart'
 
 export default function CargaEnfermedad() {
-  usePlay() // arranca el timer de animación 2013→2023 cuando state.playing=true
+  usePlay()
 
   const ent           = useStore(s => s.ent)
   const year          = useStore(s => s.year)
@@ -39,7 +41,7 @@ export default function CargaEnfermedad() {
   const pobData       = useStore(s => s.pobData)
   const estudioData   = useStore(s => s.estudioData)
 
-  // Serie 2013→2023 de la unidad activa (siempre completa, no se corta con el año)
+  // Serie 2013→2023 de la unidad activa (siempre completa)
   const series = useMemo(() => {
     if (selectedDpa && selectedProps) {
       const key = getParroquiaKey(selectedProps)
@@ -49,25 +51,27 @@ export default function CargaEnfermedad() {
     return buildAggregateSeries(geoParr.features, ent, entData, pobData, provFilter)
   }, [selectedDpa, selectedProps, geoParr, ent, entData, pobData, provFilter])
 
-  // Año actual y año anterior dentro de la serie (para delta YoY)
+  // Año actual y anterior (para delta YoY)
   const currentYear = useMemo(() => series.find(s => s.year === year), [series, year])
   const prevYear    = useMemo(() => {
     const yi = series.findIndex(s => s.year === year)
     return yi > 0 ? series[yi - 1] : null
   }, [series, year])
 
-  // Datos del estudio ENT 2017-2023 (nacional) para el grupo activo
+  // Análisis de tendencia Morales sobre la serie 2013-2023
+  const morbTrend = useMemo(() => computeTrend(series, 'rate'),     [series])
+  const mortTrend = useMemo(() => computeTrend(series, 'mortRate'), [series])
+
+  // Desglose del estudio (solo nacional, 2017-2023)
   const estudioGrupo = useMemo(() => {
     if (!estudioData || ent === 'todas') return null
     return estudioData.grupos?.[ent] || null
   }, [estudioData, ent])
-
   const yearIdxStudy = useMemo(() => {
     if (!estudioData) return -1
     return (estudioData.anios || []).indexOf(year)
   }, [estudioData, year])
 
-  // Etiqueta de la unidad
   const unitLabel = useMemo(() => {
     if (selectedDpa && selectedProps) {
       return {
@@ -107,7 +111,7 @@ export default function CargaEnfermedad() {
 
   return (
     <div className="flex h-full flex-col gap-3 overflow-y-auto p-3">
-      {/* Header de la ficha */}
+      {/* Header */}
       <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-inspi-navy to-inspi-navy-2 p-3 text-white">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -138,10 +142,10 @@ export default function CargaEnfermedad() {
         )}
       </div>
 
-      {/* Bloques KPI: Prevalencia + Mortalidad con Δ YoY */}
+      {/* KPI: Morbilidad Hospitalaria + Mortalidad */}
       <div className="grid grid-cols-2 gap-2">
         <KPIBlock
-          title="Tasa Est. Prevalencia"
+          title="Morbilidad Hospitalaria"
           value={currentYear?.rate ?? 0}
           prev={prevYear?.rate}
           prevYear={prevYear?.year}
@@ -150,14 +154,16 @@ export default function CargaEnfermedad() {
           pob={currentYear?.pob}
           real={Boolean(currentYear && currentYear.pob > 0)}
           accent="navy"
+          trend={morbTrend}
         />
         <KPIBlock
-          title="Tasa de Mortalidad"
+          title="Mortalidad"
           value={currentYear?.mortRate ?? 0}
           prev={prevYear?.mortRate}
           prevYear={prevYear?.year}
           real={Boolean(currentYear && currentYear.pob > 0)}
           accent="red"
+          trend={mortTrend}
         />
       </div>
 
@@ -169,40 +175,26 @@ export default function CargaEnfermedad() {
         <TendenciaChart series={series} disease={ent} year={year} />
       </section>
 
-      {/* Tendencia estadística — solo cuando hay dato del estudio */}
-      {estudioGrupo?.tendencia?.clase && (
-        <section className="rounded border border-amber-200 bg-amber-50/60 p-2.5">
-          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-amber-800">
-            Tendencia estadística · estudio ENT 2017-2023
+      {/* Análisis estadístico — metodología Morales aplicada al unit activo */}
+      {(morbTrend.valid || mortTrend.valid) && (
+        <section className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              Análisis de tendencia · metodología Morales
+            </div>
+            <div className="text-[9px] font-medium text-slate-400">
+              {YEARS[0]}–{YEARS[YEARS.length - 1]} · n={morbTrend.n || mortTrend.n}
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
-            <div className="text-slate-600">Pendiente</div>
-            <div className="text-right font-mono font-semibold text-amber-900">
-              {estudioGrupo.tendencia.pendiente >= 0 ? '+' : ''}
-              {estudioGrupo.tendencia.pendiente}
-            </div>
-            <div className="text-slate-600">Variación anual</div>
-            <div className="text-right font-mono font-semibold text-amber-900">
-              {estudioGrupo.tendencia.pct_anual >= 0 ? '+' : ''}
-              {estudioGrupo.tendencia.pct_anual}%
-            </div>
-            <div className="text-slate-600">IC 95%</div>
-            <div className="text-right font-mono text-[10px] text-amber-900">
-              {estudioGrupo.tendencia.ic95}
-            </div>
-            <div className="text-slate-600">p-valor</div>
-            <div className="text-right font-mono font-semibold text-amber-900">
-              {estudioGrupo.tendencia.p_valor}
-            </div>
-            <div className="text-slate-600">Clase</div>
-            <div className="text-right font-semibold text-amber-900">
-              {estudioGrupo.tendencia.clase}
-            </div>
+          <TrendRow label="Morbilidad hospitalaria" trend={morbTrend} />
+          <TrendRow label="Mortalidad"              trend={mortTrend} />
+          <div className="mt-2 border-t border-slate-100 pt-1.5 text-[9px] text-slate-400">
+            Regresión lineal OLS · test t bilateral α=0.05 · significancia si p&lt;0.05
           </div>
         </section>
       )}
 
-      {/* Desglose por sexo (estudio nacional) */}
+      {/* Desglose por sexo — solo nacional 2017-2023 (del estudio) */}
       {hasStudyDet && estudioGrupo.mortalidad_sexo?.hombre && (
         <section>
           <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
@@ -215,7 +207,7 @@ export default function CargaEnfermedad() {
         </section>
       )}
 
-      {/* Desglose por área (estudio nacional) */}
+      {/* Desglose por área — solo nacional 2017-2023 (del estudio) */}
       {hasStudyDet && estudioGrupo.mortalidad_area?.urbana && (
         <section>
           <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
@@ -227,18 +219,58 @@ export default function CargaEnfermedad() {
           />
         </section>
       )}
-
-      {isNational && ent !== 'todas' && !hasStudyDet && (
-        <div className="rounded border border-slate-200 bg-slate-50 p-2 text-[10px] italic text-slate-500">
-          El estudio ENT 2017-2023 no incluye el año {year}. Desglose por sexo y
-          área disponible solo para 2017-2023 agregado nacional.
-        </div>
-      )}
     </div>
   )
 }
 
-// ───── Subcomponentes simples de barra ─────
+// ───── Subcomponentes ─────
+
+function TrendRow({ label, trend }) {
+  if (!trend?.valid) {
+    return (
+      <div className="flex items-center justify-between border-b border-slate-100 py-1.5 text-[11px] last:border-b-0">
+        <span className="font-medium text-slate-600">{label}</span>
+        <span className="italic text-slate-400">sin datos suficientes</span>
+      </div>
+    )
+  }
+  const styles = {
+    up:   { bg: 'bg-rose-50',    text: 'text-rose-700',    Icon: ArrowUpRight   },
+    down: { bg: 'bg-emerald-50', text: 'text-emerald-700', Icon: ArrowDownRight },
+    flat: { bg: 'bg-slate-100',  text: 'text-slate-600',   Icon: MoveRight      },
+  }
+  const s = styles[trend.dir]
+  const Icon = s.Icon
+  const pStr = trend.pValue < 0.001 ? '<0.001' : trend.pValue.toFixed(3)
+  return (
+    <div className="border-b border-slate-100 py-1.5 last:border-b-0">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-medium text-slate-700">{label}</span>
+        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.bg} ${s.text}`}>
+          <Icon size={10} strokeWidth={2.5} />
+          {trend.clase}
+        </span>
+      </div>
+      <div className="mt-1 grid grid-cols-4 gap-x-2 font-mono text-[9.5px] text-slate-500">
+        <Stat label="% anual"  value={`${trend.annualPct >= 0 ? '+' : ''}${trend.annualPct}`} />
+        <Stat label="pendiente" value={`${trend.slope >= 0 ? '+' : ''}${trend.slope}`} />
+        <Stat label="p-valor"   value={pStr} highlight={trend.significant} />
+        <Stat label="R²"        value={trend.r2} />
+      </div>
+    </div>
+  )
+}
+
+function Stat({ label, value, highlight }) {
+  return (
+    <div>
+      <div className={`font-semibold ${highlight ? 'text-inspi-navy' : 'text-slate-700'}`}>
+        {value}
+      </div>
+      <div className="text-[8.5px] uppercase tracking-wider text-slate-400">{label}</div>
+    </div>
+  )
+}
 
 function SexoBars({ hombre, mujer }) {
   const max = Math.max(hombre || 0, mujer || 0, 1)
