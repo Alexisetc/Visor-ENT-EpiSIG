@@ -15,9 +15,11 @@
 //   mcdaData.parroquias[DPA6]  → {nombre, cant, prov, pob_2022, casos_total,
 //                                 ranking[{ent, score, color, normalized{...}, rank}]}
 //
-// Agregación provincia/nacional: media simple por ENT del score normalizado,
-// re-rankeado. El score final se interpreta como "promedio de prioridad MCDA"
-// a esa escala geográfica.
+// Agregación provincia/nacional: media PONDERADA POR POBLACIÓN (pob_2022)
+// por ENT del score normalizado, re-rankeado. El score final se interpreta
+// como "prioridad MCDA promedio, donde cada parroquia pesa según su población".
+// Una parroquia con 300 k hab. pesa 150× más que una de 2 k hab. — coherente
+// con criterios de priorización de salud pública (carga por habitante).
 
 import { useMemo } from 'react'
 import { Crosshair, X, Star, Award, FlaskConical } from 'lucide-react'
@@ -53,13 +55,18 @@ export default function PriorizacionMCDA() {
       })
       .map(f => getParroquiaKey(f.properties || {}))
 
-    // Agregado: media simple de score + normalized por ENT
+    // Agregado: media PONDERADA POR POBLACIÓN de score + normalized por ENT.
+    // Razón salud pública: una parroquia de 300 k hab. debe pesar más que una
+    // de 2 k hab. al computar "prioridad promedio" provincial/nacional.
+    // Fallback: si pob=0 o no disponible, ese entry pesa como 1 (equivalente a
+    // contar el parroquia una vez — preserva comportamiento previo en edge cases).
     const agg = {}
     for (const e of ENTS) {
       agg[e] = {
-        score: { sum: 0, n: 0 },
+        score_num:    0,   // Σ (score × w)
+        score_w:      0,   // Σ w (pesos válidos)
         normalized: { mortalidad: 0, egresos: 0, avad: 0, tendencia: 0, costo: 0, equidad: 0 },
-        norm_n: 0,
+        norm_w:       0,   // Σ w para normalized
       }
     }
     let totalPob = 0, totalCasos = 0, hits = 0
@@ -67,32 +74,34 @@ export default function PriorizacionMCDA() {
       const row = mcdaData.parroquias?.[k]
       if (!row) continue
       hits++
-      totalPob += Number(row.pob_2022 || 0)
+      const pob = Number(row.pob_2022 || 0)
+      totalPob += pob
       totalCasos += Number(row.casos_total || 0)
+      const w = pob > 0 ? pob : 1     // fallback equi-peso si pob no disponible
       for (const r of row.ranking || []) {
         const e = r.ent
         if (!agg[e]) continue
         const s = Number(r.score || 0)
-        if (!Number.isFinite(s)) continue      // skip entry entirely si score inválido
-        agg[e].score.sum += s
-        agg[e].score.n++
+        if (!Number.isFinite(s)) continue
+        agg[e].score_num += s * w
+        agg[e].score_w   += w
         const n = r.normalized || {}
         for (const cid of Object.keys(agg[e].normalized)) {
           const v = Number(n[cid] || 0)
-          if (Number.isFinite(v)) agg[e].normalized[cid] += v
+          if (Number.isFinite(v)) agg[e].normalized[cid] += v * w
         }
-        agg[e].norm_n++                        // solo cuenta si el score era válido
+        agg[e].norm_w += w
       }
     }
 
-    // Construir ranking agregado
+    // Construir ranking agregado (media ponderada)
     const ranking = ENTS
       .map(e => {
         const a = agg[e]
-        const score = a.score.n > 0 ? a.score.sum / a.score.n : 0
+        const score = a.score_w > 0 ? a.score_num / a.score_w : 0
         const normalized = {}
         for (const cid of Object.keys(a.normalized)) {
-          normalized[cid] = a.norm_n > 0 ? a.normalized[cid] / a.norm_n : 0
+          normalized[cid] = a.norm_w > 0 ? a.normalized[cid] / a.norm_w : 0
         }
         return {
           ent: e,
@@ -171,6 +180,7 @@ export default function PriorizacionMCDA() {
                 onClick={clearSelected}
                 className="rounded p-1 text-slate-300 hover:bg-white/10 hover:text-white"
                 title="Volver al agregado"
+                aria-label="Deseleccionar parroquia y volver al agregado"
               >
                 <X size={14} />
               </button>

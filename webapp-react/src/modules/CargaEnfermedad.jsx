@@ -180,6 +180,7 @@ export default function CargaEnfermedad() {
               onClick={clearSelected}
               className="flex-shrink-0 rounded p-1 text-slate-300 hover:bg-white/10 hover:text-white"
               title="Volver al agregado"
+              aria-label="Deseleccionar parroquia y volver al agregado"
             >
               <X size={14} />
             </button>
