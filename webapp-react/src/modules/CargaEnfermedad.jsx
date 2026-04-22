@@ -23,7 +23,10 @@ import { useStore } from '../store'
 import { usePlay, YEARS } from '../hooks/usePlay'
 import { ENT_LABEL } from '../lib/colors'
 import { getParroquiaKey, getParroquiaLabel } from '../lib/parroquia'
-import { buildYearSeries, buildAggregateSeries, computeTrend } from '../lib/trend'
+import {
+  buildYearSeries, buildAggregateSeries,
+  computeTrend, lookupTrend, enrichAnnualPct,
+} from '../lib/trend'
 import KPIBlock from '../components/ficha/KPIBlock'
 import TendenciaChart from '../components/ficha/TendenciaChart'
 
@@ -58,9 +61,42 @@ export default function CargaEnfermedad() {
     return yi > 0 ? series[yi - 1] : null
   }, [series, year])
 
-  // Análisis de tendencia Morales sobre la serie 2013-2023
-  const morbTrend = useMemo(() => computeTrend(series, 'rate'),     [series])
-  const mortTrend = useMemo(() => computeTrend(series, 'mortRate'), [series])
+  // Análisis de tendencia Mann-Kendall + Sen + FDR (pre-computado en Fase 5).
+  // Selecciona nivel geográfico correcto:
+  //   · parroquia seleccionada → level='parroquia', unitId=DPA6
+  //   · provFilter activo      → level='provincia', unitId=DPA2
+  //   · ninguno                → level='nacional'
+  // Para ENT='todas' (pseudo-agregado suma 5 grupos) no hay pre-cómputo →
+  // lookupTrend devuelve valid=false y caemos a computeTrend (OLS) sobre la
+  // serie local construida con buildAggregateSeries/buildYearSeries.
+  const { morbTrend, mortTrend } = useMemo(() => {
+    let level, unitId
+    if (selectedDpa && selectedProps) {
+      level  = 'parroquia'
+      unitId = getParroquiaKey(selectedProps)
+    } else if (provFilter) {
+      level  = 'provincia'
+      unitId = provFilter
+    } else {
+      level  = 'nacional'
+      unitId = null
+    }
+
+    let morb = lookupTrend(entData, level, unitId, ent, 'morbilidad', 'serie_completa')
+    let mort = lookupTrend(entData, level, unitId, ent, 'mortalidad', 'serie_completa')
+
+    // Parroquia no trae serie_tasa pre-computada → enriquecer annualPct desde la serie local
+    if (level === 'parroquia') {
+      morb = enrichAnnualPct(morb, series, 'rate')
+      mort = enrichAnnualPct(mort, series, 'mortRate')
+    }
+
+    // Fallback OLS para ENT='todas' (no pre-computado)
+    if (!morb.valid && morb.reason === 'todas') morb = computeTrend(series, 'rate')
+    if (!mort.valid && mort.reason === 'todas') mort = computeTrend(series, 'mortRate')
+
+    return { morbTrend: morb, mortTrend: mort }
+  }, [entData, ent, selectedDpa, selectedProps, provFilter, series])
 
   // Desglose del estudio (solo nacional, 2017-2023)
   const estudioGrupo = useMemo(() => {
@@ -189,7 +225,7 @@ export default function CargaEnfermedad() {
           <TrendRow label="Morbilidad hospitalaria" trend={morbTrend} />
           <TrendRow label="Mortalidad"              trend={mortTrend} />
           <div className="mt-2 border-t border-slate-100 pt-1.5 text-[9px] text-slate-400">
-            Regresión lineal OLS · test t bilateral α=0.05 · significancia si p&lt;0.05
+            Mann-Kendall (τ) · pendiente de Sen · FDR Benjamini-Hochberg · α=0.05
           </div>
         </section>
       )}
@@ -241,7 +277,11 @@ function TrendRow({ label, trend }) {
   }
   const s = styles[trend.dir]
   const Icon = s.Icon
-  const pStr = trend.pValue < 0.001 ? '<0.001' : trend.pValue.toFixed(3)
+  const pVal = trend.pValue
+  const pStr = pVal == null ? 'n/a'
+    : pVal < 0.001 ? '<0.001' : pVal.toFixed(3)
+  const senSlope = trend.senSlope ?? trend.slope ?? 0
+  const hasTau = trend.tau != null
   return (
     <div className="border-b border-slate-100 py-1.5 last:border-b-0">
       <div className="flex items-center justify-between">
@@ -253,9 +293,12 @@ function TrendRow({ label, trend }) {
       </div>
       <div className="mt-1 grid grid-cols-4 gap-x-2 font-mono text-[9.5px] text-slate-500">
         <Stat label="% anual"  value={`${trend.annualPct >= 0 ? '+' : ''}${trend.annualPct}`} />
-        <Stat label="pendiente" value={`${trend.slope >= 0 ? '+' : ''}${trend.slope}`} />
-        <Stat label="p-valor"   value={pStr} highlight={trend.significant} />
-        <Stat label="R²"        value={trend.r2} />
+        <Stat label="Sen/año"  value={`${senSlope >= 0 ? '+' : ''}${Number(senSlope).toFixed(2)}`} />
+        <Stat label="p(FDR)"   value={pStr} highlight={trend.significant} />
+        <Stat
+          label={hasTau ? 'τ Kendall' : 'R²'}
+          value={hasTau ? trend.tau.toFixed(2) : (trend.r2 ?? '—')}
+        />
       </div>
     </div>
   )

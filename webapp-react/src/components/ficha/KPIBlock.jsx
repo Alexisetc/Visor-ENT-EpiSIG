@@ -1,5 +1,6 @@
 // KPIBlock — tarjeta de un solo indicador con variación interanual (YoY) y
-// píldora de tendencia estadística (metodología Morales).
+// píldora de tendencia estadística (Mann-Kendall + Sen + FDR, pre-computada
+// en Fase 5 del pipeline Python).
 //
 //   · title     'Tasa de Morbilidad Hospitalaria' | 'Tasa de Mortalidad' …
 //   · value     número (la tasa del año actual)
@@ -7,7 +8,8 @@
 //   · prevYear  etiqueta para mostrar junto al delta ('2022' → "↑ 12% vs 2022")
 //   · unit      'por 100k hab.'
 //   · casos / muertes / pob  · opcional — grid inferior con conteos
-//   · trend     output de computeTrend() — opcional; píldora con clase + % anual
+//   · trend     output de lookupTrend() — opcional; píldora con clase + % anual
+//                (campos esperados: valid, dir, clase, annualPct, pValue, tau)
 //
 // Convención de colores (métricas de salud: subir es malo):
 //   · Ascendente  → rojo
@@ -72,12 +74,18 @@ export default function KPIBlock({
         <div className="mt-1.5 text-[10px] italic text-slate-300">— sin año base —</div>
       )}
 
-      {/* Píldora de tendencia estadística (Morales) */}
+      {/* Píldora de tendencia estadística (Mann-Kendall + Sen + FDR) */}
       {trend?.valid && TrendIcon && (
         <div className="mt-2">
           <span
             className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${trendStyles[trend.dir]}`}
-            title={`p=${trend.pValue < 0.001 ? '<0.001' : trend.pValue.toFixed(3)} · R²=${trend.r2}`}
+            title={
+              (trend.pValue != null
+                ? `p(FDR)=${trend.pValue < 0.001 ? '<0.001' : trend.pValue.toFixed(3)}`
+                : 'p=n/a') +
+              (trend.tau != null ? ` · τ=${Number(trend.tau).toFixed(2)}` : '') +
+              (trend.n ? ` · n=${trend.n}` : '')
+            }
           >
             <TrendIcon size={10} strokeWidth={2.5} />
             {trend.clase}

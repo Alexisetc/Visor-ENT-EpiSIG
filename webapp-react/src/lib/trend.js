@@ -1,12 +1,29 @@
-// trend.js — utilidades para calcular variación interanual (YoY), series
-// temporales completas y análisis de tendencia estadística siguiendo la
-// metodología Morales (regresión lineal OLS + test t bilateral).
+// trend.js — utilidades para el análisis temporal del visor.
 //
-//   deltaYoY(current, previous) → { pct, arrow, dir }
-//   buildYearSeries(geoKey, disease, entData, pobData) → [{year, rate, mortRate}...]
-//   buildAggregateSeries(features, disease, entData, pobData, provFilter)
-//     → [{year, rate, mortRate}...]  usado para agregado nacional o provincial
-//   computeTrend(series, metric) → {valid, slope, annualPct, pValue, r2, clase, …}
+//   deltaYoY(current, previous) → { pct, arrow, dir }              · YoY pill
+//   buildYearSeries(...)                                            · para gráfica
+//   buildAggregateSeries(...)                                       · agregado
+//   lookupTrend(entData, level, unitId, ent, metric, variant)       · NUEVO — Fase 5
+//                                                                     lectura de
+//                                                                     tendencia
+//                                                                     MK+Sen+FDR
+//                                                                     pre-computada
+//   computeTrend(series, metric)                                    · DEPRECATED —
+//                                                                     fallback OLS
+//                                                                     solo para
+//                                                                     ENT='todas'
+//                                                                     (suma)
+//
+// Fase 5 (pipeline Python) pre-computa Mann-Kendall (τ) + Sen slope + FDR
+// Benjamini-Hochberg y embebe la tendencia en `ent_parroquial.json` bajo
+//
+//   parroquias[dpa6].data.grupos[g].tendencia
+//   parroquias[dpa6].data.subent[s].tendencia
+//   tendencias_agg.nacional.grupos[g]
+//   tendencias_agg.provincia[dpa2].grupos[g]
+//
+// lookupTrend() lee directamente del JSON (O(1), cero cálculos en cliente) y
+// devuelve una forma compatible con el KPIBlock y TrendRow existentes.
 
 import { ENT_MAP, ENTS } from './colors'
 import { getParroquiaKey, getParroquiaProvKey } from './parroquia'
@@ -29,7 +46,7 @@ export function deltaYoY(current, previous) {
 }
 
 /**
- * Serie completa 2013→2023 para UNA parroquia.
+ * Serie completa 2013→N para UNA parroquia.
  * Devuelve [{year, rate, mortRate, casos, muertes, pob}]
  */
 export function buildYearSeries(geoKey, disease, entData, pobData) {
@@ -70,7 +87,7 @@ export function buildYearSeries(geoKey, disease, entData, pobData) {
 }
 
 /**
- * Serie completa 2013→2023 agregada (nacional o provincial).
+ * Serie completa 2013→N agregada (nacional o provincial).
  * Suma casos y pob de todas las parroquias del provFilter (null = nacional).
  */
 export function buildAggregateSeries(features, disease, entData, pobData, provFilter) {
@@ -121,18 +138,154 @@ export function buildAggregateSeries(features, disease, entData, pobData, provFi
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// ANÁLISIS DE TENDENCIA — metodología Morales (OLS + test t)
-// Replica sobre la serie parroquial/provincial/nacional 2013-2023 el mismo
-// procedimiento que el estudio ENT 2017-2023: regresión lineal simple de
-// tasa vs. año, test t bilateral de la pendiente (H0: β1=0) y clasificación:
-//   · p < 0.05 & slope > 0  → 'Ascendente'
-//   · p < 0.05 & slope < 0  → 'Descendente'
-//   · p ≥ 0.05              → 'Estable'
-// El p-valor se calcula con la CDF exacta de Student's t vía la función beta
-// incompleta regularizada (no aproximación normal — es correcta para df=9).
+// lookupTrend — Fase 5
+// Lee la tendencia Mann-Kendall + Sen + FDR pre-computada del JSON.
+//
+// Argumentos:
+//   entData  objeto `ent_parroquial.json` cargado
+//   level    'parroquia' | 'provincia' | 'nacional'
+//   unitId   clave DPA — DPA6 para parroquia, DPA2 para provincia, ignorado para nacional
+//   ent      'circulatorio' | 'neoplasia' | … | 'dm2' | … | 'todas'
+//   metric   'morbilidad' | 'mortalidad'
+//   variant  'serie_completa' | 'sin_pandemia'   (default 'serie_completa')
+//
+// Si ent === 'todas' → no hay tendencia pre-computada (es pseudo-agregado
+// en el cliente); devolvemos { valid:false, reason:'todas' } y el llamador
+// debe usar computeTrend(series) como fallback.
+//
+// Para parroquia el JSON guarda forma compacta (sin serie_tasa/poblacion).
+// Para provincia/nacional incluye `serie_tasa` + `poblacion` + `p_raw`+`ljung_p`.
 // ════════════════════════════════════════════════════════════════════════════
 
-/** log Γ(x) · aproximación Lanczos (precisión ~10⁻¹⁴ para x>0) */
+/**
+ * Lee la tendencia pre-computada (MK+Sen+FDR) del JSON Fase 5.
+ *
+ * @param  {object}  entData  JSON cargado
+ * @param  {string}  level    'parroquia' | 'provincia' | 'nacional'
+ * @param  {?string} unitId   DPA6/DPA2, null para nacional
+ * @param  {string}  ent      id ENT ('circulatorio', 'dm2', 'todas', …)
+ * @param  {string}  metric   'morbilidad' | 'mortalidad'
+ * @param  {string}  variant  'serie_completa' | 'sin_pandemia'
+ * @returns {{
+ *   valid:bool, reason?:string, clase:string, dir:string, n:number,
+ *   tau:number, pValue:?number, pRaw:?number, ljungP:?number,
+ *   senSlope:number, annualPct:number, significant:bool,
+ *   serieTasa?:number[], poblacion?:number, variant:string
+ * }}
+ */
+export function lookupTrend(entData, level, unitId, ent, metric = 'morbilidad',
+                             variant = 'serie_completa') {
+  if (!entData || !ENT_MAP[ent]) return { valid: false, reason: 'ent-invalido' }
+
+  // 'todas' no tiene tendencia pre-computada → fallback OLS en el cliente
+  if (ent === 'todas' || ENT_MAP[ent].type === '__sum_grupos__') {
+    return { valid: false, reason: 'todas' }
+  }
+
+  const entType = ENT_MAP[ent].type   // 'grupos' | 'subent'
+  const entKey  = ENT_MAP[ent].key
+
+  let block = null
+  let fullAgg = false   // nacional/provincia traen `serie_tasa` y `poblacion`
+
+  if (level === 'parroquia') {
+    const parr = entData.parroquias?.[unitId]
+    block = parr?.data?.[entType]?.[entKey]?.tendencia
+  } else if (level === 'provincia') {
+    block = entData.tendencias_agg?.provincia?.[unitId]?.[entType]?.[entKey]
+    fullAgg = true
+  } else if (level === 'nacional') {
+    block = entData.tendencias_agg?.nacional?.[entType]?.[entKey]
+    fullAgg = true
+  } else {
+    return { valid: false, reason: 'level-invalido' }
+  }
+
+  if (!block) return { valid: false, reason: 'sin-datos' }
+
+  const perMetric = block[metric]
+  if (!perMetric) return { valid: false, reason: 'metric-missing' }
+
+  const stat = perMetric[variant]
+  if (!stat) return { valid: false, reason: 'variant-missing' }
+
+  const n = Number(stat.n || 0)
+  if (n < 6) {
+    return {
+      valid: false, reason: 'n<6', n,
+      clase: stat.clase || 'Estable',
+    }
+  }
+
+  const clase = stat.clase || 'Estable'
+  const dir =
+    clase === 'Ascendente'  ? 'up' :
+    clase === 'Descendente' ? 'down' :
+                              'flat'
+
+  // annualPct: Sen slope relativo a la media de la serie_tasa.
+  // Si fullAgg tenemos serie_tasa directo; si parroquia la reconstruimos.
+  let serieMean = 0
+  let serieTasa = null
+  if (fullAgg) {
+    serieTasa = perMetric.serie_tasa || []
+    const validPts = serieTasa.filter(v => Number.isFinite(v) && v > 0)
+    serieMean = validPts.length
+      ? validPts.reduce((a, b) => a + b, 0) / validPts.length
+      : 0
+  }
+  const senSlope = Number(stat.sen_slope || 0)
+  const annualPct = serieMean > 0 ? (senSlope / serieMean) * 100 : 0
+
+  return {
+    valid: true,
+    clase, dir, n,
+    tau:        Number(stat.tau || 0),
+    pValue:     stat.p_adj ?? null,
+    pRaw:       stat.p_raw ?? null,
+    ljungP:     stat.ljung_p ?? null,
+    senSlope:   Number(senSlope.toFixed(3)),
+    annualPct:  Number(annualPct.toFixed(2)),
+    significant: (stat.p_adj != null) && stat.p_adj < 0.05,
+    serieTasa: serieTasa || undefined,
+    poblacion: fullAgg ? Number(perMetric.poblacion || 0) : undefined,
+    variant,
+  }
+}
+
+/**
+ * Calcula annualPct para parroquia (que no trae serie_tasa precomputada)
+ * desde una serie local construida con buildYearSeries.
+ *
+ * Útil cuando lookupTrend() devolvió un trend válido pero con annualPct=0
+ * porque no tenía serie_mean (caso parroquia).
+ */
+export function enrichAnnualPct(trend, series, metric = 'rate') {
+  if (!trend?.valid || trend.annualPct !== 0) return trend
+  const vals = (series || []).map(p => p?.[metric]).filter(v => Number.isFinite(v) && v > 0)
+  if (vals.length < 3) return trend
+  const mean = vals.reduce((a, b) => a + b, 0) / vals.length
+  if (!(mean > 0)) return trend
+  const annualPct = Number(((trend.senSlope / mean) * 100).toFixed(2))
+  return { ...trend, annualPct }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// computeTrend — DEPRECATED (Fase 5)
+//
+// Regresión lineal OLS + test t bilateral — metodología original del visor
+// Sprint 2.2. Reemplazado por lookupTrend() en Fase 5 para los 5 grupos ENT
+// Morales y 12 sub-ENT. Se MANTIENE solo como fallback para:
+//
+//   · ENT='todas' (suma de los 5 grupos, sin pre-cómputo en el backend)
+//   · análisis ad-hoc off-pipeline
+//
+// NO usar para grupos/subent del JSON Fase 5 — los resultados son diferentes
+// porque MK+Sen es más robusto (no asume linealidad ni normalidad) y MK
+// aplica FDR-BH que OLS sin corrección no.
+// ════════════════════════════════════════════════════════════════════════════
+
+/** @deprecated Lanczos log Γ(x) */
 function lngamma(x) {
   const cof = [
     76.18009172947146, -86.50532032941677, 24.01409824083091,
@@ -146,7 +299,7 @@ function lngamma(x) {
   return -t + Math.log(2.5066282746310005 * sum / x)
 }
 
-/** Continued-fraction de la función beta incompleta (Numerical Recipes §6.4) */
+/** @deprecated Continued-fraction beta incompleta */
 function betacf(a, b, x) {
   const MAX_ITER = 100, EPS = 3e-7, FPMIN = 1e-30
   const qab = a + b, qap = a + 1, qam = a - 1
@@ -173,7 +326,7 @@ function betacf(a, b, x) {
   return h
 }
 
-/** I_x(a,b) — función beta incompleta regularizada */
+/** @deprecated I_x(a,b) */
 function betainc(a, b, x) {
   if (x <= 0) return 0
   if (x >= 1) return 1
@@ -185,14 +338,13 @@ function betainc(a, b, x) {
   return 1 - bt * betacf(b, a, 1 - x) / b
 }
 
-/** p-valor bilateral exacto para Student's t con df grados de libertad */
+/** @deprecated p-valor bilateral exacto Student's t. Usar lookupTrend(). */
 export function tPValue(t, df) {
   if (df <= 0 || !isFinite(t)) return 1
   const x = df / (df + t * t)
   return betainc(df / 2, 0.5, x)
 }
 
-/** t-crítico bilateral α=0.05 — tabla compacta con interpolación lineal */
 function tCritical95(df) {
   const T = { 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8: 2.306,
               9: 2.262, 10: 2.228, 11: 2.201, 12: 2.179, 15: 2.131,
@@ -210,23 +362,9 @@ function tCritical95(df) {
 }
 
 /**
- * Análisis de tendencia 2013-2023 — metodología Morales.
- *
- * @param series  [{year, rate, mortRate}]  de buildYearSeries / buildAggregateSeries
- * @param metric  'rate' (morbilidad hospitalaria) | 'mortRate' (mortalidad)
- * @returns {
- *   valid:      bool
- *   slope:      β₁ (tasa /100k por año)
- *   annualPct:  variación porcentual anual relativa a la media (decision-maker friendly)
- *   pValue:     p-valor bilateral del test t de β₁ = 0 (exacto, no normal)
- *   r2:         coeficiente de determinación
- *   tStat:      estadístico t
- *   ic95:       [low, high] intervalo de confianza 95% de la pendiente
- *   significant:pValue < 0.05
- *   dir:        'up' | 'down' | 'flat'
- *   clase:      'Ascendente' | 'Descendente' | 'Estable'
- *   n:          nº de puntos con dato válido
- * }
+ * @deprecated Reemplazado por lookupTrend() en Fase 5. Se conserva solo como
+ * fallback para ENT='todas' (suma de grupos) y análisis off-pipeline.
+ * Los resultados OLS/t **no coinciden** con Mann-Kendall+Sen+FDR del JSON.
  */
 export function computeTrend(series, metric = 'rate') {
   const pts = (series || []).filter(p => p && Number.isFinite(p[metric]) && p[metric] > 0)
@@ -277,13 +415,16 @@ export function computeTrend(series, metric = 'rate') {
   return {
     valid: true,
     slope: Number(slope.toFixed(3)),
+    senSlope: Number(slope.toFixed(3)),     // alias por compatibilidad con lookupTrend
     intercept: Number(intercept.toFixed(3)),
     annualPct: Number(annualPct.toFixed(2)),
     r2: Number(r2.toFixed(3)),
     tStat: Number(tStat.toFixed(2)),
+    tau: null,                               // OLS no tiene τ
     pValue: Number(pValue.toFixed(4)),
     significant, dir, clase,
     ic95: [Number(ic95[0].toFixed(3)), Number(ic95[1].toFixed(3))],
     n,
+    variant: 'ols-deprecated',
   }
 }
