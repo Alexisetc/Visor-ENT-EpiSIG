@@ -83,7 +83,22 @@ export default function Legend() {
             <span>p98</span>
           </div>
           <div className="mt-1 text-[9px] italic text-slate-500">
-            KDE gaussiano sobre centroides · normalización p2-p98 · paleta Turbo · excluye valores 0
+            KDE gaussiano · normalización p2-p98 · paleta Turbo (Mikhailov)
+          </div>
+          {/* Swatch "sin dato" — estándar OMS/CDC para insufficient data */}
+          <div className="mt-1.5 flex items-center gap-1.5 border-t border-slate-200 pt-1">
+            <div
+              style={{
+                background: '#e2e8f0',
+                border: '1px dashed #94a3b8',
+                width: '22px',
+                height: '11px',
+                flexShrink: 0,
+              }}
+            />
+            <div className="text-[9px] text-slate-500">
+              Sin dato o valor 0 · excluida del KDE
+            </div>
           </div>
         </div>
       )}

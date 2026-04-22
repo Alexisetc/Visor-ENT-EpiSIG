@@ -12,15 +12,31 @@
 //
 // Pipeline:
 //   1. Para cada parroquia: valor módulo-consciente + centroide geométrico
-//   2. Exclusión: v ≤ 0, null, NaN → se ignora (no cuenta en mean/sd ni KDE)
-//   3. z-score nacional = (valor − μ) / σ
+//   2. Tres buckets:
+//        · conDato   = v > 0, Number.isFinite(v)  → splat + mean/sd + mask KDE
+//        · sinDato   = v ≤ 0 | null | NaN dentro del provFilter → NO splat,
+//                      NO mask KDE, y recibe render distintivo (ver abajo)
+//        · fueraProv = fuera del provFilter → no se dibuja
+//   3. z-score nacional = (valor − μ) / σ  (solo sobre conDato)
 //   4. Splat gaussiano (σ ≈ 20 px) sobre un canvas 900 px
-//   5. Cada pixel_z = Σ(z_i · w_i) / Σ(w_i); pixels con Σw < 0.04 → transparente
+//   5. pixel_z = Σ(z_i · w_i) / Σ(w_i); pixels con Σw < 0.04 → alpha 0
 //   6. p2, p98 empíricos del pixel_z → normalizar t = (z − p2) / (p98 − p2)
-//      clamp [0, 1] → turbo LUT
-//   7. Máscara evenodd con polígonos parroquiales (provFilter respetado)
-//   8. dataURL → L.imageOverlay en pane 'kde-pane' (z 350)
-//   9. Encima: GeoJSON transparente con stroke fino (interacción + boundaries)
+//      clamp [0, 1] → TURBO_LUT (Mikhailov A-grade — SIN grises en la rampa)
+//   7. Máscara evenodd SOLO con polígonos conDato — destination-in
+//   8. Alpha de píxel = 255 dentro del canvas (color puro, sin blending
+//      intra-pixel que desature el Turbo). Opacidad del overlay = 0.82
+//      para dejar ver el base-map. Opacidad efectiva ≈ 0.82.
+//   9. dataURL → L.imageOverlay en pane 'kde-pane' (z 350)
+//  10. Encima: GeoJSON transparente con stroke fino para conDato, y fill
+//      gris `#e2e8f0` + stroke `#94a3b8` dashed para sinDato (estándar
+//      OMS / CDC Wonder / Eurostat para "insufficient data").
+//
+// Tratamiento de parroquias sin dato (documentado en leyenda):
+//   · Excluidas del KDE → no contaminan el promedio ni el gradiente.
+//   · Renderizadas con relleno gris claro + borde punteado → el usuario
+//     distingue visualmente "no hay información" de "valor bajo real".
+//   · Se cuentan por separado en el dataset (no se borran); aparecen en
+//     tooltip como "Sin datos" en vez de un valor numérico 0 que engañe.
 //
 // Métricas por módulo (idénticas a versiones previas):
 //   · carga         → tasa /100k del ENT activo (morb OR mort según mapMetric)
@@ -41,7 +57,11 @@ import { TURBO_LUT, ENT_LABEL, DETS_FULL } from '../../lib/colors'
 const KDE_WIDTH_MAX   = 900   // px del lado mayor del canvas
 const KDE_SIGMA_PX    = 20    // σ del kernel gaussiano (radio de influencia)
 const KDE_WEIGHT_MIN  = 0.04  // peso mínimo para considerar un pixel "con dato"
-const KDE_ALPHA       = 225   // alpha del pixel con dato (0..255)
+const KDE_ALPHA       = 255   // alpha del pixel — opaco puro dentro del canvas
+                              // (la transparencia la controla L.imageOverlay
+                              //  con opacity ~0.82, evitando blending intra-pixel
+                              //  que desaturaría el Turbo a grisáceo)
+const KDE_OVERLAY_OP  = 0.82  // opacity del L.imageOverlay (ver tile base debajo)
 
 // ───── helpers: métricas por módulo ─────
 
@@ -259,23 +279,39 @@ export default function HotSpotLayer() {
   }, [map])
 
   // 1) Puntos + mean/sd nacionales + máscara por provFilter + bounds
+  //    Tres buckets: conDato (alimenta KDE + mask), sinDato (render gris
+  //    dashed), fueraProv (no se dibuja).
   const kdeData = useMemo(() => {
     if (!geoParr) return null
     const ctx = { ent, year, entData, pobData, isMort, detData, mcdaData }
     const raw = []
-    const maskFeatures = []
+    const maskFeatures = []        // SOLO parroquias con dato → mask KDE
+    const noDataFeatures = []      // dentro provFilter pero sin valor válido
+    const noDataKeys = new Set()   // lookup O(1) en styleFn / onEachFeature
+
     for (const f of geoParr.features) {
       const p = f.properties || {}
       const key = getParroquiaKey(p)
       const provKey = getParroquiaProvKey(p)
       const inProv = !provFilter || provKey === provFilter
-      if (inProv) maskFeatures.push(f)
 
       let v = null
       if (module_ === 'determinantes')      v = det_vuln_value(key, ctx)
       else if (module_ === 'mcda')          v = mcda_total_value(key, ctx)
       else                                  v = carga_value(key, ctx)
-      if (!Number.isFinite(v) || v <= 0) continue
+
+      const hasData = Number.isFinite(v) && v > 0
+
+      if (inProv) {
+        if (hasData) {
+          maskFeatures.push(f)
+        } else {
+          noDataFeatures.push(f)
+          noDataKeys.add(key)
+        }
+      }
+
+      if (!hasData) continue
       const c = centroidOf(f.geometry)
       if (!c) continue
       raw.push({ key, prov: provKey, value: v, latlng: c })
@@ -286,8 +322,11 @@ export default function HotSpotLayer() {
     const variance = raw.reduce((a, b) => a + (b.value - m) ** 2, 0) / raw.length
     const s = Math.sqrt(variance) || 1
 
-    // Bounds de la máscara (provincia o todo el país) con pad ligero
-    const src = maskFeatures.length ? maskFeatures : geoParr.features
+    // Bounds: incluyen conDato + sinDato (para que el mapa no se corte
+    // si una provincia tiene huecos de información en las orillas)
+    const src = (maskFeatures.length + noDataFeatures.length > 0)
+      ? [...maskFeatures, ...noDataFeatures]
+      : geoParr.features
     let south = Infinity, north = -Infinity, west = Infinity, east = -Infinity
     const scanCoords = (c) => {
       if (Array.isArray(c) && typeof c[0] === 'number' && typeof c[1] === 'number') {
@@ -312,7 +351,15 @@ export default function HotSpotLayer() {
     : module_ === 'mcda'          ? 'Score MCDA total'
     :                               (isMort ? 'Tasa mortalidad /100k' : 'Tasa morbilidad /100k')
 
-    return { points: raw, mean: m, sd: s, maskFeatures, bounds, metricLabel: label }
+    return {
+      points: raw,
+      mean: m, sd: s,
+      maskFeatures,
+      noDataKeys,
+      noDataCount: noDataFeatures.length,
+      bounds,
+      metricLabel: label,
+    }
   }, [geoParr, module_, ent, year, entData, pobData, detData, mcdaData, isMort, provFilter])
 
   // 2) Render canvas → L.ImageOverlay en kde-pane (side effect)
@@ -328,7 +375,7 @@ export default function HotSpotLayer() {
     const llBounds = L.latLngBounds([b.south, b.west], [b.north, b.east])
     overlayRef.current = L.imageOverlay(url, llBounds, {
       pane: 'kde-pane',
-      opacity: 0.88,
+      opacity: KDE_OVERLAY_OP,
       interactive: false,
       className: 'kde-overlay',
     }).addTo(map)
@@ -349,21 +396,42 @@ export default function HotSpotLayer() {
   }, [kdeData])
 
   if (!kdeData) return null
-  const { mean, sd, metricLabel } = kdeData
+  const { mean, sd, metricLabel, noDataKeys } = kdeData
   const entLabel = ENT_LABEL[ent] || ent
 
+  // Estilo:
+  //  · fueraProv (dim)  → invisible (opacity 0)
+  //  · sinDato (inProv) → fill gris + borde punteado (estándar sin-dato)
+  //  · conDato          → sin fill, stroke fino oscuro sobre el KDE
+  //  · seleccionada     → fill o stroke amarillo
   const styleFn = (feature) => {
     const p = feature.properties || {}
     const key = getParroquiaKey(p)
     const provKey = getParroquiaProvKey(p)
     const dim = provFilter && provKey !== provFilter
     const sel = selectedDpa && key === selectedDpa
+    const noData = noDataKeys.has(key)
+
+    if (dim) {
+      return { fillOpacity: 0, opacity: 0, weight: 0 }
+    }
+    if (noData) {
+      // Patrón visual distintivo: gris claro + borde punteado (OMS / CDC)
+      return {
+        fillColor:   '#e2e8f0',
+        fillOpacity: sel ? 0.85 : 0.55,
+        color:       sel ? '#fbc400' : '#94a3b8',
+        weight:      sel ? 2.5 : 0.7,
+        opacity:     sel ? 1 : 0.8,
+        dashArray:   sel ? null : '2 3',
+      }
+    }
     return {
       fillColor:   'transparent',
       fillOpacity: 0,
       color:       sel ? '#fbc400' : '#0f172a',
-      weight:      sel ? 2.5 : 0.35,
-      opacity:     dim ? 0 : (sel ? 1 : 0.45),
+      weight:      sel ? 2.5 : 0.4,
+      opacity:     sel ? 1 : 0.5,
     }
   }
 
@@ -372,10 +440,13 @@ export default function HotSpotLayer() {
     const key = getParroquiaKey(p)
     const label = getParroquiaLabel(p)
     const v = valuesByKey.get(key)
+    const noData = noDataKeys.has(key)
     const z = Number.isFinite(v) ? (v - mean) / sd : NaN
-    const clase = claseFromZ(z)
+    const clase = noData
+      ? { txt: 'Sin datos disponibles', color: '#64748b' }
+      : claseFromZ(z)
     const scope = module_ === 'carga' ? `${entLabel} · ${year}` : metricLabel
-    const vTxt = Number.isFinite(v) ? v.toFixed(2) : '—'
+    const vTxt = Number.isFinite(v) ? v.toFixed(2) : 'Sin datos'
     const zTxt = Number.isFinite(z) ? (z >= 0 ? '+' : '') + z.toFixed(2) : '—'
     layer.bindTooltip(
       `<div style="font-family:Inter,sans-serif;line-height:1.3;min-width:200px">
@@ -383,28 +454,46 @@ export default function HotSpotLayer() {
          <div style="color:#64748b;font-size:10.5px;margin-bottom:4px">${scope}</div>
          <div style="display:flex;justify-content:space-between;font-size:11px">
            <span style="color:#475569">Valor</span>
-           <span style="font-family:'JetBrains Mono',monospace;color:#1a1b4a">${vTxt}</span>
+           <span style="font-family:'JetBrains Mono',monospace;color:${noData ? '#94a3b8' : '#1a1b4a'}">${vTxt}</span>
          </div>
          <div style="display:flex;justify-content:space-between;font-size:11px">
            <span style="color:#475569">z-score</span>
-           <span style="font-family:'JetBrains Mono',monospace;color:#1a1b4a">${zTxt}</span>
+           <span style="font-family:'JetBrains Mono',monospace;color:${noData ? '#94a3b8' : '#1a1b4a'}">${zTxt}</span>
          </div>
          <div style="margin-top:3px;padding-top:3px;border-top:1px solid #e2e8f0;font-size:10.5px;font-weight:600;color:${clase.color}">${clase.txt}</div>
+         ${noData ? '<div style="margin-top:2px;font-size:9.5px;color:#94a3b8;font-style:italic">Parroquia excluida del KDE</div>' : ''}
        </div>`,
       { sticky: true, direction: 'auto', opacity: 0.95 }
     )
     layer.on({
       click: () => setSelected(key, p),
-      mouseover: e => e.target.setStyle({ weight: 1.6, color: '#0f172a', opacity: 1 }),
+      mouseover: e => {
+        e.target.setStyle(noData
+          ? { weight: 1.6, color: '#475569', opacity: 1, fillOpacity: 0.75 }
+          : { weight: 1.6, color: '#0f172a', opacity: 1 }
+        )
+      },
       mouseout:  e => {
         const provKey = getParroquiaProvKey(p)
         const dim = provFilter && provKey !== provFilter
         const sel = selectedDpa && key === selectedDpa
-        e.target.setStyle({
-          weight: sel ? 2.5 : 0.35,
-          color:  sel ? '#fbc400' : '#0f172a',
-          opacity: dim ? 0 : (sel ? 1 : 0.45),
-        })
+        if (dim) {
+          e.target.setStyle({ fillOpacity: 0, opacity: 0, weight: 0 })
+        } else if (noData) {
+          e.target.setStyle({
+            weight:      sel ? 2.5 : 0.7,
+            color:       sel ? '#fbc400' : '#94a3b8',
+            opacity:     sel ? 1 : 0.8,
+            fillOpacity: sel ? 0.85 : 0.55,
+            dashArray:   sel ? null : '2 3',
+          })
+        } else {
+          e.target.setStyle({
+            weight:  sel ? 2.5 : 0.4,
+            color:   sel ? '#fbc400' : '#0f172a',
+            opacity: sel ? 1 : 0.5,
+          })
+        }
       },
     })
   }
