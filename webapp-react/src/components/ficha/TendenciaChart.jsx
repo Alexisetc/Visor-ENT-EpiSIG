@@ -31,11 +31,20 @@ export default function TendenciaChart({ series, disease, year, metric = 'morbil
 
   const hasData = data.some(d => (d[dataKey] || 0) > 0)
 
+  // Formateo compacto para tick del YAxis (325 → 325, 1250 → 1.3K, 12500 → 12K)
+  const fmtY = (v) => {
+    if (v == null) return ''
+    const n = Number(v)
+    if (Math.abs(n) >= 10000) return `${Math.round(n / 1000)}K`
+    if (Math.abs(n) >= 1000)  return `${(n / 1000).toFixed(1)}K`
+    return String(Math.round(n))
+  }
+
   return (
     <div className="rounded border border-slate-200 bg-white p-2">
-      <div className="h-[160px] w-full">
+      <div className="h-[180px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 8, right: 10, bottom: 2, left: -16 }}>
+          <AreaChart data={data} margin={{ top: 22, right: 14, bottom: 2, left: 4 }}>
             <defs>
               <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={color} stopOpacity={0.55} />
@@ -48,16 +57,21 @@ export default function TendenciaChart({ series, disease, year, metric = 'morbil
               dataKey="year"
               domain={['dataMin', 'dataMax']}
               ticks={data.map(d => d.year)}
-              tick={{ fontSize: 10, fill: '#64748b' }}
+              tick={{ fontSize: 9, fill: '#64748b' }}
               axisLine={{ stroke: '#cbd5e1' }}
               tickLine={false}
               allowDecimals={false}
+              interval={0}
+              angle={-35}
+              textAnchor="end"
+              height={32}
             />
             <YAxis
               tick={{ fontSize: 10, fill: '#64748b' }}
               axisLine={false}
               tickLine={false}
-              width={32}
+              width={44}
+              tickFormatter={fmtY}
             />
             <Tooltip
               contentStyle={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: `1px solid ${color}` }}
@@ -72,10 +86,11 @@ export default function TendenciaChart({ series, disease, year, metric = 'morbil
               ifOverflow="extendDomain"
               label={{
                 value: String(year),
-                position: 'top',
+                position: 'insideTopRight',
                 fill: '#d97706',
                 fontSize: 10,
                 fontWeight: 700,
+                offset: 4,
               }}
             />
             <Area

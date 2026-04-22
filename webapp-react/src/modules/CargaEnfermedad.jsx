@@ -1,7 +1,7 @@
 // CargaEnfermedad — Módulo principal Sprint 2.2
 // Enfoque: MORBILIDAD HOSPITALARIA (egresos) y MORTALIDAD — dos indicadores
 // clave con análisis de tendencia estadística siguiendo la metodología Morales
-// aplicada a la serie 2013-2023 de la unidad activa (parroquia, provincia,
+// aplicada a la serie 2013-2024 de la unidad activa (parroquia, provincia,
 // nacional).
 //
 // Ficha derecha (pensada para tomadores de decisiones · solo indicadores clave):
@@ -9,8 +9,8 @@
 //   · KPI Morbilidad Hospitalaria + KPI Mortalidad
 //       ─ valor actual
 //       ─ Δ vs año anterior (verde si baja, rojo si sube — en salud sube = peor)
-//       ─ píldora tendencia 2013-2023 (Ascendente / Descendente / Estable + %/año)
-//   · Gráfico Tendencia Temporal 2013-2023
+//       ─ píldora tendencia 2013-2024 (Ascendente / Descendente / Estable + %/año)
+//   · Gráfico Tendencia Temporal 2013-2024
 //   · Resumen compacto del análisis estadístico (pendiente, p-valor, R², IC95)
 //   · Desglose por sexo y área (solo agregado nacional, del estudio 2017-2023)
 
@@ -217,12 +217,13 @@ export default function CargaEnfermedad() {
 
       {/* Tendencia temporal 2013-2024 — una sola serie, la del toggle activo. */}
       <section>
-        <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-          <span className="flex items-center gap-1.5">
-            <Activity size={11} /> Tendencia Temporal ({YEARS[0]}–{YEARS[YEARS.length - 1]})
+        <div className="mb-1.5 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+          <span className="flex min-w-0 items-center gap-1.5 truncate">
+            <Activity size={11} className="flex-shrink-0" />
+            <span className="truncate">Tendencia {YEARS[0]}–{YEARS[YEARS.length - 1]}</span>
           </span>
-          <span className="font-normal normal-case tracking-normal text-slate-400">
-            {isMort ? 'Mortalidad /100k' : 'Morbilidad Hosp. /100k'}
+          <span className="flex-shrink-0 font-normal normal-case tracking-normal text-slate-400">
+            {isMort ? 'Mortalidad' : 'Morbilidad'} /100k
           </span>
         </div>
         <TendenciaChart series={series} disease={ent} year={year} metric={mapMetric} />

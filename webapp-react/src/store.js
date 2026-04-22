@@ -16,7 +16,7 @@ export const useStore = create((set, get) => ({
   // ====== FILTROS ======
   module:        'carga',         // carga | determinantes | mcda
   ent:           'todas',         // todas | circulatorio | neoplasia | metabolica | respiratorio | nervioso
-  year:          2023,            // 2013..2023
+  year:          2024,            // 2013..2024 (default = año más reciente)
   layerType:     'coropleta',     // coropleta | heatmap
   mapMetric:     'morbilidad',    // morbilidad | mortalidad — qué tasa grafica el mapa
   provFilter:    null,            // '01'..'24' o null

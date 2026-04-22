@@ -1,4 +1,5 @@
-// YearSlider — Slider 2013→2023 + botón Play (toggle de animación).
+// YearSlider — Slider 2013→2024 + botón Play (toggle de animación).
+// Rango actualizado tras Fase 3 del pipeline Python (2024 agregado).
 // El timer real vive en hooks/usePlay.js que se monta una vez en CargaEnfermedad.
 
 import { Play, Pause } from 'lucide-react'
@@ -17,7 +18,7 @@ export default function YearSlider() {
         <button
           onClick={togglePlay}
           className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-inspi-yellow text-inspi-navy shadow hover:brightness-95"
-          title={playing ? 'Pausar animación' : 'Reproducir 2013→2023'}
+          title={playing ? 'Pausar animación' : 'Reproducir 2013→2024'}
           aria-label={playing ? 'Pausar' : 'Reproducir'}
         >
           {playing ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
