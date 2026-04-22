@@ -7,9 +7,13 @@
 //   · prev      número (tasa del año anterior) · opcional
 //   · prevYear  etiqueta para mostrar junto al delta ('2022' → "↑ 12% vs 2022")
 //   · unit      'por 100k hab.'
-//   · casos / muertes / pob  · opcional — grid inferior con conteos
 //   · trend     output de lookupTrend() — opcional; píldora con clase + % anual
 //                (campos esperados: valid, dir, clase, annualPct, pValue, tau)
+//
+// Los conteos absolutos (casos / muertes / pobl) se muestran en un bloque
+// compartido debajo de ambos KPIs (ver CifrasBase en CargaEnfermedad.jsx) —
+// antes estaban duplicados dentro de cada KPIBlock y hacían overflow en el
+// grid angosto de 2 columnas.
 //
 // Convención de colores (métricas de salud: subir es malo):
 //   · Ascendente  → rojo
@@ -21,7 +25,7 @@ import { deltaYoY } from '../../lib/trend'
 
 export default function KPIBlock({
   title, value, prev, prevYear, unit = 'por 100k hab.',
-  casos, muertes, pob, real = true, accent = 'navy',
+  real = true, accent = 'navy',
   trend,
 }) {
   const delta = deltaYoY(value, prev)
@@ -93,29 +97,6 @@ export default function KPIBlock({
               {trend.annualPct >= 0 ? '+' : ''}{trend.annualPct}%/año
             </span>
           </span>
-        </div>
-      )}
-
-      {(casos > 0 || muertes > 0 || pob > 0) && (
-        <div className="mt-2 grid grid-cols-3 gap-2 border-t border-slate-100 pt-2 text-center">
-          <div>
-            <div className="font-mono text-sm font-semibold text-slate-700">
-              {Number(casos || 0).toLocaleString('es')}
-            </div>
-            <div className="text-[9px] uppercase text-slate-400">Casos</div>
-          </div>
-          <div>
-            <div className="font-mono text-sm font-semibold text-slate-700">
-              {Number(muertes || 0).toLocaleString('es')}
-            </div>
-            <div className="text-[9px] uppercase text-slate-400">Muertes</div>
-          </div>
-          <div>
-            <div className="font-mono text-sm font-semibold text-slate-700">
-              {Number(pob || 0).toLocaleString('es')}
-            </div>
-            <div className="text-[9px] uppercase text-slate-400">Pobl.</div>
-          </div>
         </div>
       )}
 

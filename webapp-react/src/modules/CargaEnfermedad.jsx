@@ -43,6 +43,7 @@ export default function CargaEnfermedad() {
   const entData       = useStore(s => s.entData)
   const pobData       = useStore(s => s.pobData)
   const estudioData   = useStore(s => s.estudioData)
+  const mapMetric     = useStore(s => s.mapMetric)
 
   // Serie 2013→2023 de la unidad activa (siempre completa)
   const series = useMemo(() => {
@@ -185,9 +186,6 @@ export default function CargaEnfermedad() {
           value={currentYear?.rate ?? 0}
           prev={prevYear?.rate}
           prevYear={prevYear?.year}
-          casos={currentYear?.casos}
-          muertes={currentYear?.muertes}
-          pob={currentYear?.pob}
           real={Boolean(currentYear && currentYear.pob > 0)}
           accent="navy"
           trend={morbTrend}
@@ -203,12 +201,31 @@ export default function CargaEnfermedad() {
         />
       </div>
 
-      {/* Tendencia temporal 2013-2023 */}
+      {/* Conteos absolutos compartidos (Casos / Muertes / Pobl) — una fila
+          full-width con espacio cómodo para los números grandes del agregado
+          nacional, sin duplicarlos dentro de cada KPIBlock. */}
+      {currentYear && (currentYear.casos > 0 || currentYear.muertes > 0 || currentYear.pob > 0) && (
+        <CifrasBase
+          casos={currentYear.casos}
+          muertes={currentYear.muertes}
+          pob={currentYear.pob}
+          year={year}
+        />
+      )}
+
+      {/* Tendencia temporal 2013-2024 — el gráfico sigue el toggle del mapa:
+          la métrica activa se destaca (Area con color del grupo), la otra
+          queda como línea fina punteada para comparación visual. */}
       <section>
-        <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-          <Activity size={11} /> Tendencia Temporal ({YEARS[0]}–{YEARS[YEARS.length - 1]})
+        <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+          <span className="flex items-center gap-1.5">
+            <Activity size={11} /> Tendencia Temporal ({YEARS[0]}–{YEARS[YEARS.length - 1]})
+          </span>
+          <span className="font-normal normal-case tracking-normal text-slate-400">
+            {mapMetric === 'mortalidad' ? 'Mortalidad (principal)' : 'Morbilidad (principal)'}
+          </span>
         </div>
-        <TendenciaChart series={series} disease={ent} year={year} />
+        <TendenciaChart series={series} disease={ent} year={year} metric={mapMetric} />
       </section>
 
       {/* Análisis estadístico — metodología Morales aplicada al unit activo */}
@@ -260,6 +277,37 @@ export default function CargaEnfermedad() {
 }
 
 // ───── Subcomponentes ─────
+
+function CifrasBase({ casos, muertes, pob, year }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
+      <div className="mb-1 flex items-center justify-between">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+          Cifras del año {year}
+        </div>
+        <div className="text-[9px] italic text-slate-400">
+          mismo denominador para ambas tasas
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-3 text-center">
+        <Cifra label="Casos" value={casos} color="text-inspi-navy" />
+        <Cifra label="Muertes" value={muertes} color="text-rose-700" />
+        <Cifra label="Pobl." value={pob} color="text-slate-700" />
+      </div>
+    </div>
+  )
+}
+
+function Cifra({ label, value, color }) {
+  return (
+    <div className="min-w-0">
+      <div className={`truncate font-mono text-base font-semibold ${color}`}>
+        {Number(value || 0).toLocaleString('es')}
+      </div>
+      <div className="text-[9px] uppercase tracking-wider text-slate-400">{label}</div>
+    </div>
+  )
+}
 
 function TrendRow({ label, trend }) {
   if (!trend?.valid) {
