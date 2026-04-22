@@ -78,12 +78,12 @@ export default function Legend() {
             <span>Muy alto</span>
           </div>
           <div className="mt-0.5 flex justify-between font-mono text-[9px] text-slate-400">
-            <span>z≤-3</span>
-            <span>0</span>
-            <span>z≥+3</span>
+            <span>p2</span>
+            <span>mediana</span>
+            <span>p98</span>
           </div>
           <div className="mt-1 text-[9px] italic text-slate-500">
-            Superficie KDE sobre centroides · paleta Turbo · excluye valores 0
+            KDE gaussiano sobre centroides · normalización p2-p98 · paleta Turbo · excluye valores 0
           </div>
         </div>
       )}
