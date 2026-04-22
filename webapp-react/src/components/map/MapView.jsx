@@ -5,9 +5,13 @@
 // Centro inicial: Ecuador continental (-1.6, -78.3) zoom 7.
 // Tile: CartoDB Positron NO LABELS — mapa base neutro sin nombres de ciudades
 // (el usuario pidió eliminarlos porque distraen y compiten con las coropletas).
+//
+// ZoomControls se monta FUERA del MapContainer: si se renderiza dentro, Leaflet
+// reorganiza los hijos y los botones se superponen. Usamos ref={setMap} para
+// capturar la instancia y se la pasamos al overlay como prop.
 
 import { MapContainer, TileLayer, useMap } from 'react-leaflet'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from '../../store'
 import ChoroplethLayer from './ChoroplethLayer'
 import HeatLayer from './HeatLayer'
@@ -54,6 +58,7 @@ function FitToProvince() {
 export default function MapView() {
   const layerType = useStore(s => s.layerType)
   const geoParr   = useStore(s => s.geoParr)
+  const [map, setMap] = useState(null)
 
   const ready = !!geoParr
 
@@ -64,6 +69,7 @@ export default function MapView() {
         zoom={7}
         scrollWheelZoom
         zoomControl={false}
+        ref={setMap}
         className="h-full w-full"
         style={{ background: '#eef3f7' }}
       >
@@ -77,9 +83,11 @@ export default function MapView() {
         {ready && layerType === 'heatmap'   && <HeatLayer />}
 
         <ProvinceOverlay />
-        <ZoomControls />
         <FitToProvince />
       </MapContainer>
+
+      {/* Overlays DOM sobre el mapa (fuera del leaflet-container) */}
+      <ZoomControls map={map} />
 
       {!ready && (
         <div className="pointer-events-none absolute inset-0 z-[400] flex items-center justify-center bg-white/70">
