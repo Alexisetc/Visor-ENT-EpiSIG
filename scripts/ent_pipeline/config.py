@@ -110,7 +110,7 @@ ENT_SCHEMES: dict[str, dict[str, dict]] = {
             'regex_include': re.compile(r'^I\d{2}$'),  # I00-I99
             'regex_exclude': None,
         },
-        'metabolicas': {
+        'metabolica': {
             'label': 'Metabólicas',
             'regex_include': re.compile(r'^E[0-9]\d$'),  # E00-E99 (Morales limita a E00-E90 pero E91+ no existe en CIE-10)
             'regex_exclude': None,
@@ -159,10 +159,14 @@ ENT_SCHEMES: dict[str, dict[str, dict]] = {
         },
     },
 
-    # ─── Esquema "visor" — compatibilidad con frontend React actual ──────────
-    # Cero cambios en webapp-react/ ni en el schema de ent_parroquial.json.
-    # Es lo que ya consume el visor hoy. Default para Fase 3-5.
-    'visor': {
+    # ─── Esquema "chronic" — alternativa crónica-expandida (exploratorio) ────
+    # Intermedia entre Morales (incluye agudas) y NCD-OMS (solo crónicas
+    # reconocidas). Agrega digestivas K00-K92 completas (incl. K35 apendicitis
+    # aguda, K80 colelitiasis) que NO están en los otros dos esquemas, y usa
+    # diabetes-renales acotadas (E10-E14 + N00-N18 crónicas solamente).
+    # Útil para comparar contra el visor legacy que usaba esta agrupación en
+    # una versión anterior; NO es lo que el visor React actual consume.
+    'chronic': {
         'neoplasia': {
             'label': 'Neoplasias',
             'regex_include': re.compile(r'^(C\d{2}|D0\d|D1\d|D2\d|D3\d|D4[0-8])$'),
@@ -191,13 +195,49 @@ ENT_SCHEMES: dict[str, dict[str, dict]] = {
     },
 }
 
-# Retrocompatibilidad: el perfilado (01_profile.py) todavía lee `ENT_GRUPOS`
-# y `ENT_KEYS`. Apuntan al esquema 'visor' para no romper nada.
-ENT_GRUPOS = ENT_SCHEMES['visor']
-ENT_KEYS   = list(ENT_GRUPOS.keys())  # ['neoplasia','cardio','resp','diabren','digest']
+# ─── Esquema consumido por el visor React ──────────────────────────────────
+# EntSelector.jsx + ENT_MAP en webapp-react/src/lib/colors.js definen 5 grupos
+# que EXACTAMENTE coinciden con el esquema 'morales' (circulatorio I00-I99,
+# neoplasia C00-D48, metabolica E00-E99, respiratorio J00-J99, nervioso
+# G00-G99). Por eso DEFAULT_SCHEME = 'morales': Fase 3 emite el JSON visor
+# desde esta clasificacion sin cambios frontend.
+DEFAULT_SCHEME = 'morales'
 
-# Default para export al visor. Fase 3-5 lo respeta.
-DEFAULT_SCHEME = 'visor'
+# Retrocompatibilidad para 01_profile.py que importa ENT_GRUPOS/ENT_KEYS.
+# Apuntan al default (morales) para mantener coherencia en el perfilado.
+ENT_GRUPOS = ENT_SCHEMES[DEFAULT_SCHEME]
+ENT_KEYS   = list(ENT_GRUPOS.keys())  # ['neoplasia','circulatorio','metabolica','respiratorio','nervioso']
+
+
+# ─── SUB-ENT CLÍNICAS (para selector secundario del visor) ─────────────────
+# Mapeo de códigos CIE-10 normalizados (3-char) a subgrupos clínicos específicos.
+# Réplica de `scripts/procesar_microdato_egresos.py` (líneas 95-108). Consumidos
+# por Fase 3 en el bloque `subent` del JSON visor — PARALELOS a `grupos`.
+SUBENT_PATRONES: dict[str, 're.Pattern'] = {
+    'dm1':       re.compile(r'^E10$'),
+    'dm2':       re.compile(r'^E1[14]$'),
+    'hta':       re.compile(r'^I1[0-5]$'),
+    'iam':       re.compile(r'^I2[12]$'),
+    'ecv':       re.compile(r'^I6[0-9]$'),
+    'erc':       re.compile(r'^N18$'),
+    'obesidad':  re.compile(r'^E66$'),
+    'ca_mama':   re.compile(r'^C50$'),
+    'ca_est':    re.compile(r'^C16$'),
+    'ca_prost':  re.compile(r'^C61$'),
+    'depresion': re.compile(r'^F3[23]$'),
+    'epoc':      re.compile(r'^J44$'),
+}
+SUBENT_IDS = list(SUBENT_PATRONES.keys())
+
+
+def classify_subent(code_norm: str) -> str | None:
+    """Devuelve la clave del sub-ENT o None si no matchea ninguno."""
+    if not code_norm:
+        return None
+    for sid, rx in SUBENT_PATRONES.items():
+        if rx.match(code_norm):
+            return sid
+    return None
 
 
 # ─── NORMALIZACIÓN CIE-10 ───────────────────────────────────────────────────

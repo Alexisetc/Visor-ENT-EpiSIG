@@ -10,7 +10,7 @@ y produce:
 Aplica las reglas declaradas en `config.py` (seccion "Parametros de Fase 2"),
 aprobadas 2026-04-21 por el responsable cientifico:
 
-  * ENT_SCHEMES['morales' | 'ncd' | 'visor']  -> 3 columnas paralelas.
+  * ENT_SCHEMES['morales' | 'ncd' | 'chronic']  -> 3 columnas paralelas.
   * ORPHAN_POLICY   = 'aggregate'             -> agrega huerfanos a cabecera.
   * DEF_GEO_SOURCE  = 'parr_res_or_fall'      -> fallback para defunciones 2015+.
   * PANDEMIC_POLICY = 'flag'                  -> columna `periodo`.
@@ -155,7 +155,7 @@ def _classify_all_schemes(codes_norm: pd.Series) -> dict[str, pd.Series]:
     unique_codes = set(codes_norm.dropna().unique())
     unique_codes.discard('')
     out: dict[str, pd.Series] = {}
-    for scheme in ('morales', 'ncd', 'visor'):
+    for scheme in C.ENT_SCHEMES.keys():
         code_to_group = {c: C.classify_cie10(c, scheme) for c in unique_codes}
         out[scheme] = codes_norm.map(code_to_group).astype('string')
     return out
@@ -217,7 +217,7 @@ def clean_egresos(df: pd.DataFrame, geo_keys: set[str], cab_lookup: dict[str, st
 
     # Conteos por esquema (para auditoria cruzada)
     log['by_scheme'] = {}
-    for scheme in ('morales', 'ncd', 'visor'):
+    for scheme in C.ENT_SCHEMES.keys():
         vc = df[f'grupo_{scheme}'].fillna('no_ent').value_counts().to_dict()
         log['by_scheme'][scheme] = {str(k): int(v) for k, v in vc.items()}
 
@@ -228,7 +228,7 @@ def clean_egresos(df: pd.DataFrame, geo_keys: set[str], cab_lookup: dict[str, st
         'sexo', 'edad', 'edad_invalida', 'grupo_etario',
         'anio', 'periodo',
         'cau_cie10', 'cau_cie10_norm',
-        'grupo_morales', 'grupo_ncd', 'grupo_visor',
+        'grupo_morales', 'grupo_ncd', 'grupo_chronic',
         'fuente_archivo',
     ]
     keep_cols = [c for c in keep_cols if c in df.columns]
@@ -325,7 +325,7 @@ def clean_defunciones(df: pd.DataFrame, geo_keys: set[str], cab_lookup: dict[str
 
     # Conteos por esquema
     log['by_scheme'] = {}
-    for scheme in ('morales', 'ncd', 'visor'):
+    for scheme in C.ENT_SCHEMES.keys():
         vc = df[f'grupo_{scheme}'].fillna('no_ent').value_counts().to_dict()
         log['by_scheme'][scheme] = {str(k): int(v) for k, v in vc.items()}
 
@@ -336,7 +336,7 @@ def clean_defunciones(df: pd.DataFrame, geo_keys: set[str], cab_lookup: dict[str
         'sexo', 'edad', 'edad_invalida', 'grupo_etario',
         'anio', 'periodo',
         'cau_cie10', 'cau_cie10_norm',
-        'grupo_morales', 'grupo_ncd', 'grupo_visor',
+        'grupo_morales', 'grupo_ncd', 'grupo_chronic',
         'fuente_archivo',
     ]
     keep_cols = [c for c in keep_cols if c in df.columns]
