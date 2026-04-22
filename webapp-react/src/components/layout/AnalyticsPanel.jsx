@@ -1,7 +1,7 @@
 // AnalyticsPanel — Panel derecho. Renderiza la ficha contextual del módulo activo.
 // Los tres módulos analíticos están cableados:
 //   · carga         → Carga de Enfermedad (egresos + mortalidad INEC 2013-2024)
-//   · determinantes → Determinantes IA (MGWR β locales + 7 determinantes)
+//   · determinantes → Determinantes (MGWR β locales + 7 determinantes)
 //   · mcda          → Priorización MCDA (ranking ponderado 6 criterios)
 
 import { useStore } from '../../store'

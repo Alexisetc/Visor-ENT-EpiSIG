@@ -1,7 +1,7 @@
 // App.jsx — Layout tri-pane (Header + Sidebar + MapView + AnalyticsPanel)
 // con los tres módulos analíticos cableados tras Fase 5 del pipeline Python:
 //   · Carga de Enfermedad (coropletas + hot spots + tendencia MK+Sen+FDR)
-//   · Determinantes IA (MGWR βs locales + 7 determinantes parroquiales)
+//   · Determinantes (MGWR βs locales + 7 determinantes parroquiales)
 //   · Priorización MCDA (ranking ENT por parroquia, 6 criterios ponderados)
 // Serie temporal 2013→2024 (12 años), animable con el Play del YearSlider.
 

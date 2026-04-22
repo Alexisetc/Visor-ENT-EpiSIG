@@ -1,10 +1,19 @@
 // MapView — Contenedor base react-leaflet. Renderiza tile, provincias y la
-// capa activa (Choropleth | Heatmap). La priorización usa coropletas también,
-// así que se colapsa sobre el mismo layer type.
+// capa activa según el módulo analítico + layerType:
+//
+//   module='carga'         layer='coropleta' → ChoroplethLayer  (tasa /100k por quintiles)
+//                          layer='heatmap'   → HotSpotLayer     (bipolar z-score de la tasa)
+//   module='determinantes' layer='coropleta' → DeterminantesLayer (determinante dominante categórico)
+//                          layer='heatmap'   → HotSpotLayer     (bipolar z-score del índice de vulnerabilidad)
+//   module='mcda'          layer='coropleta' → MCDALayer        (ENT #1 categórica)
+//                          layer='heatmap'   → HotSpotLayer     (bipolar z-score del score MCDA total)
+//
+// HotSpotLayer es el reemplazo universal del antiguo KDE unipolar: aplica una
+// escala diverging RdBu invertida (rojo=hot / blanco=neutral / azul=cold),
+// estilo Getis-Ord Gi* / LISA clásico.
 //
 // Centro inicial: Ecuador continental (-1.6, -78.3) zoom 7.
-// Tile: CartoDB Positron NO LABELS — mapa base neutro sin nombres de ciudades
-// (el usuario pidió eliminarlos porque distraen y compiten con las coropletas).
+// Tile: CartoDB Positron NO LABELS — mapa base neutro sin nombres de ciudades.
 //
 // ZoomControls se monta FUERA del MapContainer: si se renderiza dentro, Leaflet
 // reorganiza los hijos y los botones se superponen. Usamos ref={setMap} para
@@ -13,11 +22,13 @@
 import { MapContainer, TileLayer, useMap } from 'react-leaflet'
 import { useEffect, useState } from 'react'
 import { useStore } from '../../store'
-import ChoroplethLayer from './ChoroplethLayer'
-import HeatLayer from './HeatLayer'
-import ProvinceOverlay from './ProvinceOverlay'
-import ZoomControls from './ZoomControls'
-import Legend from './Legend'
+import ChoroplethLayer     from './ChoroplethLayer'
+import DeterminantesLayer  from './DeterminantesLayer'
+import MCDALayer           from './MCDALayer'
+import HotSpotLayer        from './HotSpotLayer'
+import ProvinceOverlay     from './ProvinceOverlay'
+import ZoomControls        from './ZoomControls'
+import Legend              from './Legend'
 
 // --- helper: hace fitBounds a la provincia seleccionada (o a Ecuador entero) ---
 function FitToProvince() {
@@ -57,10 +68,24 @@ function FitToProvince() {
 
 export default function MapView() {
   const layerType = useStore(s => s.layerType)
+  const module    = useStore(s => s.module)
   const geoParr   = useStore(s => s.geoParr)
   const [map, setMap] = useState(null)
 
   const ready = !!geoParr
+
+  // Selector de layer por módulo + tipo. Si el layer es "heatmap" siempre
+  // cae a HotSpotLayer (bipolar z-score); si es "coropleta" elige el layer
+  // categórico/cuantitativo propio del módulo.
+  const renderLayer = () => {
+    if (!ready) return null
+    if (layerType === 'heatmap') return <HotSpotLayer />
+    switch (module) {
+      case 'determinantes': return <DeterminantesLayer />
+      case 'mcda':          return <MCDALayer />
+      default:              return <ChoroplethLayer />
+    }
+  }
 
   return (
     <div className="relative h-full w-full">
@@ -79,8 +104,7 @@ export default function MapView() {
           url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
         />
 
-        {ready && layerType === 'coropleta' && <ChoroplethLayer />}
-        {ready && layerType === 'heatmap'   && <HeatLayer />}
+        {renderLayer()}
 
         <ProvinceOverlay />
         <FitToProvince />

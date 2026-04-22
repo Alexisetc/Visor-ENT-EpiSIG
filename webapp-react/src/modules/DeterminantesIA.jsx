@@ -184,7 +184,7 @@ export default function DeterminantesIA() {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-inspi-yellow">
-              <BrainCircuit size={11} /> Determinantes IA · MGWR
+              <BrainCircuit size={11} /> Determinantes · MGWR
             </div>
             <div className="truncate font-display text-base font-semibold">
               {unitLabel.title}

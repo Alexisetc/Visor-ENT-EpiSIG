@@ -1,8 +1,12 @@
 // Sidebar — Panel izquierdo con módulos analíticos + controles globales.
 // Reemplaza .dash-sidebar del legacy. Estructura por módulos a la Gemini:
 // - Carga de Enfermedad: coropletas + hot spots + tendencia MK+Sen+FDR
-// - Determinantes IA:    MGWR betas locales + 7 determinantes parroquiales
+// - Determinantes:       MGWR betas locales + 7 determinantes parroquiales
 // - Priorización MCDA:   ranking y top-ENT por parroquia (6 criterios)
+//
+// La métrica morbilidad/mortalidad solo aplica al módulo 'carga' (los
+// otros dos agregan ambas métricas en sus scores). El toggle se oculta
+// fuera de ese contexto para no confundir al usuario.
 
 import { Activity, BrainCircuit, Star, Layers, Stethoscope, MapPin, Calendar, Gauge } from 'lucide-react'
 import { useStore } from '../../store'
@@ -14,7 +18,7 @@ import ProvinceSelect from '../controls/ProvinceSelect'
 
 const MODULES = [
   { id: 'carga',         label: 'Carga de Enfermedad', icon: Activity,     ready: true, color: 'text-rose-600'   },
-  { id: 'determinantes', label: 'Determinantes IA',    icon: BrainCircuit, ready: true, color: 'text-violet-600' },
+  { id: 'determinantes', label: 'Determinantes',       icon: BrainCircuit, ready: true, color: 'text-violet-600' },
   { id: 'mcda',          label: 'Priorización MCDA',   icon: Star,         ready: true, color: 'text-amber-600'  },
 ]
 
@@ -72,9 +76,11 @@ export default function Sidebar() {
         <LayerToggle />
       </ControlGroup>
 
-      <ControlGroup icon={Gauge} label="Métrica del mapa">
-        <MetricToggle />
-      </ControlGroup>
+      {module === 'carga' && (
+        <ControlGroup icon={Gauge} label="Métrica del mapa">
+          <MetricToggle />
+        </ControlGroup>
+      )}
 
       <ControlGroup icon={Stethoscope} label="Grupo ENT">
         <EntSelector />
