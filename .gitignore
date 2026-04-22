@@ -10,3 +10,16 @@ inputs/egresos/raw/*.csv
 inputs/defunciones/raw/*.sav
 inputs/defunciones/raw/*.csv
 inputs/_legacy/*.xlsx
+
+# Datos de referencia del estudio Morales (2013-2023) — artefactos R + .sav
+# originales + Excel limpios. Se usan solo para verificación cruzada vía
+# `_sistema/verify_*.py`, no son parte del pipeline Python nuevo.
+ENT_ART/
+
+# Duplicados de inputs/{egresos,defunciones}/raw/ tal como vienen del portal
+# de datos abiertos INEC (mismo hash que los archivos ya gitignored en inputs/).
+datos_abiertos_camas_egresos_hospitalarios_2024/
+2. Datos_abiertos_EDG_2024/
+
+# Borradores externos sin versionar
+Propuesta Gemini.txt
