@@ -274,7 +274,7 @@ def build_visor_json(
             'denominador_nota':     'CPV 2022 (snapshot; proyecciones anuales en Fase 4)',
             'def_geo_nota':         'defunciones 2015+ usan lugar de fallecimiento (parr_fall) como proxy de residencia por ruptura esquema INEC',
             'mortalidad_nota':      'muertes = defunciones generales INEC (EDG 2013-2024). Legacy CONSOLIDADO_egresos.xlsx solo contaba defunciones hospitalarias (con_egrpa=Fallecido), subregistrando 10-40x el volumen real. Este pipeline reemplaza esa fuente subestimada por la fuente poblacional completa.',
-            'csv_2024_nota':        'CSV 2024 viene con text labels (nombre de prov/cant/parr) en lugar de codigos numericos. Loader aplica 3-tier lookup via GeoJSON: (prov,cant,parr) full triple -> DPA6; fallback (prov,cant) -> DPA4; fallback prov-only -> DPA2. 98%+ match en casos.',
+            'csv_2024_nota':        'CSV 2024 viene con text labels (nombre de prov/cant/parr) en lugar de codigos numericos. Loader aplica 3-tier lookup via GeoJSON: (prov,cant,parr) full triple -> DPA6; fallback (prov,cant) -> DPA4; fallback prov-only -> DPA2. 98%+ match en casos. Defunciones 2024: la CSV solo trae prov_res (sin cant_res/parr_res), por lo que res cae a tier-3 con tier3_fill=False y Fase 2 usa parr_fall como fallback (~87 % de los 91k registros 2024).',
             'pandemia_periodos':    {'pre': [2013, 2019], 'pandemia': [2020, 2021], 'post': [2022, 2024]},
             'pipeline_version':     '1.0.0',
         },

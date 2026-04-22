@@ -122,13 +122,20 @@ def csv_names_to_codes(
     prov_col: str,
     cant_col: str,
     parr_col: str,
+    *,
+    tier3_fill: bool = True,
 ) -> None:
     """Convierte in-place (prov_col, cant_col, parr_col) de nombres a códigos.
 
-    Two-tier lookup:
+    Tres niveles de resolución:
       1) (prov, cant, parr) full triple → DPA6 split en (prov, cant, parr)
-      2) fallback (prov, cant) → DPA4 → asigna (prov, cant) pero parr=NaN
-         (Fase 2 orphan-aggregate lo remapea a cabecera cantonal)
+      2) (prov, cant) → DPA4 (parr queda como DPA4+'00' para que la orphan-
+         logic de Fase 2 lo remape a cabecera cantonal)
+      3) solo prov → DPA2 → si `tier3_fill=True`, parr = DPA2+'0000' ; si
+         `tier3_fill=False`, SOLO se asigna prov_col y (cant_col, parr_col)
+         quedan como NaN para que Fase 2 caiga al fallback opuesto
+         (ej. en defunciones 2024 solo viene `prov_res` como texto, así que
+         queremos que parr_res=NaN y Fase 2 use `parr_fall` en su lugar).
 
     No hace nada si la columna ya es numérica (es decir, viene de .sav).
     """
@@ -172,9 +179,6 @@ def csv_names_to_codes(
     #   prov_res = 2-digit          (ej: 17 = Pichincha)
     #   cant_res = 4-digit prov*100+cant   (ej: 1701 = Pichincha/Quito)
     #   parr_res = 6-digit DPA completo    (ej: 170108 = Belisario Quevedo)
-    # Para tier 2 (sin parr): parr_res = prov*10000 + cant*100 + 0 → orphan logic
-    #   de Fase 2 lo remapea a cabecera (buscando cab_lookup[prov+cant] = xx50).
-    # Para tier 3 (solo prov): parr_res = prov*10000 → queda como no_geo_residual.
     prov_code = pd.Series([pd.NA] * len(df), index=df.index, dtype='Int64')
     cant_code = pd.Series([pd.NA] * len(df), index=df.index, dtype='Int64')
     parr_code = pd.Series([pd.NA] * len(df), index=df.index, dtype='Int64')
@@ -193,12 +197,15 @@ def csv_names_to_codes(
         cant_code.loc[got2] = pd.to_numeric(dpa4[got2].str[:4], errors='coerce').astype('Int64')
         parr_code.loc[got2] = pd.to_numeric(dpa4[got2] + '00', errors='coerce').astype('Int64')
 
-    # Tier 3: solo prov matched → parr_res = dpa2+"0000"
+    # Tier 3: solo prov matched
     got3 = ~got1 & ~got2 & dpa2.notna()
     if got3.any():
-        prov_code.loc[got3] = pd.to_numeric(dpa2[got3],             errors='coerce').astype('Int64')
-        cant_code.loc[got3] = pd.to_numeric(dpa2[got3] + '00',      errors='coerce').astype('Int64')
-        parr_code.loc[got3] = pd.to_numeric(dpa2[got3] + '0000',    errors='coerce').astype('Int64')
+        prov_code.loc[got3] = pd.to_numeric(dpa2[got3], errors='coerce').astype('Int64')
+        if tier3_fill:
+            cant_code.loc[got3] = pd.to_numeric(dpa2[got3] + '00',   errors='coerce').astype('Int64')
+            parr_code.loc[got3] = pd.to_numeric(dpa2[got3] + '0000', errors='coerce').astype('Int64')
+        # si tier3_fill=False → cant/parr quedan en NA; esto habilita el
+        # fallback `parr_res_or_fall` de Fase 2 para defunciones 2024.
 
     df[prov_col] = prov_code
     df[cant_col] = cant_code
@@ -317,7 +324,7 @@ def load_defunciones(year: int, common: list[str] | None = None) -> pd.DataFrame
         fuente = sav_path.name
     elif csv_path.exists():
         df = pd.read_csv(
-            csv_path, sep=';', encoding='latin1',
+            csv_path, sep=';', encoding='utf-8',
             low_memory=False, dtype=str,
         )
         fuente = csv_path.name
@@ -329,9 +336,9 @@ def load_defunciones(year: int, common: list[str] | None = None) -> pd.DataFrame
     df['anio'] = year
 
     # CSV 2024 trae nombres en lugar de códigos → convertir ANTES del cast numérico.
-    # Nota: EDG_2024.csv trae solo `prov_res` sin cant_res/parr_res (ruptura INEC 2015+),
-    # así que el helper devolverá NaN en cant/parr para defunciones (esperado).
-    csv_names_to_codes(df, 'prov_res', 'cant_res', 'parr_res')
+    # `prov_res` viene solo (sin cant_res/parr_res) en 2024 — tier3_fill=False hace que
+    # cant_res/parr_res queden en NaN para que Fase 2 use parr_fall como fallback.
+    csv_names_to_codes(df, 'prov_res',  'cant_res',  'parr_res',  tier3_fill=False)
     csv_names_to_codes(df, 'prov_fall', 'cant_fall', 'parr_fall')
     csv_names_to_codes(df, 'prov_insc', 'cant_insc', 'parr_insc')
 
