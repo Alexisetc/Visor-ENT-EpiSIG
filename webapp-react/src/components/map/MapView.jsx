@@ -1,16 +1,18 @@
 // MapView — Contenedor base react-leaflet. Renderiza tile, provincias y la
-// capa activa (Choropleth | Heatmap | Priority — esta última en Sprint 3).
+// capa activa (Choropleth | Heatmap). La priorización usa coropletas también,
+// así que se colapsa sobre el mismo layer type.
 //
 // Centro inicial: Ecuador continental (-1.6, -78.3) zoom 7.
-// Tile: CartoDB Positron (mismo que legacy, neutro para no competir con coropletas).
+// Tile: CartoDB Positron NO LABELS — mapa base neutro sin nombres de ciudades
+// (el usuario pidió eliminarlos porque distraen y compiten con las coropletas).
 
-import { useMemo } from 'react'
 import { MapContainer, TileLayer, useMap } from 'react-leaflet'
 import { useEffect } from 'react'
 import { useStore } from '../../store'
 import ChoroplethLayer from './ChoroplethLayer'
 import HeatLayer from './HeatLayer'
 import ProvinceOverlay from './ProvinceOverlay'
+import ZoomControls from './ZoomControls'
 import Legend from './Legend'
 
 // --- helper: hace fitBounds a la provincia seleccionada (o a Ecuador entero) ---
@@ -22,7 +24,6 @@ function FitToProvince() {
   useEffect(() => {
     if (!geoProv) return
     if (!provFilter) {
-      // Vista nacional
       map.setView([-1.6, -78.3], 7, { animate: true })
       return
     }
@@ -32,7 +33,6 @@ function FitToProvince() {
       return code === provFilter
     })
     if (!f) return
-    // Calcular bounds del feature manualmente (evita dependencia extra)
     const coords = []
     const walk = c => {
       if (typeof c[0] === 'number') coords.push([c[1], c[0]])
@@ -63,20 +63,21 @@ export default function MapView() {
         center={[-1.6, -78.3]}
         zoom={7}
         scrollWheelZoom
-        zoomControl
+        zoomControl={false}
         className="h-full w-full"
         style={{ background: '#eef3f7' }}
       >
+        {/* Basemap SIN nombres de ciudades (light_nolabels) */}
         <TileLayer
           attribution='&copy; <a href="https://carto.com/">CartoDB</a> · OSM'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
         />
 
-        {ready && layerType === 'coropleta'    && <ChoroplethLayer />}
-        {ready && layerType === 'heatmap'      && <HeatLayer />}
-        {ready && layerType === 'priorizacion' && <ChoroplethLayer />} {/* Sprint 3: PriorityLayer */}
+        {ready && layerType === 'coropleta' && <ChoroplethLayer />}
+        {ready && layerType === 'heatmap'   && <HeatLayer />}
 
         <ProvinceOverlay />
+        <ZoomControls />
         <FitToProvince />
       </MapContainer>
 

@@ -1,4 +1,4 @@
-// useDataLoader — Carga los 6 datasets del visor en paralelo y los inyecta
+// useDataLoader — Carga los 8 datasets del visor en paralelo y los inyecta
 // al store zustand. Se ejecuta una sola vez al montar <App />.
 //
 // Datasets servidos desde /assets/* (ver vite.config.js legacyAssetsMiddleware):
@@ -9,6 +9,7 @@
 //   priorizacion_mcda.json      ranking MCDA por parroquia
 //   mgwr_betas.json             β locales MGWR por parroquia
 //   determinantes_parroquial.json  7 determinantes simulados por parroquia
+//   estudio_ent.json            estudio mortalidad ENT 2017-2023 (nacional)
 
 import { useEffect } from 'react'
 import { useStore } from '../store'
@@ -21,6 +22,7 @@ const DATASETS = [
   { key: 'mcdaData',     url: '/assets/priorizacion_mcda.json' },
   { key: 'mgwrData',     url: '/assets/mgwr_betas.json' },
   { key: 'detData',      url: '/assets/determinantes_parroquial.json' },
+  { key: 'estudioData',  url: '/assets/estudio_ent.json' },
 ]
 
 async function fetchJSON(url) {
@@ -56,6 +58,7 @@ export function useDataLoader() {
           if (key === 'mcdaData') summary.push(`mcda: ${Object.keys(json.parroquias || {}).length} parr`)
           if (key === 'mgwrData') summary.push(`mgwr: ${Object.keys(json.parroquias || {}).length} parr`)
           if (key === 'detData')  summary.push(`det: ${Object.keys(json.parroquias || {}).length} parr`)
+          if (key === 'estudioData') summary.push(`estudio: ${Object.keys(json.grupos || {}).length} grupos × ${(json.anios || []).length} años`)
         }
       }
       console.log('[EpiSIG] Datos cargados →', summary.join(' · '))

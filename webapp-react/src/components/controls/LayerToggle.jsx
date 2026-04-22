@@ -1,14 +1,14 @@
-// LayerToggle — Selector de capa (Coropletas | Hot Spots | Priorización).
-// Reemplaza .layer-toggle del legacy. Coropleta y Heatmap aplican a Carga de Enfermedad;
-// Priorización fuerza el módulo MCDA (Sprint 3).
+// LayerToggle — Selector de forma de visualización (Coropletas | Hot Spots).
+// Son las dos únicas formas de visualización geográfica distintas: la
+// priorización MCDA también se visualiza con coropletas (por ranking), por lo
+// que no es una tercera forma sino un módulo aparte.
 
-import { Map as MapIcon, Flame, Star } from 'lucide-react'
+import { Map as MapIcon, Flame } from 'lucide-react'
 import { useStore } from '../../store'
 
 const TABS = [
   { id: 'coropleta',    label: 'Coropletas',  icon: MapIcon },
   { id: 'heatmap',      label: 'Hot Spots',   icon: Flame   },
-  { id: 'priorizacion', label: 'Priorización', icon: Star    },
 ]
 
 export default function LayerToggle() {
@@ -16,7 +16,7 @@ export default function LayerToggle() {
   const setLayerType = useStore(s => s.setLayerType)
 
   return (
-    <div className="grid grid-cols-3 gap-1 rounded border border-slate-200 bg-slate-50 p-0.5">
+    <div className="grid grid-cols-2 gap-1 rounded border border-slate-200 bg-slate-50 p-0.5">
       {TABS.map(t => {
         const active = layerType === t.id
         const Icon = t.icon
