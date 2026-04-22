@@ -84,12 +84,41 @@ export const HOTSPOT_BREAKS = [-2.5, -2, -1.5, -1, -0.5, 0.5, 1, 1.5, 2, 2.5]
 // Regla: stop[0] si z ≤ breaks[0], stop[i] si breaks[i-1] < z ≤ breaks[i],
 // stop[breaks.length-1] si z > breaks[últ]. (10 breaks → 9 stops.)
 
-// ===== Turbo colormap (Mikhailov 2019) — fallback perceptualmente uniforme =====
-// No se usa en hot-spot principal pero queda disponible si se necesita un
-// gradient unipolar multicolor (p. ej. para visualización "densidad" alt).
+// ===== Turbo colormap (Mikhailov 2019) — perceptualmente uniforme =====
+// 7-stop de muestra (para badges/leyendas compactas):
 export const TURBO = [
   '#30123b','#4777ef','#1ae4b6','#a4fc3c','#fabb39','#e83317','#7a0403',
 ]
+
+// 256-step LUT pre-computado con la aproximación polinómica de Mikhailov
+// (https://ai.googleblog.com/2019/08/turbo-improved-rainbow-colormap-for.html).
+// Cada entrada i = [r, g, b] con valores [0..255]; indexar por
+// Math.floor(t*255) donde t ∈ [0..1]. Se usa en el KDE-canvas del HotSpotLayer
+// para mapear z-score a color píxel a píxel.
+export const TURBO_LUT = (() => {
+  const lut = new Uint8Array(256 * 3)
+  const kR4 = [0.13572138,  4.61539260, -42.66032258,  132.13108234]
+  const kG4 = [0.09140261,  2.19418839,   4.84296658,  -14.18503333]
+  const kB4 = [0.10667330, 12.64194608, -60.58204836,  110.36276771]
+  const kR2 = [-152.94239396, 59.28637943]
+  const kG2 = [   4.27729857,  2.82956604]
+  const kB2 = [ -89.90310912, 27.34824973]
+  const clamp = v => v < 0 ? 0 : v > 1 ? 1 : v
+  for (let i = 0; i < 256; i++) {
+    const x  = i / 255
+    const x2 = x  * x
+    const x3 = x2 * x
+    const x4 = x2 * x2
+    const x5 = x2 * x3
+    const r = clamp(kR4[0] + kR4[1]*x + kR4[2]*x2 + kR4[3]*x3 + kR2[0]*x4 + kR2[1]*x5)
+    const g = clamp(kG4[0] + kG4[1]*x + kG4[2]*x2 + kG4[3]*x3 + kG2[0]*x4 + kG2[1]*x5)
+    const b = clamp(kB4[0] + kB4[1]*x + kB4[2]*x2 + kB4[3]*x3 + kB2[0]*x4 + kB2[1]*x5)
+    lut[i * 3 + 0] = (r * 255) | 0
+    lut[i * 3 + 1] = (g * 255) | 0
+    lut[i * 3 + 2] = (b * 255) | 0
+  }
+  return lut
+})()
 
 // ===== Paleta categórica por determinante =====
 // Se usa en DeterminantesLayer cuando el mapa colorea por "determinante

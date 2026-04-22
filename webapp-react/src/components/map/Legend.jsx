@@ -16,7 +16,7 @@ import { useStore } from '../../store'
 import {
   ENT_LABEL, ENT_COLOR, ENTS,
   DET_COLOR, DET_LABEL, DETS,
-  colorScales, HOTSPOT_BIPOLAR,
+  colorScales, TURBO_LUT,
 } from '../../lib/colors'
 import { computeQuintiles } from '../../lib/quintiles'
 
@@ -61,56 +61,29 @@ export default function Legend() {
         {title}
       </div>
 
-      {/* ===== Modo HOT-SPOT (bipolar RdBu) — aplica a los 3 módulos ===== */}
+      {/* ===== Modo HOT-SPOT (KDE continuo + paleta Turbo) — 3 módulos ===== */}
       {isHot && (
         <div>
-          {/* Color: z-score bipolar */}
-          <div className="flex items-center">
-            {HOTSPOT_BIPOLAR.map((c, i) => (
-              <div key={i} className="h-3 flex-1" style={{ background: c }} title={`stop ${i}`} />
-            ))}
+          {/* Gradiente Turbo continuo (64 stops para transición suave) */}
+          <div className="flex h-3 w-full overflow-hidden rounded-sm">
+            {Array.from({ length: 64 }, (_, i) => {
+              const lutIdx = Math.floor((i / 63) * 255) * 3
+              const bg = `rgb(${TURBO_LUT[lutIdx]},${TURBO_LUT[lutIdx + 1]},${TURBO_LUT[lutIdx + 2]})`
+              return <div key={i} className="h-full flex-1" style={{ background: bg }} />
+            })}
           </div>
           <div className="mt-0.5 flex justify-between font-mono text-[9px] text-slate-500">
-            <span>cold-spot</span>
-            <span>media</span>
-            <span>hot-spot</span>
+            <span>Muy bajo</span>
+            <span>Medio</span>
+            <span>Muy alto</span>
           </div>
           <div className="mt-0.5 flex justify-between font-mono text-[9px] text-slate-400">
-            <span>z≤-2.5</span>
+            <span>z≤-3</span>
             <span>0</span>
-            <span>z≥+2.5</span>
+            <span>z≥+3</span>
           </div>
-
-          {/* Tamaño: |z| → radio */}
-          <div className="mt-2 flex items-end justify-between">
-            <div className="flex flex-col items-center">
-              <svg width="10" height="10" viewBox="0 0 14 14">
-                <circle cx="7" cy="7" r="4" fill="#64748b" fillOpacity="0.75" stroke="#1a1b4a" strokeWidth="0.6" />
-              </svg>
-              <div className="mt-0.5 font-mono text-[9px] text-slate-500">|z|≈0</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <svg width="16" height="16" viewBox="0 0 16 16">
-                <circle cx="8" cy="8" r="7" fill="#64748b" fillOpacity="0.75" stroke="#1a1b4a" strokeWidth="0.6" />
-              </svg>
-              <div className="mt-0.5 font-mono text-[9px] text-slate-500">|z|≈1</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <svg width="22" height="22" viewBox="0 0 22 22">
-                <circle cx="11" cy="11" r="10" fill="#64748b" fillOpacity="0.75" stroke="#1a1b4a" strokeWidth="0.6" />
-              </svg>
-              <div className="mt-0.5 font-mono text-[9px] text-slate-500">|z|≈2</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <svg width="28" height="28" viewBox="0 0 28 28">
-                <circle cx="14" cy="14" r="13" fill="#64748b" fillOpacity="0.75" stroke="#1a1b4a" strokeWidth="0.6" />
-              </svg>
-              <div className="mt-0.5 font-mono text-[9px] text-slate-500">|z|≥3</div>
-            </div>
-          </div>
-
           <div className="mt-1 text-[9px] italic text-slate-500">
-            Puntos en centroides · color=dirección, tamaño=magnitud · excluye valores 0
+            Superficie KDE sobre centroides · paleta Turbo · excluye valores 0
           </div>
         </div>
       )}
