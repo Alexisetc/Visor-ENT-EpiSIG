@@ -146,6 +146,18 @@ export default function CargaEnfermedad() {
   const isNational  = !selectedDpa && !provFilter
   const hasStudyDet = isNational && estudioGrupo && yearIdxStudy >= 0
 
+  // Panel derecho refleja SOLO la métrica activa del mapa — el toggle del
+  // sidebar es la fuente de verdad tanto para coropleta/heatmap/leyenda como
+  // para los KPI, conteos, gráfico temporal y análisis estadístico. Así el
+  // usuario no ve dos indicadores simultáneos que se confunden.
+  const isMort       = mapMetric === 'mortalidad'
+  const activeTitle  = isMort ? 'Tasa de Mortalidad' : 'Tasa de Morbilidad Hospitalaria'
+  const activeValue  = isMort ? currentYear?.mortRate : currentYear?.rate
+  const activePrev   = isMort ? prevYear?.mortRate   : prevYear?.rate
+  const activeTrend  = isMort ? mortTrend            : morbTrend
+  const activeCount  = isMort ? currentYear?.muertes : currentYear?.casos
+  const activeCountLabel = isMort ? 'Muertes' : 'Casos'
+
   return (
     <div className="flex h-full flex-col gap-3 overflow-y-auto p-3">
       {/* Header */}
@@ -179,76 +191,67 @@ export default function CargaEnfermedad() {
         )}
       </div>
 
-      {/* KPI: Morbilidad Hospitalaria + Mortalidad */}
-      <div className="grid grid-cols-2 gap-2">
-        <KPIBlock
-          title="Morbilidad Hospitalaria"
-          value={currentYear?.rate ?? 0}
-          prev={prevYear?.rate}
-          prevYear={prevYear?.year}
-          real={Boolean(currentYear && currentYear.pob > 0)}
-          accent="navy"
-          trend={morbTrend}
-        />
-        <KPIBlock
-          title="Mortalidad"
-          value={currentYear?.mortRate ?? 0}
-          prev={prevYear?.mortRate}
-          prevYear={prevYear?.year}
-          real={Boolean(currentYear && currentYear.pob > 0)}
-          accent="red"
-          trend={mortTrend}
-        />
-      </div>
+      {/* KPI único — la métrica activa del mapa (morbilidad o mortalidad).
+          Ocupa el ancho completo en lugar del 50 % anterior. */}
+      <KPIBlock
+        title={activeTitle}
+        value={activeValue ?? 0}
+        prev={activePrev}
+        prevYear={prevYear?.year}
+        real={Boolean(currentYear && currentYear.pob > 0)}
+        accent={isMort ? 'red' : 'navy'}
+        trend={activeTrend}
+      />
 
-      {/* Conteos absolutos compartidos (Casos / Muertes / Pobl) — una fila
-          full-width con espacio cómodo para los números grandes del agregado
-          nacional, sin duplicarlos dentro de cada KPIBlock. */}
-      {currentYear && (currentYear.casos > 0 || currentYear.muertes > 0 || currentYear.pob > 0) && (
+      {/* Conteos absolutos — solo el numerador de la métrica activa + pobl.
+          (Casos si morbilidad, Muertes si mortalidad). */}
+      {currentYear && (activeCount > 0 || currentYear.pob > 0) && (
         <CifrasBase
-          casos={currentYear.casos}
-          muertes={currentYear.muertes}
+          countValue={activeCount}
+          countLabel={activeCountLabel}
+          countColor={isMort ? 'text-rose-700' : 'text-inspi-navy'}
           pob={currentYear.pob}
           year={year}
         />
       )}
 
-      {/* Tendencia temporal 2013-2024 — el gráfico sigue el toggle del mapa:
-          la métrica activa se destaca (Area con color del grupo), la otra
-          queda como línea fina punteada para comparación visual. */}
+      {/* Tendencia temporal 2013-2024 — una sola serie, la del toggle activo. */}
       <section>
         <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-slate-500">
           <span className="flex items-center gap-1.5">
             <Activity size={11} /> Tendencia Temporal ({YEARS[0]}–{YEARS[YEARS.length - 1]})
           </span>
           <span className="font-normal normal-case tracking-normal text-slate-400">
-            {mapMetric === 'mortalidad' ? 'Mortalidad (principal)' : 'Morbilidad (principal)'}
+            {isMort ? 'Mortalidad /100k' : 'Morbilidad Hosp. /100k'}
           </span>
         </div>
         <TendenciaChart series={series} disease={ent} year={year} metric={mapMetric} />
       </section>
 
-      {/* Análisis estadístico — metodología Morales aplicada al unit activo */}
-      {(morbTrend.valid || mortTrend.valid) && (
+      {/* Análisis estadístico — solo métrica activa */}
+      {activeTrend.valid && (
         <section className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
           <div className="mb-2 flex items-center justify-between">
             <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
               Análisis de tendencia · metodología Morales
             </div>
             <div className="text-[9px] font-medium text-slate-400">
-              {YEARS[0]}–{YEARS[YEARS.length - 1]} · n={morbTrend.n || mortTrend.n}
+              {YEARS[0]}–{YEARS[YEARS.length - 1]} · n={activeTrend.n}
             </div>
           </div>
-          <TrendRow label="Morbilidad hospitalaria" trend={morbTrend} />
-          <TrendRow label="Mortalidad"              trend={mortTrend} />
+          <TrendRow label={isMort ? 'Mortalidad' : 'Morbilidad hospitalaria'} trend={activeTrend} />
           <div className="mt-2 border-t border-slate-100 pt-1.5 text-[9px] text-slate-400">
             Mann-Kendall (τ) · pendiente de Sen · FDR Benjamini-Hochberg · α=0.05
           </div>
         </section>
       )}
 
+      {/* Desgloses por sexo/área — solo existen para mortalidad en el
+          estudio Morales 2017-2023, así que solo aparecen cuando el toggle
+          está en mortalidad (para coherencia con el resto del panel). */}
+
       {/* Desglose por sexo — solo nacional 2017-2023 (del estudio) */}
-      {hasStudyDet && estudioGrupo.mortalidad_sexo?.hombre && (
+      {isMort && hasStudyDet && estudioGrupo.mortalidad_sexo?.hombre && (
         <section>
           <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
             <Users size={11} /> Mortalidad por sexo — {year} (nacional)
@@ -261,7 +264,7 @@ export default function CargaEnfermedad() {
       )}
 
       {/* Desglose por área — solo nacional 2017-2023 (del estudio) */}
-      {hasStudyDet && estudioGrupo.mortalidad_area?.urbana && (
+      {isMort && hasStudyDet && estudioGrupo.mortalidad_area?.urbana && (
         <section>
           <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
             <MapPin size={11} /> Mortalidad por área — {year} (nacional)
@@ -278,21 +281,15 @@ export default function CargaEnfermedad() {
 
 // ───── Subcomponentes ─────
 
-function CifrasBase({ casos, muertes, pob, year }) {
+function CifrasBase({ countValue, countLabel, countColor, pob, year }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
-      <div className="mb-1 flex items-center justify-between">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-          Cifras del año {year}
-        </div>
-        <div className="text-[9px] italic text-slate-400">
-          mismo denominador para ambas tasas
-        </div>
+      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        Cifras del año {year}
       </div>
-      <div className="grid grid-cols-3 gap-3 text-center">
-        <Cifra label="Casos" value={casos} color="text-inspi-navy" />
-        <Cifra label="Muertes" value={muertes} color="text-rose-700" />
-        <Cifra label="Pobl." value={pob} color="text-slate-700" />
+      <div className="grid grid-cols-2 gap-4 text-center">
+        <Cifra label={countLabel} value={countValue} color={countColor} />
+        <Cifra label="Población"  value={pob}        color="text-slate-700" />
       </div>
     </div>
   )
@@ -301,7 +298,7 @@ function CifrasBase({ casos, muertes, pob, year }) {
 function Cifra({ label, value, color }) {
   return (
     <div className="min-w-0">
-      <div className={`truncate font-mono text-base font-semibold ${color}`}>
+      <div className={`truncate font-mono text-lg font-semibold ${color}`}>
         {Number(value || 0).toLocaleString('es')}
       </div>
       <div className="text-[9px] uppercase tracking-wider text-slate-400">{label}</div>
