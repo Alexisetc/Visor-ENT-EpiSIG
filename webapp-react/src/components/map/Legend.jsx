@@ -97,7 +97,7 @@ export default function Legend() {
               }}
             />
             <div className="text-[9px] text-slate-500">
-              Sin dato o valor 0 · excluida del KDE
+              Sin información · pob. CPV 2022 = 0
             </div>
           </div>
         </div>

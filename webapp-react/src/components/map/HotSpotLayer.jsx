@@ -12,11 +12,23 @@
 //
 // Pipeline:
 //   1. Para cada parroquia: valor módulo-consciente + centroide geométrico
-//   2. Tres buckets:
-//        · conDato   = v > 0, Number.isFinite(v)  → splat + mean/sd + mask KDE
-//        · sinDato   = v ≤ 0 | null | NaN dentro del provFilter → NO splat,
-//                      NO mask KDE, y recibe render distintivo (ver abajo)
-//        · fueraProv = fuera del provFilter → no se dibuja
+//   2. Tres buckets (distinción epidemiológica crítica):
+//        · conDato   = dato válido, INCLUYENDO tasa = 0 (cero epidemiológico
+//                      real: parroquia con pob>0 pero casos=0 ese año — es
+//                      un cold-spot legítimo, no ausencia de información).
+//                      → entra al splat + mean/sd + mask KDE como azul Turbo.
+//        · sinDato   = ausencia real de información (pob=0 sin censo CPV, o
+//                      parroquia sin entrada en el JSON ent_parroquial).
+//                      Dentro del provFilter. → NO splat, NO mask, render gris.
+//        · fueraProv = fuera del provFilter → opacity 0, no se dibuja.
+//
+//   Rationale: en Ecuador, ~95 % de las parroquias del CPV 2022 tienen
+//   denominador poblacional válido. Los "ceros" en algunos ENT × año son
+//   genuinos (parroquia rural <2000 hab donde no hubo hospitalización
+//   neurológica ese año, por ejemplo). Clasificar estos como "sin dato"
+//   engañaba al usuario e inflaba artificialmente la zona gris. Solo las
+//   10 parroquias con pob=0 (zonas en estudio Shuar, Sevilla Don Bosco,
+//   etc.) son ausencia real de información.
 //   3. z-score nacional = (valor − μ) / σ  (solo sobre conDato)
 //   4. Splat gaussiano (σ ≈ 20 px) sobre un canvas 900 px
 //   5. pixel_z = Σ(z_i · w_i) / Σ(w_i); pixels con Σw < 0.04 → alpha 0
@@ -64,15 +76,27 @@ const KDE_ALPHA       = 255   // alpha del pixel — opaco puro dentro del canva
 const KDE_OVERLAY_OP  = 0.82  // opacity del L.imageOverlay (ver tile base debajo)
 
 // ───── helpers: métricas por módulo ─────
+// Cada helper devuelve { value, status } donde:
+//   · status='data'    → valor numérico válido (> 0 o 0 con denominador)
+//   · status='nodata'  → ausencia real (sin denominador, sin entrada JSON)
+// El caller decide si tratar v=0 como cold-spot (carga) o como invalid (det/mcda).
 
 function carga_value(key, { ent, year, entData, pobData, isMort }) {
+  // Requisito mínimo: entrada en ent_parroquial + población > 0
+  if (!entData?.parroquias?.[key]) return { value: null, status: 'nodata' }
+  const pob = Number(pobData?.poblacion?.[key]) || 0
+  if (pob <= 0) return { value: null, status: 'nodata' }
   const d = generateData(key, ent, year, entData, pobData)
-  return isMort ? d.mortRate : d.rate
+  const v = isMort ? d.mortRate : d.rate
+  if (!Number.isFinite(v)) return { value: null, status: 'nodata' }
+  // v === 0 es un CERO EPIDEMIOLÓGICO REAL (pob>0 pero casos=0 ese año):
+  // entra al KDE como cold-spot azul, no como "sin dato".
+  return { value: v, status: 'data' }
 }
 
 function det_vuln_value(key, { detData }) {
   const row = detData?.parroquias?.[key]
-  if (!row) return null
+  if (!row) return { value: null, status: 'nodata' }
   const norms = {
     pobreza: 50, nbi: 100, pm25: 50, tabaquismo: 35,
     obesidad: 45, sedentarismo: 75, acceso_salud_km: 15,
@@ -85,20 +109,22 @@ function det_vuln_value(key, { detData }) {
       n++
     }
   }
-  return n > 0 ? sum / n : null
+  if (n === 0) return { value: null, status: 'nodata' }
+  return { value: sum / n, status: 'data' }
 }
 
 function mcda_total_value(key, { mcdaData }) {
   const row = mcdaData?.parroquias?.[key]
-  if (!row) return null
+  if (!row) return { value: null, status: 'nodata' }
   const ranking = row.ranking || []
-  if (ranking.length === 0) return null
+  if (ranking.length === 0) return { value: null, status: 'nodata' }
   let sum = 0, n = 0
   for (const r of ranking) {
     const s = Number(r.score)
     if (Number.isFinite(s)) { sum += s; n++ }
   }
-  return n > 0 ? sum : null
+  if (n === 0) return { value: null, status: 'nodata' }
+  return { value: sum, status: 'data' }
 }
 
 // ───── centroide (Multi)Polygon — promedio simple de vertices ─────
@@ -295,12 +321,15 @@ export default function HotSpotLayer() {
       const provKey = getParroquiaProvKey(p)
       const inProv = !provFilter || provKey === provFilter
 
-      let v = null
-      if (module_ === 'determinantes')      v = det_vuln_value(key, ctx)
-      else if (module_ === 'mcda')          v = mcda_total_value(key, ctx)
-      else                                  v = carga_value(key, ctx)
+      let res
+      if (module_ === 'determinantes')      res = det_vuln_value(key, ctx)
+      else if (module_ === 'mcda')          res = mcda_total_value(key, ctx)
+      else                                  res = carga_value(key, ctx)
+      const { value: v, status } = res
 
-      const hasData = Number.isFinite(v) && v > 0
+      // hasData acepta v===0 (cero epidemiológico real en carga) — no confunde
+      // "no reportó" con "reportó cero". Solo status='nodata' marca gris.
+      const hasData = status === 'data' && Number.isFinite(v)
 
       if (inProv) {
         if (hasData) {
@@ -443,10 +472,11 @@ export default function HotSpotLayer() {
     const noData = noDataKeys.has(key)
     const z = Number.isFinite(v) ? (v - mean) / sd : NaN
     const clase = noData
-      ? { txt: 'Sin datos disponibles', color: '#64748b' }
+      ? { txt: 'Sin información poblacional', color: '#64748b' }
       : claseFromZ(z)
     const scope = module_ === 'carga' ? `${entLabel} · ${year}` : metricLabel
-    const vTxt = Number.isFinite(v) ? v.toFixed(2) : 'Sin datos'
+    // v=0 es información válida (cero epidemiológico): mostrar "0.00", no "Sin datos".
+    const vTxt = Number.isFinite(v) ? v.toFixed(2) : 'N/D'
     const zTxt = Number.isFinite(z) ? (z >= 0 ? '+' : '') + z.toFixed(2) : '—'
     layer.bindTooltip(
       `<div style="font-family:Inter,sans-serif;line-height:1.3;min-width:200px">
@@ -461,7 +491,7 @@ export default function HotSpotLayer() {
            <span style="font-family:'JetBrains Mono',monospace;color:${noData ? '#94a3b8' : '#1a1b4a'}">${zTxt}</span>
          </div>
          <div style="margin-top:3px;padding-top:3px;border-top:1px solid #e2e8f0;font-size:10.5px;font-weight:600;color:${clase.color}">${clase.txt}</div>
-         ${noData ? '<div style="margin-top:2px;font-size:9.5px;color:#94a3b8;font-style:italic">Parroquia excluida del KDE</div>' : ''}
+         ${noData ? '<div style="margin-top:2px;font-size:9.5px;color:#94a3b8;font-style:italic">Pob. CPV 2022 = 0 · sin denominador</div>' : ''}
        </div>`,
       { sticky: true, direction: 'auto', opacity: 0.95 }
     )
