@@ -3,9 +3,34 @@
 // (egresos + defunciones INEC 2013-2024) o fallback simulado si los JSONs no han cargado.
 //   · rate     = tasa de prevalencia (egresos/100k)
 //   · mortRate = tasa de mortalidad (muertes/100k)
+//
+// Denominador poblacional (Fase 6):
+//   · Formato NUEVO: pobData.poblacion_anual[dpa6] = [p_2013, ..., p_2024]
+//     derivado de interpolación log-share CPV 2010 → CPV 2022 × proyecciones
+//     cantonales INEC Rev. 2024. Se indexa con pobData.anios.indexOf(year).
+//   · Formato LEGACY (retrocompat): pobData.poblacion[dpa6] = N (snapshot 2022).
+//     Usado como fallback si poblacion_anual no está presente, o si el año
+//     solicitado está fuera del rango de la serie.
 
 import { ENT_MAP, ENTS } from './colors'
 import { pseudoRandom } from './parroquia'
+
+// Devuelve la población parroquial para un (dpa6, año), priorizando la serie
+// anual log-share interpolada; cae al snapshot 2022 como fallback.
+export function getPob(pobData, geoKey, year) {
+  if (!pobData || !geoKey) return 0
+  const anual = pobData.poblacion_anual?.[geoKey]
+  const anios = pobData.anios
+  if (Array.isArray(anual) && Array.isArray(anios)) {
+    const yi = anios.indexOf(year)
+    if (yi >= 0 && yi < anual.length) {
+      const v = Number(anual[yi])
+      if (Number.isFinite(v) && v > 0) return v
+    }
+  }
+  // Fallback: snapshot 2022 (formato legacy)
+  return Number(pobData.poblacion?.[geoKey]) || 0
+}
 
 export function generateData(geoKey, disease, year, entData, pobData) {
   // ====== MODO DATOS REALES ======
@@ -29,7 +54,7 @@ export function generateData(geoKey, disease, year, entData, pobData) {
         casos   = bucket ? (bucket.casos[yi]   || 0) : 0
         muertes = bucket ? (bucket.muertes[yi] || 0) : 0
       }
-      const pob = (pobData?.poblacion?.[geoKey]) || 0
+      const pob = getPob(pobData, geoKey, year)
       const rate     = pob > 0 ? (casos   / pob * 100000) : 0
       const mortRate = pob > 0 ? (muertes / pob * 100000) : 0
       return {
@@ -39,7 +64,7 @@ export function generateData(geoKey, disease, year, entData, pobData) {
         _real: true,
       }
     }
-    const pob = (pobData?.poblacion?.[geoKey]) || 0
+    const pob = getPob(pobData, geoKey, year)
     return { rate: 0, mortRate: 0, casos: 0, muertes: 0, pob, _real: true }
   }
 

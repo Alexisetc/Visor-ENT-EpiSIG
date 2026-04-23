@@ -12,23 +12,29 @@
 //
 // Pipeline:
 //   1. Para cada parroquia: valor módulo-consciente + centroide geométrico
-//   2. Tres buckets (distinción epidemiológica crítica):
-//        · conDato   = dato válido, INCLUYENDO tasa = 0 (cero epidemiológico
-//                      real: parroquia con pob>0 pero casos=0 ese año — es
-//                      un cold-spot legítimo, no ausencia de información).
-//                      → entra al splat + mean/sd + mask KDE como azul Turbo.
-//        · sinDato   = ausencia real de información (pob=0 sin censo CPV, o
-//                      parroquia sin entrada en el JSON ent_parroquial).
-//                      Dentro del provFilter. → NO splat, NO mask, render gris.
-//        · fueraProv = fuera del provFilter → opacity 0, no se dibuja.
+//   2. Cuatro buckets (3 de dato × 1 de filtro territorial):
+//        · observada  = pob > 0 ∧ casos > 0 (o valor > 0 en det/mcda).
+//                       → alimenta el splat gaussiano + define mean/sd del
+//                         z-score + entra al mask del KDE.
+//        · interpolada= pob > 0 ∧ casos = 0. El valor "0" es ambiguo:
+//                       puede ser cero epidemiológico real O parroquia
+//                       creada por decreto CONALI después del año consultado
+//                       (cartografía 2025 trae polígonos que no existían
+//                       administrativamente en 2013-2023). Para no engañar
+//                       al usuario pintando falsos cold-spots, se usa
+//                       IDW k=5 sobre los centroides de las observadas.
+//                       → NO alimenta splat; SÍ entra al mask.
+//        · sinDato    = pob = 0 (zonas sin censo CPV 2022: Shuar Pastaza,
+//                       Sevilla Don Bosco, Sinaí-Cuchaentza, etc.).
+//                       → NO mask KDE, render gris dashed (estándar OMS).
+//        · fueraProv  = fuera del provFilter → opacity 0, no se dibuja.
 //
-//   Rationale: en Ecuador, ~95 % de las parroquias del CPV 2022 tienen
-//   denominador poblacional válido. Los "ceros" en algunos ENT × año son
-//   genuinos (parroquia rural <2000 hab donde no hubo hospitalización
-//   neurológica ese año, por ejemplo). Clasificar estos como "sin dato"
-//   engañaba al usuario e inflaba artificialmente la zona gris. Solo las
-//   10 parroquias con pob=0 (zonas en estudio Shuar, Sevilla Don Bosco,
-//   etc.) son ausencia real de información.
+//   Rationale de IDW: el KDE gaussiano ya es un estimador Nadaraya-Watson
+//   (k-NN con peso continuo) que pinta colores interpolados sobre toda la
+//   zona del mask. IDW k=5 discreto se usa adicionalmente SOLO para producir
+//   un valor numérico por-parroquia consumible en el tooltip — más
+//   defendible estadísticamente que "leer el pixel del centroide", y más
+//   interpretable ("promedio de 5 vecinas más cercanas con dato").
 //   3. z-score nacional = (valor − μ) / σ  (solo sobre conDato)
 //   4. Splat gaussiano (σ ≈ 20 px) sobre un canvas 900 px
 //   5. pixel_z = Σ(z_i · w_i) / Σ(w_i); pixels con Σw < 0.04 → alpha 0
@@ -75,22 +81,32 @@ const KDE_ALPHA       = 255   // alpha del pixel — opaco puro dentro del canva
                               //  que desaturaría el Turbo a grisáceo)
 const KDE_OVERLAY_OP  = 0.82  // opacity del L.imageOverlay (ver tile base debajo)
 
+// ───── Parámetros de la interpolación IDW ─────
+const IDW_K       = 5       // nº de vecinos más cercanos
+const IDW_POWER   = 2       // exponente de la distancia (2 = estándar GIS)
+const IDW_EPS     = 1e-9    // evita división por cero si distancia == 0
+
 // ───── helpers: métricas por módulo ─────
 // Cada helper devuelve { value, status } donde:
-//   · status='data'    → valor numérico válido (> 0 o 0 con denominador)
-//   · status='nodata'  → ausencia real (sin denominador, sin entrada JSON)
-// El caller decide si tratar v=0 como cold-spot (carga) o como invalid (det/mcda).
+//   · status='data'    → observación directa: alimenta splat del KDE.
+//   · status='interp'  → casos=0 con pob>0 — se interpolará por IDW.
+//                        El value devuelto es 0 (placeholder; el IDW
+//                        lo reemplaza después con promedio de vecinos).
+//   · status='nodata'  → ausencia real de información (pob=0 o sin entrada).
+// Módulos determinantes/mcda no usan 'interp' (sus valores=0 son ausencia).
 
 function carga_value(key, { ent, year, entData, pobData, isMort }) {
-  // Requisito mínimo: entrada en ent_parroquial + población > 0
   if (!entData?.parroquias?.[key]) return { value: null, status: 'nodata' }
   const pob = Number(pobData?.poblacion?.[key]) || 0
   if (pob <= 0) return { value: null, status: 'nodata' }
   const d = generateData(key, ent, year, entData, pobData)
   const v = isMort ? d.mortRate : d.rate
+  const n = isMort ? d.muertes : d.casos
   if (!Number.isFinite(v)) return { value: null, status: 'nodata' }
-  // v === 0 es un CERO EPIDEMIOLÓGICO REAL (pob>0 pero casos=0 ese año):
-  // entra al KDE como cold-spot azul, no como "sin dato".
+  // casos = 0 pero pob > 0 → ambiguo (puede ser cero epi real O parroquia
+  // creada por decreto CONALI posterior al año consultado). Se marca para
+  // interpolación IDW desde las vecinas observadas.
+  if (n === 0 || v === 0) return { value: 0, status: 'interp' }
   return { value: v, status: 'data' }
 }
 
@@ -125,6 +141,30 @@ function mcda_total_value(key, { mcdaData }) {
   }
   if (n === 0) return { value: null, status: 'nodata' }
   return { value: sum, status: 'data' }
+}
+
+// ───── IDW: inverse distance weighting sobre top-k vecinos ─────
+// target: [lat, lng] del punto a interpolar
+// observed: array de { value, latlng: [lat, lng] }
+// Retorna el valor interpolado (0 si no hay observaciones).
+function idwInterpolate(target, observed, k = IDW_K, power = IDW_POWER) {
+  if (!observed.length) return 0
+  const dists = observed.map(pt => {
+    const dLat = target[0] - pt.latlng[0]
+    const dLng = target[1] - pt.latlng[1]
+    return { v: pt.value, d2: dLat * dLat + dLng * dLng }
+  })
+  // Si un observado está exactamente en el target, devolver su valor
+  for (const x of dists) if (x.d2 < IDW_EPS) return x.v
+  dists.sort((a, b) => a.d2 - b.d2)
+  const top = dists.slice(0, Math.min(k, dists.length))
+  let num = 0, den = 0
+  for (const { v, d2 } of top) {
+    const w = 1 / Math.pow(Math.sqrt(d2), power)
+    num += v * w
+    den += w
+  }
+  return den > 0 ? num / den : 0
 }
 
 // ───── centroide (Multi)Polygon — promedio simple de vertices ─────
@@ -305,15 +345,21 @@ export default function HotSpotLayer() {
   }, [map])
 
   // 1) Puntos + mean/sd nacionales + máscara por provFilter + bounds
-  //    Tres buckets: conDato (alimenta KDE + mask), sinDato (render gris
-  //    dashed), fueraProv (no se dibuja).
+  //    Cuatro buckets:
+  //      · observada (status='data')   → splat KDE + mean/sd + mask
+  //      · interpolada (status='interp')→ mask KDE; valor IDW vecinos observados
+  //      · sinDato (status='nodata')   → fuera del KDE, render gris
+  //      · fueraProv                    → opacity 0
   const kdeData = useMemo(() => {
     if (!geoParr) return null
     const ctx = { ent, year, entData, pobData, isMort, detData, mcdaData }
-    const raw = []
-    const maskFeatures = []        // SOLO parroquias con dato → mask KDE
-    const noDataFeatures = []      // dentro provFilter pero sin valor válido
-    const noDataKeys = new Set()   // lookup O(1) en styleFn / onEachFeature
+    const raw = []                         // observadas → splat
+    const interpCandidates = []            // [{ key, latlng, feature }]
+    const maskFeatures = []                // observadas + interpoladas
+    const noDataFeatures = []              // pob=0 / sin entrada
+    const noDataKeys = new Set()
+    const interpKeys = new Set()
+    const observedValues = new Map()       // key → value observado
 
     for (const f of geoParr.features) {
       const p = f.properties || {}
@@ -327,29 +373,41 @@ export default function HotSpotLayer() {
       else                                  res = carga_value(key, ctx)
       const { value: v, status } = res
 
-      // hasData acepta v===0 (cero epidemiológico real en carga) — no confunde
-      // "no reportó" con "reportó cero". Solo status='nodata' marca gris.
-      const hasData = status === 'data' && Number.isFinite(v)
+      if (!inProv) continue
+      const c = centroidOf(f.geometry)
 
-      if (inProv) {
-        if (hasData) {
-          maskFeatures.push(f)
-        } else {
-          noDataFeatures.push(f)
-          noDataKeys.add(key)
-        }
+      if (status === 'nodata' || !c) {
+        // pob=0, sin entrada JSON, o centroide inválido → bucket gris
+        noDataFeatures.push(f)
+        noDataKeys.add(key)
+        continue
       }
 
-      if (!hasData) continue
-      const c = centroidOf(f.geometry)
-      if (!c) continue
-      raw.push({ key, prov: provKey, value: v, latlng: c })
+      if (status === 'data') {
+        // Observación directa — alimenta splat + mask
+        maskFeatures.push(f)
+        observedValues.set(key, v)
+        raw.push({ key, prov: provKey, value: v, latlng: c })
+      } else {
+        // status === 'interp' → requiere IDW desde vecinas observadas
+        maskFeatures.push(f)
+        interpKeys.add(key)
+        interpCandidates.push({ key, latlng: c })
+      }
     }
     if (raw.length === 0) return null
 
     const m = raw.reduce((a, b) => a + b.value, 0) / raw.length
     const variance = raw.reduce((a, b) => a + (b.value - m) ** 2, 0) / raw.length
     const s = Math.sqrt(variance) || 1
+
+    // IDW: rellenar las parroquias marcadas 'interp' con el promedio
+    // ponderado por 1/d^p de sus k=5 vecinas observadas más cercanas.
+    const interpValues = new Map()
+    for (const { key, latlng } of interpCandidates) {
+      const vInterp = idwInterpolate(latlng, raw)
+      interpValues.set(key, vInterp)
+    }
 
     // Bounds: incluyen conDato + sinDato (para que el mapa no se corte
     // si una provincia tiene huecos de información en las orillas)
@@ -385,7 +443,11 @@ export default function HotSpotLayer() {
       mean: m, sd: s,
       maskFeatures,
       noDataKeys,
+      interpKeys,
+      observedValues,
+      interpValues,
       noDataCount: noDataFeatures.length,
+      interpCount: interpCandidates.length,
       bounds,
       metricLabel: label,
     }
@@ -418,14 +480,17 @@ export default function HotSpotLayer() {
 
   // 3) Boundaries parroquiales — GeoJSON transparente con stroke fino
   //    sobre overlayPane (z 400), encima del KDE. Recibe clicks + hover.
+  //    Lookup de valor combina observadas + interpoladas en un solo Map.
   const valuesByKey = useMemo(() => {
     const m = new Map()
-    if (kdeData) for (const pt of kdeData.points) m.set(pt.key, pt.value)
+    if (!kdeData) return m
+    for (const [k, v] of kdeData.observedValues) m.set(k, v)
+    for (const [k, v] of kdeData.interpValues)   m.set(k, v)
     return m
   }, [kdeData])
 
   if (!kdeData) return null
-  const { mean, sd, metricLabel, noDataKeys } = kdeData
+  const { mean, sd, metricLabel, noDataKeys, interpKeys } = kdeData
   const entLabel = ENT_LABEL[ent] || ent
 
   // Estilo:
@@ -469,29 +534,35 @@ export default function HotSpotLayer() {
     const key = getParroquiaKey(p)
     const label = getParroquiaLabel(p)
     const v = valuesByKey.get(key)
-    const noData = noDataKeys.has(key)
+    const noData   = noDataKeys.has(key)
+    const isInterp = interpKeys.has(key)
     const z = Number.isFinite(v) ? (v - mean) / sd : NaN
     const clase = noData
       ? { txt: 'Sin información poblacional', color: '#64748b' }
+    : isInterp
+      ? { txt: 'Interpolado (IDW k=5)',       color: '#6366f1' }
       : claseFromZ(z)
-    const scope = module_ === 'carga' ? `${entLabel} · ${year}` : metricLabel
-    // v=0 es información válida (cero epidemiológico): mostrar "0.00", no "Sin datos".
-    const vTxt = Number.isFinite(v) ? v.toFixed(2) : 'N/D'
-    const zTxt = Number.isFinite(z) ? (z >= 0 ? '+' : '') + z.toFixed(2) : '—'
+    const scope   = module_ === 'carga' ? `${entLabel} · ${year}` : metricLabel
+    // v=0 es información válida (cero epidemiológico); 'N/D' sólo cuando pob=0
+    const vTxt    = Number.isFinite(v) ? v.toFixed(2) : 'N/D'
+    const zTxt    = Number.isFinite(z) ? (z >= 0 ? '+' : '') + z.toFixed(2) : '—'
+    const valueLbl = isInterp ? 'Valor (IDW)' : 'Valor'
+    const valueCol = noData ? '#94a3b8' : isInterp ? '#6366f1' : '#1a1b4a'
     layer.bindTooltip(
       `<div style="font-family:Inter,sans-serif;line-height:1.3;min-width:200px">
          <div style="font-weight:600;color:#1a1b4a">${label}</div>
          <div style="color:#64748b;font-size:10.5px;margin-bottom:4px">${scope}</div>
          <div style="display:flex;justify-content:space-between;font-size:11px">
-           <span style="color:#475569">Valor</span>
-           <span style="font-family:'JetBrains Mono',monospace;color:${noData ? '#94a3b8' : '#1a1b4a'}">${vTxt}</span>
+           <span style="color:#475569">${valueLbl}</span>
+           <span style="font-family:'JetBrains Mono',monospace;color:${valueCol}">${vTxt}</span>
          </div>
          <div style="display:flex;justify-content:space-between;font-size:11px">
            <span style="color:#475569">z-score</span>
-           <span style="font-family:'JetBrains Mono',monospace;color:${noData ? '#94a3b8' : '#1a1b4a'}">${zTxt}</span>
+           <span style="font-family:'JetBrains Mono',monospace;color:${valueCol}">${zTxt}</span>
          </div>
          <div style="margin-top:3px;padding-top:3px;border-top:1px solid #e2e8f0;font-size:10.5px;font-weight:600;color:${clase.color}">${clase.txt}</div>
-         ${noData ? '<div style="margin-top:2px;font-size:9.5px;color:#94a3b8;font-style:italic">Pob. CPV 2022 = 0 · sin denominador</div>' : ''}
+         ${noData  ? '<div style="margin-top:2px;font-size:9.5px;color:#94a3b8;font-style:italic">Pob. CPV 2022 = 0 · sin denominador</div>' : ''}
+         ${isInterp ? '<div style="margin-top:2px;font-size:9.5px;color:#6366f1;font-style:italic">Sin reporte INEC directo · estimado desde 5 vecinas observadas</div>' : ''}
        </div>`,
       { sticky: true, direction: 'auto', opacity: 0.95 }
     )

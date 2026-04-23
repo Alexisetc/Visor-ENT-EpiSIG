@@ -59,6 +59,7 @@ WEBAPP_ASSETS = ROOT / "webapp" / "assets"
 REACT_ASSETS  = ROOT / "webapp-react" / "public" / "assets"
 
 POB_PATH      = INTERMEDIATE / "pob_parroquial.json"
+POB_ANUAL_PATH = INTERMEDIATE / "pob_parroquial_anual.json"
 RATES_MAIN    = INTERMEDIATE / "ent_parroquial.json"
 RATES_NCD     = AUDITORIA / "ent_parroquial_ncd.json"
 RATES_CHRONIC = AUDITORIA / "ent_parroquial_chronic.json"
@@ -200,21 +201,27 @@ def _collect_counts(
 
 def _aggregate_series(
     series_by_key: Dict[str, Dict[str, Dict[str, List[int]]]],
-    pop_by_key:    Dict[str, int],
+    pop_by_key:    Dict[str, List[int]],
     key_fn,
     n_years: int,
-) -> Tuple[Dict[str, Dict[str, Dict[str, List[int]]]], Dict[str, int]]:
-    """Agrega a nivel `prov2` o `nacional` usando key_fn(dpa6) -> nivel_id."""
+) -> Tuple[Dict[str, Dict[str, Dict[str, List[int]]]], Dict[str, List[int]]]:
+    """Agrega a nivel `prov2` o `nacional` usando key_fn(dpa6) -> nivel_id.
+
+    `pop_by_key` ahora es una serie anual `list[int]` (len == n_years) por
+    entidad; la agregación provincia/nacional suma elemento a elemento.
+    """
     out: Dict[str, Dict[str, Dict[str, List[int]]]] = {}
-    pops: Dict[str, int] = {}
+    pops: Dict[str, List[int]] = {}
     for dpa6, groups in series_by_key.items():
         parent = key_fn(dpa6)
         if parent is None:
             continue
         if parent not in out:
             out[parent] = {}
-            pops[parent] = 0
-        pops[parent] += int(pop_by_key.get(dpa6, 0))
+            pops[parent] = [0] * n_years
+        serie_pop = pop_by_key.get(dpa6, [0] * n_years)
+        for i in range(min(n_years, len(serie_pop))):
+            pops[parent][i] += int(serie_pop[i])
         for gname, cols in groups.items():
             if gname not in out[parent]:
                 out[parent][gname] = {"casos":   [0] * n_years,
@@ -231,21 +238,30 @@ def _aggregate_series(
 # ----------------------------------------------------------------------
 def _compute_level(
     counts: Dict[str, Dict[str, Dict[str, List[int]]]],
-    pops: Dict[str, int],
+    pops: Dict[str, List[int]],
     years: List[int],
     level: str,
 ) -> Dict:
     """Para un nivel (parroquia/provincia/nacional), produce:
         result[entity_id][grupo][metrica][variante] = {tau,p_raw,p_adj,...,clase}
     Aplica FDR BH dentro de cada bloque (grupo, metrica, variante).
+
+    `pops[entity_id]` es ahora una serie anual `list[int]` (len == len(years)).
+    Las tasas se calculan año a año con el denominador del mismo año.
     """
+    n_years = len(years)
     # Paso 1: tests crudos
     raw = {}   # raw[entity][grupo][metrica][variante] = dict con métricas
     fdr_buckets: Dict[Tuple[str, str, str], List[Tuple[str, float]]] = {}
     # fdr_buckets[(grupo, metrica, variante)] = [(entity_id, p_raw), ...]
 
     for ent_id, groups in counts.items():
-        pop = int(pops.get(ent_id, 0))
+        pop_serie = pops.get(ent_id, [0] * n_years)
+        # Normalizar longitud por si hubo truncado en agregaciones.
+        if len(pop_serie) < n_years:
+            pop_serie = list(pop_serie) + [0] * (n_years - len(pop_serie))
+        pop_max    = int(max(pop_serie)) if pop_serie else 0
+        pop_mean   = int(round(sum(pop_serie) / n_years)) if n_years else 0
         raw[ent_id] = {}
         for gname, cols in groups.items():
             raw[ent_id][gname] = {}
@@ -253,18 +269,21 @@ def _compute_level(
                                      ("mortalidad", "muertes")):
                 serie_cnt = cols.get(colname, [])
                 total_cnt = int(sum(serie_cnt))
-                # serie de tasas (por 100k). Con pop 2022 como constante,
-                # la tasa es simplemente count × 100000 / pop.
-                rates = [_safe_rate(c, pop) for c in serie_cnt]
+                # Serie de tasas (por 100k) año-a-año con denominador anual.
+                rates = [
+                    _safe_rate(c, pop_serie[i] if i < len(pop_serie) else 0)
+                    for i, c in enumerate(serie_cnt)
+                ]
                 raw[ent_id][gname][metrica] = {
-                    "poblacion":  pop,
-                    "total":      total_cnt,
-                    "serie_tasa": rates,
+                    "poblacion":       pop_mean,          # media 2013-2024 (retrocompat)
+                    "poblacion_anual": list(pop_serie),   # serie por año
+                    "total":           total_cnt,
+                    "serie_tasa":      rates,
                 }
                 for vname, exclude in VARIANTS.items():
                     ys, xs = _filter_variant(years, rates, exclude)
                     n = len(ys)
-                    if n < MIN_N_VARIANT or total_cnt < MIN_CASOS or pop <= 0:
+                    if n < MIN_N_VARIANT or total_cnt < MIN_CASOS or pop_max <= 0:
                         raw[ent_id][gname][metrica][vname] = {
                             "tau": 0.0, "p_raw": 1.0, "p_adj": float("nan"),
                             "sen_slope": 0.0, "ljung_p": float("nan"),
@@ -307,8 +326,9 @@ def _compute_level(
 # ----------------------------------------------------------------------
 def _pipeline_for_scheme(
     rates_path: Path,
-    pob_by_dpa6: Dict[str, int],
+    build_pop_map,  # callable(years) -> dict[dpa6, list[int]]
     esquema_label: str,
+    pop_source: str = "serie_anual_logshare",
 ) -> dict:
     _log(f"---- esquema: {esquema_label} ----")
     _log(f"  leyendo {rates_path}")
@@ -321,8 +341,11 @@ def _pipeline_for_scheme(
     # Counts a nivel parroquia
     cg_parr, cs_parr = _collect_counts(rates_doc, groups, subent)
 
-    # Poblaciones parroquia
-    pop_parr = {dpa6: int(pob_by_dpa6.get(dpa6, 0)) for dpa6 in cg_parr}
+    # Poblaciones parroquia (serie anual alineada a `years`)
+    pop_map = build_pop_map(years)
+    pop_parr: Dict[str, List[int]] = {
+        dpa6: pop_map.get(dpa6, [0] * n_years) for dpa6 in cg_parr
+    }
 
     # Agregaciones
     def prov_key(dpa6: str) -> str | None:
@@ -368,8 +391,21 @@ def _pipeline_for_scheme(
         "min_casos":     MIN_CASOS,
         "tasa_por":      TASA_POR,
         "denominador": {
-            "fuente": "CPV 2022 (INEC) vía pob_parroquial.json",
-            "nota":   "denominador estático 2022; trends sobre tasas escaladas por pop constante ⇒ tau idéntico a MK sobre counts, Sen slope en unidades tasa/año",
+            "fuente": (
+                "Serie anual 2013-2024 vía log-share CPV 2010 → CPV 2022 × "
+                "proyecciones cantonales INEC 2010-2035 (Rev. 2024); "
+                "fallback snapshot CPV 2022 si no existe la serie."
+                if pop_source == "serie_anual_logshare"
+                else "CPV 2022 (INEC) vía pob_parroquial.json — snapshot constante"
+            ),
+            "nota": (
+                "Tasas calculadas año-a-año con denominador anual; "
+                "el campo serie_tasa refleja la tasa observada en cada año; "
+                "poblacion_anual en cada nodo conserva la serie cruda del denominador."
+                if pop_source == "serie_anual_logshare"
+                else "denominador estático 2022; tau idéntico a MK sobre counts, Sen slope en unidades tasa/año"
+            ),
+            "source_tag": pop_source,
         },
         "pandemia_excluye": sorted(PANDEMIC_YEARS),
         "niveles_data": {
@@ -431,14 +467,46 @@ def _class_distribution(doc: dict) -> dict:
 # ----------------------------------------------------------------------
 def main() -> None:
     t0 = time.time()
-    _log("cargando CPV 2022…")
-    pob_doc = json.loads(POB_PATH.read_text(encoding="utf-8"))
-    pob_by_dpa6 = {str(k): int(v) for k, v in pob_doc["poblacion"].items()}
-    _log(f"  {len(pob_by_dpa6)} parroquias con población")
+    _log("cargando población parroquial…")
+    # Prioriza serie anual 2013-2024 (log-share CPV2010→CPV2022 × INEC cantonal);
+    # fallback a snapshot CPV 2022 replicado como serie constante.
+    if POB_ANUAL_PATH.exists():
+        pob_doc = json.loads(POB_ANUAL_PATH.read_text(encoding="utf-8"))
+        pob_anios = list(pob_doc.get("anios", []))
+        pob_map_anual: Dict[str, List[int]] = {
+            str(k): [int(x) for x in v]
+            for k, v in pob_doc.get("poblacion_anual", {}).items()
+        }
+        _log(f"  {len(pob_map_anual)} parroquias con serie anual {pob_anios[0] if pob_anios else '?'}-"
+             f"{pob_anios[-1] if pob_anios else '?'} (log-share CPV2010->CPV2022)")
+        pop_source = "serie_anual_logshare"
+    else:
+        pob_doc = json.loads(POB_PATH.read_text(encoding="utf-8"))
+        pob_map_anual = {}
+        pob_anios = []
+        snapshot = {str(k): int(v) for k, v in pob_doc.get("poblacion", {}).items()}
+        _log(f"  {len(snapshot)} parroquias con snapshot 2022 (fallback)")
+        # replicará snapshot en cada _pipeline_for_scheme cuando sepamos `years`.
+        _FALLBACK_SNAPSHOT = snapshot
+        pop_source = "snapshot_2022"
 
-    doc_main    = _pipeline_for_scheme(RATES_MAIN,    pob_by_dpa6, "morales")
-    doc_ncd     = _pipeline_for_scheme(RATES_NCD,     pob_by_dpa6, "ncd")
-    doc_chronic = _pipeline_for_scheme(RATES_CHRONIC, pob_by_dpa6, "chronic")
+    def _build_pop_map(years: List[int]) -> Dict[str, List[int]]:
+        """Alinea serie anual al vector `years` del rates_doc; si solo hay
+        snapshot la replica en cada año."""
+        if pob_map_anual and pob_anios:
+            idx = {a: i for i, a in enumerate(pob_anios)}
+            return {
+                dpa6: [
+                    (serie[idx[y]] if y in idx and idx[y] < len(serie) else 0)
+                    for y in years
+                ]
+                for dpa6, serie in pob_map_anual.items()
+            }
+        return {dpa6: [v] * len(years) for dpa6, v in _FALLBACK_SNAPSHOT.items()}
+
+    doc_main    = _pipeline_for_scheme(RATES_MAIN,    _build_pop_map, "morales",    pop_source)
+    doc_ncd     = _pipeline_for_scheme(RATES_NCD,     _build_pop_map, "ncd",        pop_source)
+    doc_chronic = _pipeline_for_scheme(RATES_CHRONIC, _build_pop_map, "chronic",    pop_source)
 
     # Escribir outputs
     AUDITORIA.mkdir(parents=True, exist_ok=True)

@@ -58,14 +58,43 @@ def load_geo_meta() -> dict[str, dict]:
     return meta
 
 
-def load_poblacion() -> dict[str, int]:
-    pob_path = C.INTERMEDIATE / 'pob_parroquial.json'
+def load_poblacion() -> dict:
+    """Carga población parroquial.
+
+    Prioriza `intermediate/pob_parroquial_anual.json` (serie 2013-2024 generada
+    por `build_pob_anual.py` via log-share CPV 2010 → CPV 2022 × proyecciones
+    cantonales INEC). Si no existe, cae a `pob_parroquial.json` (snapshot 2022).
+
+    Devuelve:
+        {
+            'snapshot': {DPA6: int}  # CPV 2022 (retrocompat),
+            'anios':    [2013, ..., 2024]  # None si solo snapshot,
+            'anual':    {DPA6: [p_2013, ..., p_2024]}  # {} si solo snapshot,
+        }
+    """
+    pob_anual_path = C.INTERMEDIATE / 'pob_parroquial_anual.json'
+    pob_path       = C.INTERMEDIATE / 'pob_parroquial.json'
+
+    if pob_anual_path.exists():
+        data = json.loads(pob_anual_path.read_text(encoding='utf-8'))
+        return {
+            'snapshot': {k: int(v) for k, v in data.get('poblacion', {}).items()},
+            'anios':    list(data.get('anios', [])),
+            'anual':    {k: [int(x) for x in v] for k, v in data.get('poblacion_anual', {}).items()},
+        }
+
     if not pob_path.exists():
         raise FileNotFoundError(
-            f"No existe {pob_path}. Corre `python scripts/generar_pob_parroquial.py` primero."
+            f"No existe {pob_path} ni {pob_anual_path}. Corre "
+            f"`python scripts/generar_pob_parroquial.py` o "
+            f"`python -m scripts.ent_pipeline.population.build_pob_anual` primero."
         )
     data = json.loads(pob_path.read_text(encoding='utf-8'))
-    return {k: int(v) for k, v in data.get('poblacion', {}).items()}
+    return {
+        'snapshot': {k: int(v) for k, v in data.get('poblacion', {}).items()},
+        'anios':    None,
+        'anual':    {},
+    }
 
 
 # -------------------------------------------------------------------------
@@ -152,7 +181,7 @@ def build_visor_json(
     df_egr: pd.DataFrame,
     df_def: pd.DataFrame,
     geo_meta: dict[str, dict],
-    poblacion: dict[str, int],
+    poblacion: dict,
     scheme: str,
     include_subent: bool = False,
 ) -> dict:
@@ -169,6 +198,16 @@ def build_visor_json(
     anios = [int(a) for a in anios if int(a) in range(C.VALID_YEAR_RANGE[0], C.VALID_YEAR_RANGE[1] + 1)]
 
     grupos_keys = list(C.ENT_SCHEMES[scheme].keys())
+
+    # Extraer componentes de la estructura de población.
+    pob_snapshot: dict[str, int]       = poblacion.get('snapshot', {})
+    pob_anios:    list[int] | None     = poblacion.get('anios')
+    pob_anual:    dict[str, list[int]] = poblacion.get('anual', {})
+    # Índices para mapear cada `anio` del visor a su posición en `pob_anios`.
+    if pob_anios:
+        pob_idx = {a: i for i, a in enumerate(pob_anios) if a in anios}
+    else:
+        pob_idx = {}
 
     agg_grp = aggregate_by_scheme(df_egr, df_def, group_col, anios)
     agg_sub = aggregate_subent(df_egr, df_def, anios) if include_subent else None
@@ -222,9 +261,19 @@ def build_visor_json(
                     sub_full[sid] = {'casos': [0] * len(anios), 'muertes': [0] * len(anios)}
             entry['data']['subent'] = sub_full
 
-        # Población CPV 2022 (snapshot, denominador para tasas en Fase 4)
-        if dpa in poblacion:
-            entry['poblacion_2022'] = poblacion[dpa]
+        # Población CPV 2022 (snapshot, retrocompat para cálculos client-side)
+        if dpa in pob_snapshot:
+            entry['poblacion_2022'] = pob_snapshot[dpa]
+
+        # Población anual 2013-2024 (denominador verdadero para Fase 4 y tasas
+        # en cliente; log-share CPV 2010 → CPV 2022 × proyecciones cantonales).
+        if dpa in pob_anual and pob_anios:
+            serie_pob = pob_anual[dpa]
+            # Alinear serie anual al orden de `anios` del visor.
+            entry['poblacion_anual'] = [
+                (serie_pob[pob_idx[a]] if a in pob_idx and pob_idx[a] < len(serie_pob) else 0)
+                for a in anios
+            ]
 
         out_parroquias[dpa] = entry
 
@@ -271,7 +320,11 @@ def build_visor_json(
                 for k, spec in C.ENT_SCHEMES[scheme].items()
             },
             'orphan_aggregation':   'urbanas -> cabecera cantonal (prov+cant+50/01)',
-            'denominador_nota':     'CPV 2022 (snapshot; proyecciones anuales en Fase 4)',
+            'denominador_nota':     ('Serie anual 2013-2024 vía log-share CPV 2010 → CPV 2022 × '
+                                     'proyecciones cantonales INEC 2010-2035 Rev.2024. '
+                                     '`entry.poblacion_anual[yi]` tiene la serie por año; '
+                                     '`entry.poblacion_2022` queda como snapshot legacy (retrocompat). '
+                                     'Aditividad intra-cantonal ≤ 1 habitante.'),
             'def_geo_nota':         'defunciones 2015+ usan lugar de fallecimiento (parr_fall) como proxy de residencia por ruptura esquema INEC',
             'mortalidad_nota':      'muertes = defunciones generales INEC (EDG 2013-2024). Legacy CONSOLIDADO_egresos.xlsx solo contaba defunciones hospitalarias (con_egrpa=Fallecido), subregistrando 10-40x el volumen real. Este pipeline reemplaza esa fuente subestimada por la fuente poblacional completa.',
             'csv_2024_nota':        'CSV 2024 viene con text labels (nombre de prov/cant/parr) en lugar de codigos numericos. Loader aplica 3-tier lookup via GeoJSON: (prov,cant,parr) full triple -> DPA6; fallback (prov,cant) -> DPA4; fallback prov-only -> DPA2. 98%+ match en casos. Defunciones 2024: la CSV solo trae prov_res (sin cant_res/parr_res), por lo que res cae a tier-3 con tier3_fill=False y Fase 2 usa parr_fall como fallback (~87 % de los 91k registros 2024).',
@@ -301,8 +354,12 @@ def run(verbose: bool = True) -> dict:
     geo_meta  = load_geo_meta()
     poblacion = load_poblacion()
     if verbose:
+        has_anual = len(poblacion.get('anual', {}))
+        pob_anios = poblacion.get('anios')
+        pob_rango = f"{pob_anios[0]}-{pob_anios[-1]}" if pob_anios else 'solo snapshot 2022'
         print(f"[03_rates] geo_meta: {len(geo_meta)} parroquias  "
-              f"poblacion: {len(poblacion)} parroquias", file=sys.stderr)
+              f"pob snapshot: {len(poblacion.get('snapshot', {}))}  "
+              f"pob anual: {has_anual} ({pob_rango})", file=sys.stderr)
 
     # 1) Esquema MORALES (primario, consumido por el visor)
     if verbose:

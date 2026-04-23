@@ -11,6 +11,12 @@ inputs/defunciones/raw/*.sav
 inputs/defunciones/raw/*.csv
 inputs/_legacy/*.xlsx
 
+# Microdato CPV 2010 (14.48 M personas · 3.5 GB) — es la fuente de
+# `build_pob_2010.py` pero no entra a git. Los 4 xlsx/xls pequeños
+# (CPV 2022, proyecciones cantonales INEC, totales provinciales) sí
+# quedan versionados como referencia reproducible del denominador.
+inputs/poblacion/raw/*.csv
+
 # Datos de referencia del estudio Morales (2013-2023) — artefactos R + .sav
 # originales + Excel limpios. Se usan solo para verificación cruzada vía
 # `_sistema/verify_*.py`, no son parte del pipeline Python nuevo.

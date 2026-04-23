@@ -85,8 +85,25 @@ export default function Legend() {
           <div className="mt-1 text-[9px] italic text-slate-500">
             KDE gaussiano · normalización p2-p98 · paleta Turbo (Mikhailov)
           </div>
-          {/* Swatch "sin dato" — estándar OMS/CDC para insufficient data */}
+          {/* Swatch "interpolado IDW" — parroquias sin reporte directo INEC
+              (incluye las creadas por decreto CONALI después del año consultado) */}
           <div className="mt-1.5 flex items-center gap-1.5 border-t border-slate-200 pt-1">
+            <div
+              style={{
+                background: 'linear-gradient(90deg,#c7d2fe 0%,#6366f1 100%)',
+                opacity: 0.85,
+                width: '22px',
+                height: '11px',
+                flexShrink: 0,
+                borderRadius: '2px',
+              }}
+            />
+            <div className="text-[9px] text-slate-500">
+              Interpolado · IDW k=5 (sin reporte INEC directo)
+            </div>
+          </div>
+          {/* Swatch "sin dato" — estándar OMS/CDC para insufficient data */}
+          <div className="mt-1 flex items-center gap-1.5">
             <div
               style={{
                 background: '#e2e8f0',
