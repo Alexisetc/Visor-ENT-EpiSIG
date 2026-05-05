@@ -13,5 +13,47 @@
   <body class="bg-slate-50 text-slate-800 antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Aviso defensivo: si este archivo se abre con doble click (file://),
+      // el modulo /src/main.jsx no se ejecuta (el browser no transpila JSX)
+      // y los fetches a /assets/* fallan. Resultado: pantalla en blanco.
+      // Mostrar instrucciones claras en lugar de un visor inerte.
+      if (location.protocol === 'file:') {
+        document.getElementById('root').innerHTML = `
+          <div style="max-width:680px;margin:80px auto;padding:32px;
+                      font-family:Inter,system-ui,sans-serif;line-height:1.55;
+                      color:#1a1b4a;background:#fff;border:1px solid #e2e8f0;
+                      border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08)">
+            <div style="font-size:14px;color:#b91c1c;font-weight:600;
+                        text-transform:uppercase;letter-spacing:.05em">
+              No abras este archivo con doble click
+            </div>
+            <h1 style="margin:8px 0 16px;font-size:24px">
+              EpiSIG &middot; Visor ENT requiere el dev server
+            </h1>
+            <p>Este <code>index.html</code> es un template Vite. Su unico
+              <code>&lt;script&gt;</code> apunta a <code>/src/main.jsx</code>,
+              que el navegador <strong>no puede ejecutar bajo file://</strong>.
+              Por eso queda en blanco.</p>
+            <h2 style="margin-top:24px;font-size:17px;color:#0f172a">
+              Como abrirlo
+            </h2>
+            <p style="margin:8px 0">
+              <strong>Rapido:</strong> doble click sobre
+              <code>Abrir Visor ENT.bat</code> en la raiz del proyecto.
+              Arranca el server y abre el navegador en la URL correcta.
+            </p>
+            <p style="margin:8px 0"><strong>Manual:</strong></p>
+            <pre style="background:#0f172a;color:#e2e8f0;padding:14px 18px;
+                         border-radius:6px;font-size:13px;overflow-x:auto">cd webapp-react
+npm run dev
+# abre http://localhost:8080</pre>
+            <p style="margin-top:20px;font-size:13px;color:#64748b">
+              Mas detalle en <code>README.md</code>, seccion
+              <em>Servir el visor React</em>.
+            </p>
+          </div>`
+      }
+    </script>
   </body>
 </html>

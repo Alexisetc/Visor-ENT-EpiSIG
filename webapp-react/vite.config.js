@@ -34,7 +34,10 @@ function legacyAssetsMiddleware() {
 
 export default defineConfig({
   plugins: [react(), legacyAssetsMiddleware()],
-  server: { port: 5173 },
+  // Puerto 8080 (HTTP estandar) en vez del 5173 default de Vite porque
+  // ESET Endpoint Security en este equipo bloquea Chrome -> localhost:5173
+  // (ERR_CONNECTION_REFUSED) y otros puertos altos de dev. 8080 pasa limpio.
+  server: { port: 8080 },
   build: {
     outDir: 'dist',
     sourcemap: false,

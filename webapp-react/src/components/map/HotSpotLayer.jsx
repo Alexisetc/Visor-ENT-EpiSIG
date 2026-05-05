@@ -68,7 +68,7 @@ import { useStore } from '../../store'
 import {
   getParroquiaKey, getParroquiaLabel, getParroquiaProvKey,
 } from '../../lib/parroquia'
-import { generateData } from '../../lib/rates'
+import { generateData, getPob } from '../../lib/rates'
 import { TURBO_LUT, ENT_LABEL, DETS_FULL } from '../../lib/colors'
 
 // ───── Parámetros del KDE ─────
@@ -97,7 +97,9 @@ const IDW_EPS     = 1e-9    // evita división por cero si distancia == 0
 
 function carga_value(key, { ent, year, entData, pobData, isMort }) {
   if (!entData?.parroquias?.[key]) return { value: null, status: 'nodata' }
-  const pob = Number(pobData?.poblacion?.[key]) || 0
+  // Denominador anual log-share (Fase 6); cae al snapshot 2022 si la serie
+  // anual no está presente para este DPA6.
+  const pob = getPob(pobData, key, year)
   if (pob <= 0) return { value: null, status: 'nodata' }
   const d = generateData(key, ent, year, entData, pobData)
   const v = isMort ? d.mortRate : d.rate

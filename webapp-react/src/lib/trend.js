@@ -27,6 +27,7 @@
 
 import { ENT_MAP, ENTS } from './colors'
 import { getParroquiaKey, getParroquiaProvKey } from './parroquia'
+import { getPob } from './rates'
 
 /**
  * Variación porcentual respecto al año anterior.
@@ -53,7 +54,6 @@ export function buildYearSeries(geoKey, disease, entData, pobData) {
   if (!entData || !ENT_MAP[disease]) return []
   const anios = entData.anios || []
   const parr = entData.parroquias?.[geoKey]
-  const pob = pobData?.poblacion?.[geoKey] || 0
   const m = ENT_MAP[disease]
   const out = []
   for (let yi = 0; yi < anios.length; yi++) {
@@ -74,6 +74,9 @@ export function buildYearSeries(geoKey, disease, entData, pobData) {
         muertes = b ? (b.muertes[yi] || 0) : 0
       }
     }
+    // Denominador anual log-share para el año del punto; fallback a snapshot
+    // si la serie anual no está presente para este DPA6.
+    const pob = getPob(pobData, geoKey, anios[yi])
     const rate     = pob > 0 ? (casos   / pob * 100000) : 0
     const mortRate = pob > 0 ? (muertes / pob * 100000) : 0
     out.push({
@@ -102,7 +105,6 @@ export function buildAggregateSeries(features, disease, entData, pobData, provFi
     if (provFilter && provKey !== provFilter) continue
     const key = getParroquiaKey(p)
     const parr = entData.parroquias?.[key]
-    const pob = pobData?.poblacion?.[key] || 0
     for (let yi = 0; yi < anios.length; yi++) {
       let casos = 0, muertes = 0
       if (parr) {
@@ -121,6 +123,10 @@ export function buildAggregateSeries(features, disease, entData, pobData, provFi
           muertes = b ? (b.muertes[yi] || 0) : 0
         }
       }
+      // Denominador anual por parroquia × año (log-share). La suma
+      // provincial/nacional se construye sumando pob[yi] de todas las
+      // parroquias del filtro — coherente con 04_trends.py agregado.
+      const pob = getPob(pobData, key, anios[yi])
       years[yi].casos   += casos
       years[yi].muertes += muertes
       years[yi].pob     += pob

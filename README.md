@@ -48,7 +48,42 @@ python calcular_mcda_prioridad.py        # → webapp/assets/priorizacion_mcda.j
 python calcular_mgwr_simulado.py         # → webapp/assets/mgwr_betas.json
 ```
 
-## Servir el visor
+## Servir el visor React (recomendado)
+
+**Atajo Windows**: doble click sobre `Abrir Visor ENT.bat` en la raíz del
+proyecto. Arranca Vite y abre el navegador en la URL correcta.
+
+**Manual**:
+
+```bash
+cd webapp-react
+npm install        # solo la primera vez
+npm run dev        # → http://localhost:8080
+```
+
+Vite levanta el dev server con hot-reload. Un middleware local
+(`vite.config.js`) sirve `/assets/*` desde `../webapp/assets/`, así que no
+hay duplicación de los ~18 MB de JSON/GeoJSON.
+
+> Nota sobre el puerto 8080: ESET Endpoint Security (instalado en este
+> equipo) bloquea Chrome ↔ `localhost:5173` (default Vite). Por eso
+> `vite.config.js` fija el puerto en 8080, que pasa limpio.
+
+Para build estático:
+
+```bash
+cd webapp-react
+npm run build      # → dist/
+npm run preview    # → http://localhost:4173
+```
+
+> ⚠️ **No abrir `webapp-react/index.html` con doble click.** Es un template
+> Vite, no un HTML standalone: su único `<script>` apunta a `/src/main.jsx`,
+> que el navegador no puede ejecutar bajo `file://`. Si aun así lo abres,
+> verás un aviso con instrucciones (no la pantalla en blanco anterior).
+> Siempre usar el `.bat`, `npm run dev`, o servir `dist/` por HTTP.
+
+## Servir el visor legacy
 
 ```bash
 cd webapp
