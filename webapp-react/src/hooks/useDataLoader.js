@@ -16,15 +16,21 @@
 import { useEffect } from 'react'
 import { useStore } from '../store'
 
+// import.meta.env.BASE_URL incluye trailing slash y refleja el base
+// configurado en vite.config.js: '/' en dev y '/Visor-ENT-EpiSIG/' en
+// build (para GitHub Pages). Sin este prefijo los fetch absolutos
+// apuntarian a la raiz del dominio, no al subpath del repo.
+const BASE = import.meta.env.BASE_URL
+
 const DATASETS = [
-  { key: 'entData',      url: '/assets/ent_parroquial.json' },
-  { key: 'pobData',      url: '/assets/pob_parroquial.json' },
-  { key: 'geoParr',      url: '/assets/parroquias_otp_simpl.geojson' },
-  { key: 'geoProv',      url: '/assets/provincias_otp.geojson' },
-  { key: 'mcdaData',     url: '/assets/priorizacion_mcda.json' },
-  { key: 'mgwrData',     url: '/assets/mgwr_betas.json' },
-  { key: 'detData',      url: '/assets/determinantes_parroquial.json' },
-  { key: 'estudioData',  url: '/assets/estudio_ent.json' },
+  { key: 'entData',      url: `${BASE}assets/ent_parroquial.json` },
+  { key: 'pobData',      url: `${BASE}assets/pob_parroquial.json` },
+  { key: 'geoParr',      url: `${BASE}assets/parroquias_otp_simpl.geojson` },
+  { key: 'geoProv',      url: `${BASE}assets/provincias_otp.geojson` },
+  { key: 'mcdaData',     url: `${BASE}assets/priorizacion_mcda.json` },
+  { key: 'mgwrData',     url: `${BASE}assets/mgwr_betas.json` },
+  { key: 'detData',      url: `${BASE}assets/determinantes_parroquial.json` },
+  { key: 'estudioData',  url: `${BASE}assets/estudio_ent.json` },
 ]
 
 async function fetchJSON(url) {
