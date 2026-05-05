@@ -50,10 +50,14 @@ function legacyAssetsMiddleware() {
   }
 }
 
-// Base path: en build apunta a la URL de GitHub Pages
-// (https://alexisetc.github.io/Visor-ENT-EpiSIG/). En dev queda en '/'.
-// Override con env VITE_BASE si despliegas en otro path (ej. dominio propio: '/').
-const PAGES_BASE = process.env.VITE_BASE ?? '/Visor-ENT-EpiSIG/'
+// Base path en build:
+//   - Si hay un archivo public/CNAME (custom domain configurado), el visor
+//     vive en la raiz del dominio -> base='/'.
+//   - Si no, el visor vive bajo el subpath del repo en GitHub Pages default
+//     (https://alexisetc.github.io/Visor-ENT-EpiSIG/).
+// Override manual con env VITE_BASE.
+const hasCustomDomain = existsSync(resolve(__dirname, 'public', 'CNAME'))
+const PAGES_BASE = process.env.VITE_BASE ?? (hasCustomDomain ? '/' : '/Visor-ENT-EpiSIG/')
 
 export default defineConfig(({ command }) => ({
   base: command === 'build' ? PAGES_BASE : '/',
