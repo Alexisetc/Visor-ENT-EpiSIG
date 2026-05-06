@@ -1,28 +1,16 @@
-// MapTopOverlay — Bar contextual sobre el mapa (top): scope geográfico
-// (izquierda) + métrica + ENT activa (derecha). Reproduce el badge
-// "ECUADOR CONTINENTAL" del Manual v2.
+// MapTopOverlay — Info card en el top del mapa con la métrica activa
+// + grupo ENT seleccionado. (El badge de scope geográfico se removió
+// porque repetía la info del header del panel derecho.)
 
-import { Globe, Map as MapIcon, Flame } from 'lucide-react'
+import { Map as MapIcon, Flame } from 'lucide-react'
 import { useStore } from '../../store'
 import { ENT_LABEL } from '../../lib/colors'
-import { getProvLabel, getParroquiaLabelShort } from '../../lib/parroquia'
 
 export default function MapTopOverlay() {
   const module      = useStore(s => s.module)
   const layerType   = useStore(s => s.layerType)
   const ent         = useStore(s => s.ent)
   const mapMetric   = useStore(s => s.mapMetric)
-  const provFilter  = useStore(s => s.provFilter)
-  const selectedDpa = useStore(s => s.selectedDpa)
-  const selectedProps = useStore(s => s.selectedProps)
-  const geoProv     = useStore(s => s.geoProv)
-
-  // Scope label — adapta el badge según filtro actual
-  const scopeLabel = selectedDpa && selectedProps
-    ? `Parroquia · ${getParroquiaLabelShort(selectedProps)}`
-    : provFilter
-      ? `Provincia · ${getProvLabel(provFilter, geoProv)}`
-      : 'Ecuador continental'
 
   // Métrica visible
   const isMort = mapMetric === 'mortalidad'
@@ -42,15 +30,12 @@ export default function MapTopOverlay() {
     nervioso:     'G00-G99',
   }
 
+  // El badge de scope geográfico ("Ecuador continental" / "Provincia · X" /
+  // "Parroquia · Y") se removió porque duplicaba info que ya está en el
+  // header del panel derecho. Solo queda la info card de métrica + ENT
+  // a la derecha del mapa.
   return (
-    <div className="pointer-events-none absolute left-3 right-[60px] top-3 z-[450] flex items-start justify-between gap-3">
-      {/* === Badge scope geográfico (izquierda) === */}
-      <div className="pointer-events-auto flex items-center gap-1.5 rounded-[3px] border border-inspi-navy bg-inspi-navy px-2.5 py-1.5 font-display text-[11px] font-bold uppercase tracking-[0.07em] text-white shadow-md">
-        <Globe size={12} strokeWidth={2.4} />
-        <span className="truncate max-w-[260px]">{scopeLabel}</span>
-      </div>
-
-      {/* === Info card métrica + ENT (derecha) === */}
+    <div className="pointer-events-none absolute right-[60px] top-3 z-[450] flex items-start justify-end gap-3">
       <div className="pointer-events-auto rounded-[3px] border border-inspi-line bg-white/95 px-2.5 py-1 leading-tight shadow-sm">
         <div className="flex items-center gap-1.5 font-display text-[10px] font-medium text-inspi-muted">
           <LayerIcon size={10} strokeWidth={2.2} className="text-inspi-red" />

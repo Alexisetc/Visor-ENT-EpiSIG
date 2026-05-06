@@ -69,12 +69,31 @@ function FitToProvince() {
 }
 
 export default function MapView() {
-  const layerType = useStore(s => s.layerType)
-  const module    = useStore(s => s.module)
-  const geoParr   = useStore(s => s.geoParr)
+  const layerType        = useStore(s => s.layerType)
+  const module           = useStore(s => s.module)
+  const geoParr          = useStore(s => s.geoParr)
+  const sidebarCollapsed = useStore(s => s.sidebarCollapsed)
   const [map, setMap] = useState(null)
 
   const ready = !!geoParr
+
+  // Cuando el sidebar se oculta/muestra, el contenedor del mapa cambia
+  // de tamaño. invalidateSize() le avisa a Leaflet del nuevo tamaño y
+  // re-centra el mapa en su mismo punto geográfico — sin esto el mapa
+  // se "desplaza" hacia un lado para llenar el espacio liberado.
+  // El delay deja que flexbox termine de re-layoutear primero.
+  useEffect(() => {
+    if (!map) return
+    const t = setTimeout(() => {
+      const c = map.getCenter()
+      const z = map.getZoom()
+      map.invalidateSize({ animate: false })
+      // invalidateSize por sí solo a veces no recentra exacto; un
+      // setView al mismo center/zoom forzar el re-paint correcto.
+      map.setView(c, z, { animate: false })
+    }, 60)
+    return () => clearTimeout(t)
+  }, [sidebarCollapsed, map])
 
   // Selector de layer por módulo + tipo. Si el layer es "heatmap" siempre
   // cae a HotSpotLayer (bipolar z-score); si es "coropleta" elige el layer

@@ -262,20 +262,22 @@ export default function DeterminantesIA() {
         </div>
       )}
 
-      {/* R² local MGWR */}
+      {/* R² local MGWR — tarjeta institucional con borde rojo top */}
       {hasMgwr && r2 != null && (
-        <section className="rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-3 shadow-sm">
-          <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-            <Gauge size={11} /> R² local MGWR
+        <section className="relative rounded-[3px] border border-inspi-line bg-inspi-paper p-3 shadow-sm">
+          <span className="absolute left-0 right-0 top-0 h-[2px] bg-inspi-red" />
+          <div className="mb-1 flex items-center gap-1.5 font-display text-[10px] font-bold uppercase tracking-[0.07em] text-inspi-muted">
+            <Gauge size={11} strokeWidth={2.4} className="text-inspi-red" />
+            R² local MGWR
           </div>
           <div className="flex items-baseline gap-2">
-            <div className="font-display text-3xl font-bold leading-none text-violet-700">
+            <div className="font-mono text-[26px] font-bold leading-none text-inspi-navy tnum">
               {(r2 * 100).toFixed(1)}%
             </div>
-            <div className="text-[10px] text-slate-400">ajuste local</div>
+            <div className="font-display text-[10px] text-inspi-muted">ajuste local</div>
           </div>
           <R2Bar r2={r2} />
-          <div className="mt-1 text-[10px] text-slate-500">
+          <div className="mt-1 font-display text-[10.5px] leading-[1.45] text-slate-700">
             Los 6 determinantes modelados explican el {(r2 * 100).toFixed(0)}% de la
             variabilidad local en {ENT_LABEL[effectiveEnt].toLowerCase()}{' '}
             {aggregated.level === 'parroquia' ? 'de esta parroquia' :
@@ -370,16 +372,14 @@ export default function DeterminantesIA() {
 
 function R2Bar({ r2 }) {
   const pct = Math.max(0, Math.min(100, r2 * 100))
-  // Colores discretos por rango (R² > 0.7 = fuerte, 0.5-0.7 = moderado, <0.5 = débil)
-  const color =
-    r2 >= 0.7 ? '#5a279f' :
-    r2 >= 0.5 ? '#7c3aed' :
-                '#a78bfa'
+  // Gradient institucional navy → red (consistente con el resto del
+  // panel). El valor numérico al lado de la barra ya comunica magnitud,
+  // no necesitamos un código de color extra por rango.
   return (
-    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-inspi-slate-100">
       <div
         className="h-full rounded-full transition-all"
-        style={{ width: `${pct}%`, background: color }}
+        style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #14213D 0%, #B81D24 100%)' }}
       />
     </div>
   )

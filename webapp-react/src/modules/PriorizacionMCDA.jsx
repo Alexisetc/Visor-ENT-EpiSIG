@@ -33,6 +33,7 @@ export default function PriorizacionMCDA() {
   // que el usuario activa este módulo.
   useModuleDataLoader('mcda')
 
+  const ent             = useStore(s => s.ent)
   const provFilter      = useStore(s => s.provFilter)
   const setProvFilter   = useStore(s => s.setProvFilter)
   const selectedDpa     = useStore(s => s.selectedDpa)
@@ -180,6 +181,15 @@ export default function PriorizacionMCDA() {
   const maxScore   = ranking.length > 0 ? Math.max(...ranking.map(r => r.score), 0.0001) : 0.0001
   const hasRanking = ranking.length > 0 && top && Number.isFinite(top.score) && top.score > 0
 
+  // === ENT en foco ===
+  // Si el usuario filtró un grupo ENT específico en el sidebar, el panel
+  // destaca ese grupo en lugar del #1 absoluto. Permite ver dónde quedó
+  // ranqueada la ENT seleccionada y sus criterios.
+  const focusEnt = ent === 'todas'
+    ? top
+    : (ranking.find(r => r.ent === ent) || top)
+  const isFocusUserPick = ent !== 'todas' && focusEnt && focusEnt.ent === ent
+
   return (
     <div className="flex flex-col">
       {/* Header de panel — Manual de Diseño v2 (mismo patrón que Carga). */}
@@ -199,13 +209,19 @@ export default function PriorizacionMCDA() {
               </div>
             )}
             <div className="mt-2 flex flex-wrap items-center gap-1">
-              {hasRanking && (
+              {hasRanking && focusEnt && (
                 <span
-                  className="rounded-full px-2 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.05em] text-white"
-                  style={{ background: top.color }}
-                  title={`ENT prioritaria: ${ENT_LABEL[top.ent]}`}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-inspi-navy px-2 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.05em] text-white"
+                  title={isFocusUserPick
+                    ? `ENT seleccionada: ${ENT_LABEL[focusEnt.ent]} (rank #${focusEnt.rank})`
+                    : `ENT prioritaria: ${ENT_LABEL[focusEnt.ent]}`}
                 >
-                  #1 {ENT_LABEL[top.ent]}
+                  <span
+                    className="h-1.5 w-1.5 rounded-[1px]"
+                    style={{ background: focusEnt.color }}
+                    aria-hidden="true"
+                  />
+                  #{focusEnt.rank} {ENT_LABEL[focusEnt.ent]}
                 </span>
               )}
               <span className="rounded-full bg-inspi-amber/15 px-2 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.05em] text-inspi-amber">
@@ -246,35 +262,35 @@ export default function PriorizacionMCDA() {
         </div>
       )}
 
-      {/* ENT prioritaria (top 1) */}
-      {top && (
-        <section
-          className="rounded-lg border p-3 shadow-sm"
-          style={{ borderColor: top.color + '33', background: top.color + '08' }}
-        >
+      {/* ENT en foco — la #1 del ranking, o la que el usuario filtró
+          en el sidebar. Card institucional con borde rojo top + dot de
+          la categoría como acento (sin dominar el color). */}
+      {focusEnt && (
+        <section className="relative rounded-[3px] border border-inspi-line bg-inspi-paper p-3 shadow-sm">
+          <span className="absolute left-0 right-0 top-0 h-[2px] bg-inspi-red" />
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-              <Award size={11} /> ENT prioritaria #1
+            <div className="flex items-center gap-1.5 font-display text-[10px] font-bold uppercase tracking-[0.07em] text-inspi-muted">
+              <Award size={11} strokeWidth={2.4} className="text-inspi-red" />
+              {isFocusUserPick ? 'ENT seleccionada' : 'ENT prioritaria #1'}
             </div>
-            <span
-              className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm"
-              style={{ background: top.color }}
-            >
-              Rank {top.rank}
+            <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-inspi-line bg-inspi-bone px-2 py-0.5 font-mono text-[10px] font-bold tracking-[0.05em] text-inspi-navy tnum">
+              Rank {focusEnt.rank}
             </span>
           </div>
-          <div className="mt-1 flex items-baseline gap-2">
-            <div
-              className="font-display text-2xl font-bold leading-none"
-              style={{ color: top.color }}
-            >
-              {ENT_LABEL[top.ent]}
+          <div className="mt-1.5 flex items-baseline gap-2">
+            <span
+              className="h-2.5 w-2.5 flex-shrink-0 rounded-[2px]"
+              style={{ background: focusEnt.color }}
+              title={`Categoría ENT: ${ENT_LABEL[focusEnt.ent]}`}
+            />
+            <div className="font-display text-[20px] font-bold leading-none text-inspi-navy">
+              {ENT_LABEL[focusEnt.ent]}
             </div>
             <div className="ml-auto text-right">
-              <div className="font-mono text-xl font-bold text-slate-700">
-                {top.score.toFixed(3)}
+              <div className="font-mono text-[20px] font-bold leading-none text-inspi-navy tnum">
+                {focusEnt.score.toFixed(3)}
               </div>
-              <div className="text-[9px] uppercase tracking-wider text-slate-400">
+              <div className="mt-0.5 font-display text-[9px] font-semibold uppercase tracking-[0.07em] text-inspi-muted">
                 Score MCDA
               </div>
             </div>
@@ -297,6 +313,7 @@ export default function PriorizacionMCDA() {
                 score={r.score}
                 maxScore={maxScore}
                 color={r.color || ENT_COLOR[r.ent]}
+                focused={isFocusUserPick && r.ent === ent}
               />
             ))}
             <div className="border-t border-slate-100 pt-1 text-[9px] italic text-slate-400">
@@ -306,19 +323,19 @@ export default function PriorizacionMCDA() {
         </section>
       )}
 
-      {/* Breakdown por criterio para la ENT top */}
-      {top && criterios.length > 0 && (
+      {/* Breakdown por criterio para la ENT en foco */}
+      {focusEnt && criterios.length > 0 && (
         <section>
           <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
             <FlaskConical size={11} />
-            Criterios de la ENT prioritaria
+            {isFocusUserPick ? 'Criterios de la ENT seleccionada' : 'Criterios de la ENT prioritaria'}
             <span className="ml-auto text-[9px] font-normal normal-case tracking-normal text-slate-400">
-              {ENT_LABEL[top.ent]}
+              {ENT_LABEL[focusEnt.ent]}
             </span>
           </div>
           <div className="space-y-1.5 rounded border border-slate-200 bg-white p-2.5 shadow-sm">
             {criterios.map(c => {
-              const norm = Number(top.normalized?.[c.id] || 0)
+              const norm = Number(focusEnt.normalized?.[c.id] || 0)
               const aporte = norm * (c.peso || 0)
               return (
                 <CritRow
@@ -327,7 +344,6 @@ export default function PriorizacionMCDA() {
                   peso={c.peso}
                   value={norm}
                   aporte={aporte}
-                  color={top.color}
                 />
               )
             })}
@@ -381,20 +397,32 @@ export default function PriorizacionMCDA() {
 // que las barras compitan en hue.
 const MCDA_GRADIENT = 'linear-gradient(90deg, #14213D 0%, #B81D24 100%)'
 
-function RankRow({ rank, label, score, maxScore, color }) {
+function RankRow({ rank, label, score, maxScore, color, focused = false }) {
   const pct = maxScore > 0 ? Math.max(0, Math.min(100, (score / maxScore) * 100)) : 0
   return (
-    <div>
+    <div className={`rounded-[3px] transition-colors ${focused ? '-mx-1 bg-inspi-red/8 px-1 py-1 ring-1 ring-inspi-red/25' : ''}`}>
       <div className="mb-1 flex items-center justify-between gap-2 text-[10.5px]">
         <span className="flex min-w-0 items-center gap-1.5 truncate">
-          <span
-            className="inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[3px] font-mono text-[9.5px] font-bold text-white"
-            style={{ background: color }}
-            title={`Categoría ENT del rank #${rank}`}
-          >
+          {/* Pill del rank: navy con dot pequeño de la categoría ENT
+              al lado, en vez de fondo de color saturado. Mantiene el
+              número en mono y el dot da diferenciación categórica
+              sin dominar el panel. */}
+          <span className="inline-flex h-[18px] flex-shrink-0 items-center gap-1 rounded-[3px] bg-inspi-navy px-1 font-mono text-[9.5px] font-bold text-white">
             {rank}
+            <span
+              className="h-1.5 w-1.5 flex-shrink-0 rounded-[1px]"
+              style={{ background: color }}
+              aria-hidden="true"
+            />
           </span>
-          <span className="truncate font-display font-semibold text-inspi-navy">{label}</span>
+          <span className={`truncate font-display ${focused ? 'font-bold' : 'font-semibold'} text-inspi-navy`}>
+            {label}
+            {focused && (
+              <span className="ml-1.5 rounded-[2px] bg-inspi-red px-1 py-px font-display text-[8px] font-bold uppercase tracking-[0.07em] text-white">
+                Seleccionada
+              </span>
+            )}
+          </span>
         </span>
         <span className="flex-shrink-0 font-mono text-[11px] font-bold text-inspi-navy tnum">{score.toFixed(3)}</span>
       </div>

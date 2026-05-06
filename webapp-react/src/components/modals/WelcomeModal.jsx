@@ -16,8 +16,8 @@ import { useStore } from '../../store'
 import EpiLogo from '../brand/EpiLogo'
 import GeoEntLogo from '../brand/GeoEntLogo'
 
-// Bumpeada a v6 al renovar el pitch (propuesta de valor en 2 columnas).
-export const WELCOME_LS_KEY = 'episig:welcome-seen-v6'
+// Bumpeada a v7 al renovar el copy (3 módulos + 3 preguntas).
+export const WELCOME_LS_KEY = 'episig:welcome-seen-v7'
 
 export default function WelcomeModal() {
   const modalOpen  = useStore(s => s.modalOpen)
@@ -83,66 +83,62 @@ export default function WelcomeModal() {
         {/* === Body === */}
         <div className="space-y-3.5 px-6 py-4 text-[13px] leading-[1.6] text-slate-700">
           <p>
-            <b className="text-inspi-navy">geoENT</b> es la plataforma de investigación
-            espacial en Enfermedades No Transmisibles del{' '}
-            <b className="text-inspi-navy">Centro de Investigación EpiSIG · INSPI</b>.
-            Une dos preguntas críticas de la salud pública territorial en una sola
-            interfaz —{' '}
-            <span className="text-inspi-red">¿qué condiciones del territorio</span>{' '}
-            están conduciendo la carga de enfermedad, y{' '}
-            <span className="text-inspi-red">¿dónde concentrar las acciones</span>{' '}
-            de mayor impacto— sobre las{' '}
-            <span className="font-mono tnum">1.049</span> parroquias del Ecuador
-            continental.
+            <b className="text-inspi-navy">geoENT</b> es una versión prototipo del
+            visor geoespacial que el{' '}
+            <b className="text-inspi-navy">Centro de Investigación EpiSIG del INSPI</b>{' '}
+            busca consolidar para el análisis territorial de las{' '}
+            <b className="text-inspi-navy">Enfermedades No Transmisibles</b> en el
+            Ecuador continental.
           </p>
 
-          {/* Mini-grid de propuesta de valor: dos columnas con los dos
-              enfoques que sustentan al visor (sin nombrar los proyectos
-              específicos), centrados en el "para qué" institucional. */}
-          <div className="grid grid-cols-2 gap-2.5">
-            <div className="rounded-[3px] border border-inspi-line bg-inspi-paper p-3">
-              <div className="font-display text-[9.5px] font-bold uppercase tracking-[0.08em] text-inspi-red">
-                Comprender
+          <p>
+            La plataforma organiza la información en tres módulos:{' '}
+            <b className="text-inspi-navy">Carga de enfermedad</b>, para visualizar
+            morbilidad, mortalidad, tendencias y concentración espacial;{' '}
+            <b className="text-inspi-navy">Determinantes</b>, para explorar factores
+            socioeconómicos, ambientales y territoriales asociados a las ENT; y{' '}
+            <b className="text-inspi-navy">Priorización MCDA</b>, para identificar
+            territorios y enfermedades que requieren atención prioritaria.
+          </p>
+
+          {/* Las tres preguntas clave del visor — destacadas con borde
+              rojo izquierdo y numeradas en mono para reforzar la lectura
+              de "evidencia → decisión". */}
+          <div className="rounded-[3px] border border-inspi-line bg-inspi-bone/40">
+            <div className="border-l-[3px] border-inspi-red px-3.5 py-2.5">
+              <div className="mb-1.5 font-display text-[10px] font-bold uppercase tracking-[0.08em] text-inspi-red">
+                ▸ Tres preguntas clave
               </div>
-              <div className="mt-1 font-display text-[11.5px] font-semibold leading-[1.35] text-inspi-navy">
-                Determinantes territoriales de las ENT
-              </div>
-              <div className="mt-1 font-display text-[10.5px] leading-[1.45] text-inspi-muted">
-                Modelado econométrico espacial para detectar qué factores
-                (pobreza, ambiente, hábitos, acceso a salud) explican la carga
-                local de enfermedad en cada parroquia.
-              </div>
-            </div>
-            <div className="rounded-[3px] border border-inspi-line bg-inspi-paper p-3">
-              <div className="font-display text-[9.5px] font-bold uppercase tracking-[0.08em] text-inspi-red">
-                Priorizar
-              </div>
-              <div className="mt-1 font-display text-[11.5px] font-semibold leading-[1.35] text-inspi-navy">
-                Decisiones de inversión en salud pública
-              </div>
-              <div className="mt-1 font-display text-[10.5px] leading-[1.45] text-inspi-muted">
-                Análisis multicriterio que combina mortalidad, carga de
-                enfermedad, costos y equidad para señalar dónde y en qué
-                ENT actuar primero.
-              </div>
+              <p className="text-[12px] text-slate-700">
+                Su propósito es transformar mapas, indicadores y análisis espaciales
+                en evidencia útil para responder:
+              </p>
+              <ol className="mt-2 space-y-1 text-[12px] text-slate-700">
+                <li className="flex gap-2">
+                  <span className="font-mono text-[10px] font-bold text-inspi-red tnum">01</span>
+                  <span>¿Dónde se concentra la <b className="text-inspi-navy">carga de enfermedad</b>?</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="font-mono text-[10px] font-bold text-inspi-red tnum">02</span>
+                  <span>¿Qué <b className="text-inspi-navy">factores</b> podrían estar asociados?</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="font-mono text-[10px] font-bold text-inspi-red tnum">03</span>
+                  <span>¿Dónde orientar primero las <b className="text-inspi-navy">acciones de salud pública</b>?</span>
+                </li>
+              </ol>
             </div>
           </div>
 
-          <p className="text-[12px] text-inspi-muted">
-            Una sola plataforma para pasar de la <b className="text-inspi-navy">evidencia
-            espacial</b> a la <b className="text-inspi-navy">decisión territorial</b>{' '}
-            en salud pública.
-          </p>
-
           {/* Callout: datos simulados — borde navy (estandarizado). */}
           <div className="rounded-[3px] border border-inspi-navy/25 bg-inspi-navy/[0.04] px-3.5 py-2.5 text-[12px] text-inspi-navy">
-            Algunos módulos consumen{' '}
-            <b>datos simulados estructurados</b> (ENSANUT-ECU, STEPS-OMS, GBD 2021)
-            marcados con la etiqueta{' '}
+            Algunos módulos utilizan{' '}
+            <b>datos simulados estructurados</b> mientras avanzan los proyectos
+            científicos asociados. Estos se encuentran identificados con la etiqueta{' '}
             <span className="inline-flex items-center rounded-[3px] border border-inspi-line bg-inspi-paper px-1.5 py-px font-display text-[10px] font-bold uppercase tracking-[0.07em] text-inspi-navy">
               Simulación
             </span>{' '}
-            mientras avanzan los proyectos de investigación asociados.
+            en el panel izquierdo.
           </div>
 
           {/* Tip card con borde rojo izquierdo. */}
