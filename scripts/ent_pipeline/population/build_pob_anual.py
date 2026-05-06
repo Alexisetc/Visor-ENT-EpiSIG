@@ -185,23 +185,28 @@ def main() -> int:
 
         for dpa4 in sorted(phantom_cant):
             prov = dpa4[:2]
+            # Hermanos prioritarios: cantones de la misma provincia.
+            # Fallback: si la "provincia" es 90 (zona no delimitada,
+            # ej. JUVAL Cañar-Chimborazo) o no hay hermanos, usar
+            # TODOS los cantones del país como referencia — el
+            # primer cuartil global representa "cantón rural pequeño
+            # Ecuador-wide", razonable para territorios en disputa.
             sibling_cants = [k for k in pob_cant.keys() if k.startswith(prov)]
-            if not sibling_cants:
-                log(f"  [WARN] cantón phantom {dpa4} sin hermanos en provincia {prov} — descartado")
-                continue
+            scope = f"prov {prov}"
+            if not sibling_cants or prov == "90":
+                sibling_cants = list(pob_cant.keys())
+                scope = "global Q1 (zona no delimitada)"
             n_years_cant = len(anios_cant)
             synth_series: list[int] = []
             for i in range(n_years_cant):
                 vals = sorted([pob_cant[s][i] for s in sibling_cants])
-                # Primer cuartil = "cantón rural pequeño". Usamos
-                # quantiles si hay >=4 hermanos; mínimo si hay menos.
                 if len(vals) >= 4:
                     q1 = _quantiles(vals, n=4)[0]
                 else:
                     q1 = vals[0]
                 synth_series.append(int(q1))
             pob_cant[dpa4] = synth_series
-            log(f"  + cantón phantom {dpa4}  prov={prov}  pob_2024_sint={synth_series[anios_cant.index(2024)]:>6,}  (Q1 de {len(sibling_cants)} cant. provinciales)")
+            log(f"  + cantón phantom {dpa4}  pob_2024_sint={synth_series[anios_cant.index(2024)]:>6,}  ({scope}, n={len(sibling_cants)})")
 
         # === (a) Parroquias phantom — sintetizar pob_2022 ===
         for feat in geojson.get("features", []):
