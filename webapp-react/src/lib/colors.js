@@ -12,7 +12,7 @@ export const ENT_COLOR = {
 }
 
 export const ENT_LABEL = {
-  todas:        'Todas',
+  todas:        'Todas ENT',
   circulatorio: 'Circulatorio',
   neoplasia:    'Neoplasias',
   metabolica:   'Metabólica',

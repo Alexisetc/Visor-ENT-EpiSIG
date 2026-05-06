@@ -18,6 +18,16 @@ export function getParroquiaLabel(props) {
   return par
 }
 
+// Versión corta para títulos cuando la provincia ya aparece en otro
+// elemento UI (subtítulo del header, badge, etc.) — evita repetir.
+//   "SALINAS · GUARANDA"   en vez de   "SALINAS · GUARANDA · BOLÍVAR"
+export function getParroquiaLabelShort(props) {
+  if (!props) return 'Nacional (Ecuador)'
+  const par = props.DPA_DESPAR || props.name || '—'
+  const can = props.DPA_DESCAN || ''
+  return can ? `${par} · ${can}` : par
+}
+
 export function getParroquiaProvKey(props) {
   if (!props) return null
   const code = props.DPA_PARROQ != null ? String(props.DPA_PARROQ).padStart(6, '0') : ''

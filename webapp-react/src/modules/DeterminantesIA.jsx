@@ -23,7 +23,7 @@ import { useMemo } from 'react'
 import { Crosshair, X, BrainCircuit, Gauge, FlaskConical } from 'lucide-react'
 import { useStore } from '../store'
 import { ENT_LABEL, ENTS, DETS, DET_LABEL } from '../lib/colors'
-import { getParroquiaKey, getParroquiaLabel, getParroquiaProvKey, getProvLabel } from '../lib/parroquia'
+import { getParroquiaKey, getParroquiaLabel, getParroquiaLabelShort, getParroquiaProvKey, getProvLabel } from '../lib/parroquia'
 
 // Rangos tipicos observados en los datasets (para normalizar bars 0..100 %)
 // Revisados contra percentil 95 de detData: pobreza 40, NBI 90, PM2.5 45,
@@ -136,22 +136,22 @@ export default function DeterminantesIA() {
 
   const unitLabel = useMemo(() => {
     if (selectedDpa && selectedProps) {
+      const provName = provFilter
+        ? getProvLabel(provFilter, geoProv)
+        : (selectedProps.DPA_DESPRO || '')
       return {
-        scope: 'PARROQUIA',
-        title: getParroquiaLabel(selectedProps),
-        sub:   provFilter ? `Provincia de ${getProvLabel(provFilter, geoProv)}` : 'Detalle parroquial',
+        title: getParroquiaLabelShort(selectedProps),
+        sub:   provName ? `Provincia de ${provName}` : 'Detalle parroquial',
       }
     }
     if (provFilter) {
       const nParr = aggregated?.n || 0
       return {
-        scope: 'PROVINCIA',
         title: `Provincia de ${getProvLabel(provFilter, geoProv)}`,
         sub:   `${nParr} parroquias · agregado provincial`,
       }
     }
     return {
-      scope: 'PAÍS',
       title: 'Ecuador continental',
       sub:   `${aggregated?.n || 0} parroquias · agregado nacional`,
     }
@@ -187,14 +187,14 @@ export default function DeterminantesIA() {
 
   return (
     <div className="flex flex-col gap-3 p-3">
-      {/* Header — yellow tag = alcance geográfico (PAÍS/PROVINCIA/PARROQUIA),
-          el módulo y el ENT van como badges/subtítulo. La X limpia parroquia
-          si la hay, o provincia si no. */}
+      {/* Header — yellow = módulo (Determinantes · MGWR), title = unidad
+          espacial, sub = contexto (provincia o n parroquias). La X limpia
+          parroquia → provincia → nacional, un nivel a la vez. */}
       <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-violet-700 to-inspi-navy p-3 text-white">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="text-[10px] font-medium uppercase tracking-wider text-inspi-yellow">
-              {unitLabel.scope}
+            <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-inspi-yellow">
+              <BrainCircuit size={11} /> Determinantes · MGWR
             </div>
             <div className="truncate font-display text-base font-semibold">
               {unitLabel.title}
@@ -202,14 +202,9 @@ export default function DeterminantesIA() {
             {unitLabel.sub && (
               <div className="text-[11px] text-slate-300">{unitLabel.sub}</div>
             )}
-            <div className="mt-1 flex flex-wrap items-center gap-1">
-              <div className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white">
-                <BrainCircuit size={10} /> Determinantes · MGWR
-              </div>
-              <div className="inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white">
-                {ENT_LABEL[effectiveEnt]}
-                {ent === 'todas' && <span className="ml-1 opacity-70">(default)</span>}
-              </div>
+            <div className="mt-1 inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white">
+              ENT: {ENT_LABEL[effectiveEnt]}
+              {ent === 'todas' && <span className="ml-1 opacity-70">(default)</span>}
             </div>
           </div>
           {selectedDpa ? (

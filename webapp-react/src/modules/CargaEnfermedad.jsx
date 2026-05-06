@@ -23,7 +23,7 @@ import {
 import { useStore } from '../store'
 import { usePlay, YEARS } from '../hooks/usePlay'
 import { ENT_LABEL } from '../lib/colors'
-import { getParroquiaKey, getParroquiaLabel, getProvLabel } from '../lib/parroquia'
+import { getParroquiaKey, getParroquiaLabel, getParroquiaLabelShort, getProvLabel } from '../lib/parroquia'
 import {
   buildYearSeries, buildAggregateSeries,
   computeTrend, lookupTrend, enrichAnnualPct,
@@ -115,10 +115,14 @@ export default function CargaEnfermedad() {
 
   const unitLabel = useMemo(() => {
     if (selectedDpa && selectedProps) {
+      // Title corto (parroquia · cantón) y la provincia se queda como
+      // subtítulo abajo — así no se repite el nombre de provincia.
+      const provName = provFilter
+        ? getProvLabel(provFilter, geoProv)
+        : (selectedProps.DPA_DESPRO || '')
       return {
-        scope: 'PARROQUIA',
-        title: getParroquiaLabel(selectedProps),
-        sub:   provFilter ? `Provincia de ${getProvLabel(provFilter, geoProv)}` : 'Detalle parroquial',
+        title: getParroquiaLabelShort(selectedProps),
+        sub:   provName ? `Provincia de ${provName}` : 'Detalle parroquial',
       }
     }
     if (provFilter) {
@@ -130,13 +134,11 @@ export default function CargaEnfermedad() {
           }).length
         : 0
       return {
-        scope: 'PROVINCIA',
         title: `Provincia de ${getProvLabel(provFilter, geoProv)}`,
         sub:   `${nParr} parroquias · agregado provincial`,
       }
     }
     return {
-      scope: 'PAÍS',
       title: 'Ecuador continental',
       sub:   geoParr ? `${geoParr.features.length} parroquias · agregado nacional` : '',
     }
@@ -167,16 +169,14 @@ export default function CargaEnfermedad() {
 
   return (
     <div className="flex flex-col gap-3 p-3">
-      {/* Header — el tag amarillo arriba indica el ALCANCE GEOGRÁFICO
-          (PAÍS / PROVINCIA / PARROQUIA). El ENT seleccionado vive en el
-          subtítulo en gris para no competir con la jerarquía espacial.
-          La X aparece según haya parroquia o provincia para limpiar el
-          filtro respectivo en orden (parroquia → provincia → nacional). */}
+      {/* Header — yellow = ENT activo, title = unidad espacial, sub = contexto.
+          La X aparece según haya parroquia o provincia y limpia un nivel a
+          la vez (parroquia → provincia → nacional). */}
       <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-inspi-navy to-inspi-navy-2 p-3 text-white">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="text-[10px] font-medium uppercase tracking-wider text-inspi-yellow">
-              {unitLabel.scope}
+              {ENT_LABEL[ent]}
             </div>
             <div className="truncate font-display text-base font-semibold">
               {unitLabel.title}
@@ -184,9 +184,6 @@ export default function CargaEnfermedad() {
             {unitLabel.sub && (
               <div className="text-[11px] text-slate-300">{unitLabel.sub}</div>
             )}
-            <div className="mt-1 inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white">
-              {ENT_LABEL[ent]}
-            </div>
           </div>
           {selectedDpa ? (
             <button

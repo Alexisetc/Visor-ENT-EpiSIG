@@ -25,7 +25,7 @@ import { useMemo } from 'react'
 import { Crosshair, X, Star, Award, FlaskConical } from 'lucide-react'
 import { useStore } from '../store'
 import { ENT_LABEL, ENT_COLOR, ENTS } from '../lib/colors'
-import { getParroquiaKey, getParroquiaLabel, getParroquiaProvKey, getProvLabel } from '../lib/parroquia'
+import { getParroquiaKey, getParroquiaLabel, getParroquiaLabelShort, getParroquiaProvKey, getProvLabel } from '../lib/parroquia'
 
 export default function PriorizacionMCDA() {
   const provFilter      = useStore(s => s.provFilter)
@@ -126,21 +126,21 @@ export default function PriorizacionMCDA() {
 
   const unitLabel = useMemo(() => {
     if (selectedDpa && selectedProps) {
+      const provName = provFilter
+        ? getProvLabel(provFilter, geoProv)
+        : (selectedProps.DPA_DESPRO || '')
       return {
-        scope: 'PARROQUIA',
-        title: getParroquiaLabel(selectedProps),
-        sub:   provFilter ? `Provincia de ${getProvLabel(provFilter, geoProv)}` : 'Detalle parroquial',
+        title: getParroquiaLabelShort(selectedProps),
+        sub:   provName ? `Provincia de ${provName}` : 'Detalle parroquial',
       }
     }
     if (provFilter) {
       return {
-        scope: 'PROVINCIA',
         title: `Provincia de ${getProvLabel(provFilter, geoProv)}`,
         sub:   `${unit?.n || 0} parroquias · agregado provincial`,
       }
     }
     return {
-      scope: 'PAÍS',
       title: 'Ecuador continental',
       sub:   `${unit?.n || 0} parroquias · agregado nacional`,
     }
@@ -162,14 +162,14 @@ export default function PriorizacionMCDA() {
 
   return (
     <div className="flex flex-col gap-3 p-3">
-      {/* Header — yellow tag = alcance geográfico (PAÍS/PROVINCIA/PARROQUIA),
-          el módulo va como badge en el subtítulo. La X limpia parroquia
-          si la hay, o provincia si no. */}
+      {/* Header — yellow = módulo (Priorización MCDA), title = unidad
+          espacial, sub = contexto. La X limpia parroquia → provincia →
+          nacional, un nivel a la vez. */}
       <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-amber-700 to-inspi-navy p-3 text-white">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="text-[10px] font-medium uppercase tracking-wider text-inspi-yellow">
-              {unitLabel.scope}
+            <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-inspi-yellow">
+              <Star size={11} /> Priorización MCDA
             </div>
             <div className="truncate font-display text-base font-semibold">
               {unitLabel.title}
@@ -177,9 +177,6 @@ export default function PriorizacionMCDA() {
             {unitLabel.sub && (
               <div className="text-[11px] text-slate-300">{unitLabel.sub}</div>
             )}
-            <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white">
-              <Star size={10} /> Priorización MCDA
-            </div>
           </div>
           <div className="flex flex-shrink-0 items-start gap-1">
             {hasRanking && (
