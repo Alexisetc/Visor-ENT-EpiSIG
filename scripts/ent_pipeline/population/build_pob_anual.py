@@ -150,54 +150,97 @@ def main() -> int:
     universo = {p for p in universo if p[:4] in pob_cant}
     log(f"  Universo DPA6 CPV (matched cantón): {len(universo)}")
 
-    # === PARROQUIAS PHANTOM ===
-    # Cargar el geojson para detectar parroquias presentes en la geometría
-    # del visor pero ausentes en CPV 2010/2022 (ej. SOSOTE, JUAN MONTALVO,
-    # SEVILLA DON BOSCO, LA MAGDALENA, LA PRIMAVERA — creadas por CONALI
-    # post-2022; SHUAR PASTAZA y SINAÍ-CUCHAENTZA — territorios shuar /
-    # zonas en estudio). Estas parroquias entran al universo con
-    # `phantom_pob_2022 = mediana_cantón × PHANTOM_SCALE` para que la
-    # interpolación log-share las distribuya como nuevas parroquias
-    # rurales pequeñas, en vez de quedarse sin denominador.
+    # === PHANTOMS ===
+    # Cargar el geojson para detectar parroquias y cantones del visor
+    # ausentes en las fuentes CPV/INEC. Dos casos:
+    #
+    #   (a) Parroquias phantom: en el geojson y con cantón válido en
+    #       INEC, pero sin entrada en CPV 2010/2022. (ej. SOSOTE, JUAN
+    #       MONTALVO — creadas por CONALI post-CPV 2022). Se incorporan
+    #       al universo con phantom_pob_2022 = mediana_cantón × SCALE.
+    #
+    #   (b) Cantones phantom: cantones referenciados por el geojson
+    #       (DPA_ANIO=2025) pero ausentes en pob_cantonal_anual.json
+    #       de INEC (que llega hasta cantones del CPV 2022). Caso
+    #       conocido: 1413 SEVILLA DON BOSCO, elevado a cantón en
+    #       2024. Se sintetiza la serie cantonal usando el primer
+    #       cuartil de los cantones de la misma provincia (rango
+    #       "cantón rural pequeño") y se agrega a pob_cant.
     phantom_codes: set[str] = set()
+    phantom_cant: set[str] = set()
     if IN_GEOJSON.exists():
+        from statistics import median as _median, quantiles as _quantiles
         geojson = cargar_json(IN_GEOJSON)
-        # Parroquias del geojson cuyo DPA4 tiene serie cantonal y NO están
-        # en ninguna fuente CPV.
+
+        # === (b) Cantones phantom — sintetizar serie INEC ===
         for feat in geojson.get("features", []):
             pr = feat.get("properties", {})
             code = str(pr.get("DPA_PARROQ", "")).zfill(6)
             if not code or len(code) != 6 or not code.isdigit():
-                continue  # Skip códigos no estándar (ZONA EN ESTUDIO, etc.)
+                continue
+            dpa4 = code[:4]
+            if dpa4 in pob_cant:
+                continue
+            phantom_cant.add(dpa4)
+
+        for dpa4 in sorted(phantom_cant):
+            prov = dpa4[:2]
+            sibling_cants = [k for k in pob_cant.keys() if k.startswith(prov)]
+            if not sibling_cants:
+                log(f"  [WARN] cantón phantom {dpa4} sin hermanos en provincia {prov} — descartado")
+                continue
+            n_years_cant = len(anios_cant)
+            synth_series: list[int] = []
+            for i in range(n_years_cant):
+                vals = sorted([pob_cant[s][i] for s in sibling_cants])
+                # Primer cuartil = "cantón rural pequeño". Usamos
+                # quantiles si hay >=4 hermanos; mínimo si hay menos.
+                if len(vals) >= 4:
+                    q1 = _quantiles(vals, n=4)[0]
+                else:
+                    q1 = vals[0]
+                synth_series.append(int(q1))
+            pob_cant[dpa4] = synth_series
+            log(f"  + cantón phantom {dpa4}  prov={prov}  pob_2024_sint={synth_series[anios_cant.index(2024)]:>6,}  (Q1 de {len(sibling_cants)} cant. provinciales)")
+
+        # === (a) Parroquias phantom — sintetizar pob_2022 ===
+        for feat in geojson.get("features", []):
+            pr = feat.get("properties", {})
+            code = str(pr.get("DPA_PARROQ", "")).zfill(6)
+            if not code or len(code) != 6 or not code.isdigit():
+                continue
             if code in universo:
                 continue
             if code[:4] not in pob_cant:
-                continue  # Sin proyección cantonal → no podemos reconstruir
+                continue  # cantón no resuelto (raro tras paso (b))
             phantom_codes.add(code)
-        log(f"  Phantom (geojson sin CPV)       : {len(phantom_codes)}")
+        log(f"  Phantom parroquias (geojson sin CPV): {len(phantom_codes)}")
 
-        # Para cada phantom, calcular pob_2022 sintética = mediana del
-        # cantón × PHANTOM_SCALE y agregarla a pob_2022 (la metodología
-        # log-share existente la procesará igual que cualquier otra).
-        from statistics import median as _median
         for code in sorted(phantom_codes):
             dpa4 = code[:4]
+            # Hermanos = parroquias del mismo cantón ya en universo.
+            # Para cantones phantom recién sintetizados, el universo
+            # estará vacío para ese cantón → fallback al cantonal.
             siblings = [p for p in universo if p[:4] == dpa4]
             sibling_pobs = [pob_2022[p] for p in siblings if pob_2022.get(p, 0) > 0]
             if sibling_pobs:
                 phantom_22 = max(1, int(_median(sibling_pobs) * PHANTOM_SCALE))
+                src = f'mediana×{PHANTOM_SCALE}'
             else:
-                # Sin hermanos con CPV — usar 1/N de la población cantonal 2022
-                # como fallback de último recurso.
-                cant_2022 = pob_cant[dpa4][idx_anio[2022] if 2022 in idx_anio else 0]
-                phantom_22 = max(1, int(cant_2022 / max(1, len(siblings) + 1)))
+                # Sin hermanos (cantón phantom recién creado, parroquia
+                # única del cantón): usar la serie cantonal directamente
+                # — la parroquia es prácticamente todo el cantón.
+                cant_2022 = pob_cant[dpa4][anios_cant.index(2022)] if 2022 in anios_cant else 0
+                phantom_22 = max(1, int(cant_2022 * 0.95))  # ~95% del cantón
+                src = '95% cantón (parroquia única)'
             pob_2022[code] = phantom_22
             universo.add(code)
-            log(f"    + phantom {code}  cant={dpa4}  pob_2022_sint={phantom_22:>5,}  (mediana×{PHANTOM_SCALE})")
+            log(f"    + parroquia phantom {code}  cant={dpa4}  pob_2022_sint={phantom_22:>6,}  ({src})")
     else:
-        log(f"  [WARN] geojson no encontrado: {IN_GEOJSON} — sin parroquias phantom")
+        log(f"  [WARN] geojson no encontrado: {IN_GEOJSON} — sin phantoms")
 
-    log(f"  Universo final              : {len(universo)}")
+    # Re-agrupar canton→parroquias después de agregar phantoms.
+    log(f"  Universo final              : {len(universo)} parroquias en {len({p[:4] for p in universo})} cantones")
 
     # Agrupar por cantón.
     cant_to_parr: dict[str, list[str]] = defaultdict(list)
