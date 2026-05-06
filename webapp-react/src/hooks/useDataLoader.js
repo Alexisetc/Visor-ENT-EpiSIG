@@ -16,22 +16,36 @@
 import { useEffect } from 'react'
 import { useStore } from '../store'
 
-// import.meta.env.BASE_URL incluye trailing slash y refleja el base
-// configurado en vite.config.js: '/' en dev y '/Visor-ENT-EpiSIG/' en
-// build (para GitHub Pages). Sin este prefijo los fetch absolutos
-// apuntarian a la raiz del dominio, no al subpath del repo.
+// === Estrategia de carga de datasets ===
+//
+// En DEV usamos `${BASE}assets/*` que va contra la copia local del repo
+// (servida por Vite + el legacyAssetsMiddleware).
+//
+// En PROD el cache CDN de GitHub Pages (cache-bog) está siendo lento
+// para esta región (~9 KB/s, 12 min para parroquias_otp_simpl.geojson).
+// Cambiamos a jsDelivr (CDN gratuito que mirroreaba automáticamente
+// el repo de GitHub) que sirve a ~175 KB/s desde cache-gig (Río de
+// Janeiro), 18× más rápido. Cache-Control: max-age=604800 (1 semana)
+// vs los 10 min de GitHub Pages. Mismo source of truth: los assets
+// de webapp/assets/ del repo en master.
 const BASE = import.meta.env.BASE_URL
 
+// CDN jsDelivr para producción. En dev queda `null` y se usa BASE.
+const PROD = import.meta.env.PROD
+const CDN_BASE = PROD
+  ? 'https://cdn.jsdelivr.net/gh/Alexisetc/Visor-ENT-EpiSIG@master/webapp/assets/'
+  : `${BASE}assets/`
+
 const DATASETS = [
-  { key: 'entData',      url: `${BASE}assets/ent_parroquial.json` },
-  { key: 'pobData',      url: `${BASE}assets/pob_parroquial.json` },
-  { key: 'geoParr',      url: `${BASE}assets/parroquias_otp_simpl.geojson` },
-  { key: 'geoProv',      url: `${BASE}assets/provincias_otp.geojson` },
-  { key: 'mcdaData',     url: `${BASE}assets/priorizacion_mcda.json` },
-  { key: 'mgwrData',     url: `${BASE}assets/mgwr_betas.json` },
-  { key: 'detData',      url: `${BASE}assets/determinantes_parroquial.json` },
-  { key: 'estudioData',  url: `${BASE}assets/estudio_ent.json` },
-]
+  { key: 'entData',      file: 'ent_parroquial.json'        },
+  { key: 'pobData',      file: 'pob_parroquial.json'        },
+  { key: 'geoParr',      file: 'parroquias_otp_simpl.geojson' },
+  { key: 'geoProv',      file: 'provincias_otp.geojson'     },
+  { key: 'mcdaData',     file: 'priorizacion_mcda.json'     },
+  { key: 'mgwrData',     file: 'mgwr_betas.json'            },
+  { key: 'detData',      file: 'determinantes_parroquial.json' },
+  { key: 'estudioData',  file: 'estudio_ent.json'           },
+].map(d => ({ ...d, url: `${CDN_BASE}${d.file}` }))
 
 async function fetchJSON(url) {
   const r = await fetch(url)
