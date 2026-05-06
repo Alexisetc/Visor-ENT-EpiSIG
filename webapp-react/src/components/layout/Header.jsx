@@ -30,7 +30,7 @@ export default function Header() {
         </div>
         <div>
           <h1 className="font-display text-lg font-semibold leading-tight tracking-tight">
-            EpiSIG <span className="text-inspi-yellow">Global Health Platform</span>
+            EpiSIG <span className="text-inspi-yellow">GeoENT Ecuador</span>
           </h1>
           <p className="text-[11px] leading-tight text-slate-300">
             Sistema de Vigilancia Espacial de Precisión · Ecuador Continental

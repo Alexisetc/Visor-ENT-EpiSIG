@@ -8,7 +8,10 @@ import { useEffect } from 'react'
 import { X, Sparkles, Lightbulb, Activity, Flame, Play } from 'lucide-react'
 import { useStore } from '../../store'
 
-export const WELCOME_LS_KEY = 'episig:welcome-seen-v1'
+// Bumpeada a v2 al renombrar la plataforma a "GeoENT Ecuador" — los
+// usuarios que ya habían cerrado la versión anterior verán el modal
+// renovado para enterarse del nuevo nombre.
+export const WELCOME_LS_KEY = 'episig:welcome-seen-v2'
 
 export default function WelcomeModal() {
   const modalOpen  = useStore(s => s.modalOpen)
@@ -39,7 +42,7 @@ export default function WelcomeModal() {
           <div className="flex items-center gap-2">
             <Sparkles size={18} className="text-inspi-yellow" />
             <h2 className="font-display text-base font-semibold">
-              Bienvenido a EpiSIG · Global Health Platform
+              Bienvenido a EpiSIG · GeoENT Ecuador
             </h2>
           </div>
           <button
@@ -54,7 +57,7 @@ export default function WelcomeModal() {
         <div className="space-y-4 px-5 py-4 text-sm leading-relaxed text-slate-700">
           {/* Descripción del prototipo */}
           <p>
-            Esta es una <b>versión prototipo</b> de <b>EpiSIG · Global Health Platform</b>,
+            Esta es una <b>versión prototipo</b> de <b>EpiSIG · GeoENT Ecuador</b>,
             una plataforma geoespacial diseñada para fortalecer la toma de decisiones en
             salud pública y la vigilancia epidemiológica en el Ecuador. Integra datos
             territoriales, indicadores de carga de enfermedad y análisis multicriterio
