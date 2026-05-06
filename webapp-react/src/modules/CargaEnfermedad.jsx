@@ -23,7 +23,7 @@ import {
 import { useStore } from '../store'
 import { usePlay, YEARS } from '../hooks/usePlay'
 import { ENT_LABEL } from '../lib/colors'
-import { getParroquiaKey, getParroquiaLabel } from '../lib/parroquia'
+import { getParroquiaKey, getParroquiaLabel, getProvLabel } from '../lib/parroquia'
 import {
   buildYearSeries, buildAggregateSeries,
   computeTrend, lookupTrend, enrichAnnualPct,
@@ -35,13 +35,15 @@ import Cite from '../components/ficha/Cite'
 export default function CargaEnfermedad() {
   usePlay()
 
-  const ent           = useStore(s => s.ent)
-  const year          = useStore(s => s.year)
-  const provFilter    = useStore(s => s.provFilter)
-  const selectedDpa   = useStore(s => s.selectedDpa)
-  const selectedProps = useStore(s => s.selectedProps)
-  const clearSelected = useStore(s => s.clearSelected)
-  const geoParr       = useStore(s => s.geoParr)
+  const ent             = useStore(s => s.ent)
+  const year            = useStore(s => s.year)
+  const provFilter      = useStore(s => s.provFilter)
+  const setProvFilter   = useStore(s => s.setProvFilter)
+  const selectedDpa     = useStore(s => s.selectedDpa)
+  const selectedProps   = useStore(s => s.selectedProps)
+  const clearSelected   = useStore(s => s.clearSelected)
+  const geoParr         = useStore(s => s.geoParr)
+  const geoProv         = useStore(s => s.geoProv)
   const entData       = useStore(s => s.entData)
   const pobData       = useStore(s => s.pobData)
   const estudioData   = useStore(s => s.estudioData)
@@ -114,8 +116,9 @@ export default function CargaEnfermedad() {
   const unitLabel = useMemo(() => {
     if (selectedDpa && selectedProps) {
       return {
+        scope: 'PARROQUIA',
         title: getParroquiaLabel(selectedProps),
-        sub:   provFilter ? `Provincia ${provFilter}` : 'Detalle parroquial',
+        sub:   provFilter ? `Provincia de ${getProvLabel(provFilter, geoProv)}` : 'Detalle parroquial',
       }
     }
     if (provFilter) {
@@ -127,15 +130,17 @@ export default function CargaEnfermedad() {
           }).length
         : 0
       return {
-        title: `Provincia ${provFilter} (agregado)`,
-        sub:   `${nParr} parroquias`,
+        scope: 'PROVINCIA',
+        title: `Provincia de ${getProvLabel(provFilter, geoProv)}`,
+        sub:   `${nParr} parroquias · agregado provincial`,
       }
     }
     return {
-      title: 'Nacional · Ecuador continental',
-      sub:   geoParr ? `${geoParr.features.length} parroquias` : '',
+      scope: 'PAÍS',
+      title: 'Ecuador continental',
+      sub:   geoParr ? `${geoParr.features.length} parroquias · agregado nacional` : '',
     }
-  }, [selectedDpa, selectedProps, provFilter, geoParr])
+  }, [selectedDpa, selectedProps, provFilter, geoParr, geoProv])
 
   if (!entData || !pobData) {
     return (
@@ -162,12 +167,16 @@ export default function CargaEnfermedad() {
 
   return (
     <div className="flex flex-col gap-3 p-3">
-      {/* Header */}
+      {/* Header — el tag amarillo arriba indica el ALCANCE GEOGRÁFICO
+          (PAÍS / PROVINCIA / PARROQUIA). El ENT seleccionado vive en el
+          subtítulo en gris para no competir con la jerarquía espacial.
+          La X aparece según haya parroquia o provincia para limpiar el
+          filtro respectivo en orden (parroquia → provincia → nacional). */}
       <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-inspi-navy to-inspi-navy-2 p-3 text-white">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="text-[10px] font-medium uppercase tracking-wider text-inspi-yellow">
-              {ENT_LABEL[ent]}
+              {unitLabel.scope}
             </div>
             <div className="truncate font-display text-base font-semibold">
               {unitLabel.title}
@@ -175,17 +184,29 @@ export default function CargaEnfermedad() {
             {unitLabel.sub && (
               <div className="text-[11px] text-slate-300">{unitLabel.sub}</div>
             )}
+            <div className="mt-1 inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white">
+              {ENT_LABEL[ent]}
+            </div>
           </div>
-          {selectedDpa && (
+          {selectedDpa ? (
             <button
               onClick={clearSelected}
               className="flex-shrink-0 rounded p-1 text-slate-300 hover:bg-white/10 hover:text-white"
-              title="Volver al agregado"
-              aria-label="Deseleccionar parroquia y volver al agregado"
+              title="Quitar selección de parroquia (vuelve a la provincia)"
+              aria-label="Deseleccionar parroquia"
             >
               <X size={14} />
             </button>
-          )}
+          ) : provFilter ? (
+            <button
+              onClick={() => setProvFilter(null)}
+              className="flex-shrink-0 rounded p-1 text-slate-300 hover:bg-white/10 hover:text-white"
+              title="Quitar filtro de provincia (vuelve a vista nacional)"
+              aria-label="Quitar filtro de provincia"
+            >
+              <X size={14} />
+            </button>
+          ) : null}
         </div>
         {!selectedDpa && (
           <div className="mt-2 flex items-center gap-1.5 text-[10px] text-slate-300">

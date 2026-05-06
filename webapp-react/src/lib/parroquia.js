@@ -29,3 +29,19 @@ export function pseudoRandom(seed) {
   const x = Math.sin(seed++) * 10000
   return x - Math.floor(x)
 }
+
+// Resuelve el nombre de provincia (ej. "Bolivar") a partir de su código DPA
+// ("02") consultando el GeoJSON de provincias. Devuelve el código si no
+// encuentra match — fallback seguro para que la UI no quede vacía.
+export function getProvLabel(provCode, geoProv) {
+  if (!provCode) return null
+  if (!geoProv?.features) return provCode
+  for (const f of geoProv.features) {
+    const p = f.properties || {}
+    const code = String(p.DPA_PROVIN ?? p.dpa_provin ?? p.PROV_CODE ?? p.code ?? '').padStart(2, '0')
+    if (code === provCode) {
+      return p.DPA_DESPRO ?? p.dpa_despro ?? p.NAME_1 ?? p.PROV_NAME ?? p.name ?? provCode
+    }
+  }
+  return provCode
+}

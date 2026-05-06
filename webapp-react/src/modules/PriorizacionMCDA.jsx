@@ -25,15 +25,17 @@ import { useMemo } from 'react'
 import { Crosshair, X, Star, Award, FlaskConical } from 'lucide-react'
 import { useStore } from '../store'
 import { ENT_LABEL, ENT_COLOR, ENTS } from '../lib/colors'
-import { getParroquiaKey, getParroquiaLabel, getParroquiaProvKey } from '../lib/parroquia'
+import { getParroquiaKey, getParroquiaLabel, getParroquiaProvKey, getProvLabel } from '../lib/parroquia'
 
 export default function PriorizacionMCDA() {
-  const provFilter    = useStore(s => s.provFilter)
-  const selectedDpa   = useStore(s => s.selectedDpa)
-  const selectedProps = useStore(s => s.selectedProps)
-  const clearSelected = useStore(s => s.clearSelected)
-  const geoParr       = useStore(s => s.geoParr)
-  const mcdaData      = useStore(s => s.mcdaData)
+  const provFilter      = useStore(s => s.provFilter)
+  const setProvFilter   = useStore(s => s.setProvFilter)
+  const selectedDpa     = useStore(s => s.selectedDpa)
+  const selectedProps   = useStore(s => s.selectedProps)
+  const clearSelected   = useStore(s => s.clearSelected)
+  const geoParr         = useStore(s => s.geoParr)
+  const geoProv         = useStore(s => s.geoProv)
+  const mcdaData        = useStore(s => s.mcdaData)
 
   // Unidad activa — (a) parroquia específica, (b) provincia agregada, (c) nacional agregado
   const unit = useMemo(() => {
@@ -125,15 +127,24 @@ export default function PriorizacionMCDA() {
   const unitLabel = useMemo(() => {
     if (selectedDpa && selectedProps) {
       return {
+        scope: 'PARROQUIA',
         title: getParroquiaLabel(selectedProps),
-        sub:   provFilter ? `Provincia ${provFilter}` : 'Detalle parroquial',
+        sub:   provFilter ? `Provincia de ${getProvLabel(provFilter, geoProv)}` : 'Detalle parroquial',
       }
     }
     if (provFilter) {
-      return { title: `Provincia ${provFilter} (agregado)`, sub: `${unit?.n || 0} parroquias` }
+      return {
+        scope: 'PROVINCIA',
+        title: `Provincia de ${getProvLabel(provFilter, geoProv)}`,
+        sub:   `${unit?.n || 0} parroquias · agregado provincial`,
+      }
     }
-    return { title: 'Nacional · Ecuador continental', sub: `${unit?.n || 0} parroquias` }
-  }, [selectedDpa, selectedProps, provFilter, unit])
+    return {
+      scope: 'PAÍS',
+      title: 'Ecuador continental',
+      sub:   `${unit?.n || 0} parroquias · agregado nacional`,
+    }
+  }, [selectedDpa, selectedProps, provFilter, geoProv, unit])
 
   if (!mcdaData) {
     return (
@@ -151,12 +162,14 @@ export default function PriorizacionMCDA() {
 
   return (
     <div className="flex flex-col gap-3 p-3">
-      {/* Header */}
+      {/* Header — yellow tag = alcance geográfico (PAÍS/PROVINCIA/PARROQUIA),
+          el módulo va como badge en el subtítulo. La X limpia parroquia
+          si la hay, o provincia si no. */}
       <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-amber-700 to-inspi-navy p-3 text-white">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-inspi-yellow">
-              <Star size={11} /> Priorización MCDA
+            <div className="text-[10px] font-medium uppercase tracking-wider text-inspi-yellow">
+              {unitLabel.scope}
             </div>
             <div className="truncate font-display text-base font-semibold">
               {unitLabel.title}
@@ -164,6 +177,9 @@ export default function PriorizacionMCDA() {
             {unitLabel.sub && (
               <div className="text-[11px] text-slate-300">{unitLabel.sub}</div>
             )}
+            <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white">
+              <Star size={10} /> Priorización MCDA
+            </div>
           </div>
           <div className="flex flex-shrink-0 items-start gap-1">
             {hasRanking && (
@@ -175,16 +191,25 @@ export default function PriorizacionMCDA() {
                 #1 {ENT_LABEL[top.ent]}
               </span>
             )}
-            {selectedDpa && (
+            {selectedDpa ? (
               <button
                 onClick={clearSelected}
                 className="rounded p-1 text-slate-300 hover:bg-white/10 hover:text-white"
-                title="Volver al agregado"
-                aria-label="Deseleccionar parroquia y volver al agregado"
+                title="Quitar selección de parroquia (vuelve a la provincia)"
+                aria-label="Deseleccionar parroquia"
               >
                 <X size={14} />
               </button>
-            )}
+            ) : provFilter ? (
+              <button
+                onClick={() => setProvFilter(null)}
+                className="rounded p-1 text-slate-300 hover:bg-white/10 hover:text-white"
+                title="Quitar filtro de provincia (vuelve a vista nacional)"
+                aria-label="Quitar filtro de provincia"
+              >
+                <X size={14} />
+              </button>
+            ) : null}
           </div>
         </div>
         {!selectedDpa && (

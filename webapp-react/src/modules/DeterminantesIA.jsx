@@ -23,7 +23,7 @@ import { useMemo } from 'react'
 import { Crosshair, X, BrainCircuit, Gauge, FlaskConical } from 'lucide-react'
 import { useStore } from '../store'
 import { ENT_LABEL, ENTS, DETS, DET_LABEL } from '../lib/colors'
-import { getParroquiaKey, getParroquiaLabel, getParroquiaProvKey } from '../lib/parroquia'
+import { getParroquiaKey, getParroquiaLabel, getParroquiaProvKey, getProvLabel } from '../lib/parroquia'
 
 // Rangos tipicos observados en los datasets (para normalizar bars 0..100 %)
 // Revisados contra percentil 95 de detData: pobreza 40, NBI 90, PM2.5 45,
@@ -40,14 +40,16 @@ const DET_META = {
 const DET_ORDER = ['pobreza', 'nbi', 'pm25', 'tabaquismo', 'obesidad', 'sedentarismo', 'acceso_salud_km']
 
 export default function DeterminantesIA() {
-  const ent           = useStore(s => s.ent)
-  const provFilter    = useStore(s => s.provFilter)
-  const selectedDpa   = useStore(s => s.selectedDpa)
-  const selectedProps = useStore(s => s.selectedProps)
-  const clearSelected = useStore(s => s.clearSelected)
-  const geoParr       = useStore(s => s.geoParr)
-  const mgwrData      = useStore(s => s.mgwrData)
-  const detData       = useStore(s => s.detData)
+  const ent             = useStore(s => s.ent)
+  const provFilter      = useStore(s => s.provFilter)
+  const setProvFilter   = useStore(s => s.setProvFilter)
+  const selectedDpa     = useStore(s => s.selectedDpa)
+  const selectedProps   = useStore(s => s.selectedProps)
+  const clearSelected   = useStore(s => s.clearSelected)
+  const geoParr         = useStore(s => s.geoParr)
+  const geoProv         = useStore(s => s.geoProv)
+  const mgwrData        = useStore(s => s.mgwrData)
+  const detData         = useStore(s => s.detData)
 
   // ENT efectiva para mostrar βs — si está "todas", tomamos la primera
   // circulatoria como default visual (siempre hay que mostrar algo).
@@ -135,19 +137,25 @@ export default function DeterminantesIA() {
   const unitLabel = useMemo(() => {
     if (selectedDpa && selectedProps) {
       return {
+        scope: 'PARROQUIA',
         title: getParroquiaLabel(selectedProps),
-        sub:   provFilter ? `Provincia ${provFilter}` : 'Detalle parroquial',
+        sub:   provFilter ? `Provincia de ${getProvLabel(provFilter, geoProv)}` : 'Detalle parroquial',
       }
     }
     if (provFilter) {
       const nParr = aggregated?.n || 0
-      return { title: `Provincia ${provFilter} (agregado)`, sub: `${nParr} parroquias` }
+      return {
+        scope: 'PROVINCIA',
+        title: `Provincia de ${getProvLabel(provFilter, geoProv)}`,
+        sub:   `${nParr} parroquias · agregado provincial`,
+      }
     }
     return {
-      title: 'Nacional · Ecuador continental',
-      sub:   `${aggregated?.n || 0} parroquias`,
+      scope: 'PAÍS',
+      title: 'Ecuador continental',
+      sub:   `${aggregated?.n || 0} parroquias · agregado nacional`,
     }
-  }, [selectedDpa, selectedProps, provFilter, aggregated])
+  }, [selectedDpa, selectedProps, provFilter, geoProv, aggregated])
 
   const hasMgwr = Boolean(aggregated?.mgwr)
   const hasDet  = Boolean(aggregated?.det)
@@ -179,12 +187,14 @@ export default function DeterminantesIA() {
 
   return (
     <div className="flex flex-col gap-3 p-3">
-      {/* Header */}
+      {/* Header — yellow tag = alcance geográfico (PAÍS/PROVINCIA/PARROQUIA),
+          el módulo y el ENT van como badges/subtítulo. La X limpia parroquia
+          si la hay, o provincia si no. */}
       <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-violet-700 to-inspi-navy p-3 text-white">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-inspi-yellow">
-              <BrainCircuit size={11} /> Determinantes · MGWR
+            <div className="text-[10px] font-medium uppercase tracking-wider text-inspi-yellow">
+              {unitLabel.scope}
             </div>
             <div className="truncate font-display text-base font-semibold">
               {unitLabel.title}
@@ -192,21 +202,35 @@ export default function DeterminantesIA() {
             {unitLabel.sub && (
               <div className="text-[11px] text-slate-300">{unitLabel.sub}</div>
             )}
-            <div className="mt-1 inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white">
-              ENT: {ENT_LABEL[effectiveEnt]}
-              {ent === 'todas' && <span className="ml-1 opacity-70">(default)</span>}
+            <div className="mt-1 flex flex-wrap items-center gap-1">
+              <div className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white">
+                <BrainCircuit size={10} /> Determinantes · MGWR
+              </div>
+              <div className="inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white">
+                {ENT_LABEL[effectiveEnt]}
+                {ent === 'todas' && <span className="ml-1 opacity-70">(default)</span>}
+              </div>
             </div>
           </div>
-          {selectedDpa && (
+          {selectedDpa ? (
             <button
               onClick={clearSelected}
               className="flex-shrink-0 rounded p-1 text-slate-300 hover:bg-white/10 hover:text-white"
-              title="Volver al agregado"
-              aria-label="Deseleccionar parroquia y volver al agregado"
+              title="Quitar selección de parroquia (vuelve a la provincia)"
+              aria-label="Deseleccionar parroquia"
             >
               <X size={14} />
             </button>
-          )}
+          ) : provFilter ? (
+            <button
+              onClick={() => setProvFilter(null)}
+              className="flex-shrink-0 rounded p-1 text-slate-300 hover:bg-white/10 hover:text-white"
+              title="Quitar filtro de provincia (vuelve a vista nacional)"
+              aria-label="Quitar filtro de provincia"
+            >
+              <X size={14} />
+            </button>
+          ) : null}
         </div>
         {!selectedDpa && (
           <div className="mt-2 flex items-center gap-1.5 text-[10px] text-slate-300">

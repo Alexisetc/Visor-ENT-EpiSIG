@@ -43,7 +43,23 @@ export const useStore = create((set, get) => ({
       set({ provFilter: p })
     }
   },
-  setSelected:      (dpa, pr)  => set({ selectedDpa: dpa, selectedProps: pr }),
+  // Al seleccionar una parroquia, automáticamente filtramos por su provincia
+  // — esto dispara el fitBounds a la provincia (FitToProvince en MapView)
+  // dando contexto espacial al click. Si el usuario quiere volver a vista
+  // nacional, limpia la provincia con la X del panel derecho.
+  setSelected:      (dpa, pr)  => {
+    const provKey = pr
+      ? String(pr.DPA_PARROQ != null ? String(pr.DPA_PARROQ).padStart(6, '0').slice(0, 2)
+        : (pr.DPA_PROVIN != null ? String(pr.DPA_PROVIN).padStart(2, '0') : ''))
+      : null
+    set(s => ({
+      selectedDpa: dpa,
+      selectedProps: pr,
+      // Solo cambiamos provFilter si todavía no había uno (para no sobreescribir
+      // un filtro explícito del usuario) o si era distinto al que corresponde.
+      provFilter: provKey || s.provFilter,
+    }))
+  },
   clearSelected:    ()         => set({ selectedDpa: null, selectedProps: null }),
   togglePlay:       ()         => set(s => ({ playing: !s.playing })),
   setPlaying:       (p)        => set({ playing: p }),
