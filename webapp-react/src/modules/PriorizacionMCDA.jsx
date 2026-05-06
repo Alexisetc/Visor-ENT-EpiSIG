@@ -218,7 +218,7 @@ export default function PriorizacionMCDA() {
 
       {/* Fallback: parroquia sin datos MCDA */}
       {!hasRanking && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] leading-relaxed text-amber-800">
+        <div className="rounded-[3px] border border-inspi-navy/30 bg-inspi-navy/5 p-3 text-[11px] leading-relaxed text-inspi-navy">
           <div className="mb-1 flex items-center gap-1 font-semibold">
             <FlaskConical size={11} /> Sin datos MCDA para esta unidad
           </div>
@@ -334,7 +334,7 @@ export default function PriorizacionMCDA() {
       )}
 
       {/* Footer */}
-      <div className="rounded border border-amber-200 bg-amber-50 p-2 text-[10px] leading-relaxed text-amber-800">
+      <div className="rounded-[3px] border border-inspi-navy/30 bg-inspi-navy/5 p-2 text-[10px] leading-relaxed text-inspi-navy">
         <div className="mb-0.5 flex items-center gap-1 font-semibold">
           <FlaskConical size={10} /> Simulación estructurada
         </div>
@@ -342,7 +342,7 @@ export default function PriorizacionMCDA() {
         mortalidad 0.30 · egresos 0.20 · AVAD-GBD 0.15 · tendencia CAGR 0.15 ·
         costo-sistema 0.10 · equidad urbano-rural 0.10. Parroquias con &lt;10 casos
         heredan el ranking cantonal.
-        <div className="mt-1.5 border-t border-amber-200 pt-1.5 text-[9.5px]">
+        <div className="mt-1.5 border-t border-inspi-navy/20 pt-1.5 text-[9.5px]">
           <span className="font-semibold">Reemplazo planeado:</span> resultados reales
           del Proyecto Econométrico Espacial INSPI F-I+D+i-075 (Duque-ESPE 2026-2027)
           y del Proyecto de Priorización MCDA (Núñez-UTE 2026-2028) cuando estén

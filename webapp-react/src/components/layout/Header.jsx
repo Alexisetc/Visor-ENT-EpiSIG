@@ -128,14 +128,12 @@ function HeaderButton({ icon: Icon, label, title, onClick, wip = false, iconOnly
         <Icon size={14} strokeWidth={2.2} />
         {!iconOnly && <span>{label}</span>}
         {!iconOnly && (
-          <span className="ml-0.5 rounded bg-inspi-red/15 px-1 py-0.5 text-[8.5px] font-semibold uppercase tracking-[0.07em] text-inspi-red">
-            WIP
+          <span className="ml-0.5 rounded bg-white/10 px-1.5 py-0.5 text-[8.5px] font-semibold uppercase tracking-[0.07em] text-slate-300">
+            En desarrollo
           </span>
         )}
         {iconOnly && (
-          <span className="absolute right-0.5 top-0.5 rounded bg-inspi-red px-1 py-px text-[7.5px] font-bold uppercase tracking-[0.07em] leading-none text-white shadow">
-            WIP
-          </span>
+          <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-inspi-amber ring-2 ring-inspi-navy" />
         )}
       </button>
     )

@@ -1,17 +1,36 @@
-// WelcomeModal — Mensaje de bienvenida al prototipo EpiSIG.
+// WelcomeModal — Mensaje de bienvenida al prototipo del Visor ENT.
 //
-// Se abre automáticamente la primera vez que el usuario visita el visor
-// (controlado por localStorage). Después se puede reabrir desde el botón
-// "Bienvenida" del Header. Patrón visual idéntico a MetodologiaModal.
+// Layout matching del Manual de Diseño v2 (versión revisada por el usuario):
+//   - Header navy con barra roja superior 2 px, iso EpiSIG (bricks),
+//     overline "INSPI · VISOR PARROQUIAL", título grande.
+//   - Body: párrafo institucional + callout navy de "datos simulados" +
+//     tip card con borde rojo izquierdo + lista numerada.
+//   - CTA grande rojo "Empezar a explorar".
+//
+// Se abre automáticamente la primera vez (controlado por localStorage)
+// y se reabre desde el botón "Bienvenida" del Header.
 
 import { useEffect } from 'react'
-import { X, Sparkles, Lightbulb, Activity, Flame, Play } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useStore } from '../../store'
 
-// Bumpeada a v2 al renombrar la plataforma a "GeoENT Ecuador" — los
-// usuarios que ya habían cerrado la versión anterior verán el modal
-// renovado para enterarse del nuevo nombre.
-export const WELCOME_LS_KEY = 'episig:welcome-seen-v2'
+// Bumpeada a v3 al renovar copy + layout del manual revisado.
+export const WELCOME_LS_KEY = 'episig:welcome-seen-v3'
+
+// Iso EpiSIG inline (mismo del Header, escala mayor para el modal).
+function EpiSIGIso() {
+  return (
+    <div
+      className="grid h-7 w-7 grid-cols-2 grid-rows-2 gap-[2px] rounded-[3px] bg-white p-[2px] shadow-sm"
+      aria-hidden="true"
+    >
+      <div className="bg-inspi-red" />
+      <div className="bg-inspi-navy" />
+      <div className="bg-inspi-navy" />
+      <div className="bg-inspi-red" />
+    </div>
+  )
+}
 
 export default function WelcomeModal() {
   const modalOpen  = useStore(s => s.modalOpen)
@@ -36,86 +55,77 @@ export default function WelcomeModal() {
       className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm"
       onClick={e => { if (e.target === e.currentTarget) dismiss() }}
     >
-      <div className="max-h-[85vh] w-[640px] max-w-[92vw] overflow-y-auto rounded-lg bg-white shadow-2xl">
-        {/* Cabecera */}
-        <header className="flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-inspi-navy to-inspi-navy-2 px-5 py-3 text-white">
-          <div className="flex items-center gap-2">
-            <Sparkles size={18} className="text-inspi-red" />
-            <h2 className="font-display text-base font-semibold">
-              Bienvenido a geoENT Ecuador
-            </h2>
+      <div className="max-h-[85vh] w-[680px] max-w-[92vw] overflow-y-auto rounded-[4px] bg-inspi-paper shadow-2xl">
+        {/* === Header navy con barra roja superior y iso === */}
+        <header className="relative bg-inspi-navy px-5 pb-4 pt-4 text-white">
+          {/* Barra roja superior 2 px (eco del wordmark). */}
+          <span className="absolute left-0 right-0 top-0 h-[2px] bg-inspi-red" />
+
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <EpiSIGIso />
+              <div>
+                <div className="font-display text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-300">
+                  INSPI · Visor parroquial
+                </div>
+                <h2 className="mt-0.5 font-display text-[18px] font-bold leading-tight text-white">
+                  Bienvenido al Visor de Enfermedades No Transmisibles
+                </h2>
+              </div>
+            </div>
+            <button
+              onClick={dismiss}
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded text-slate-300 hover:bg-white/10 hover:text-white"
+              aria-label="Cerrar bienvenida"
+            >
+              <X size={16} />
+            </button>
           </div>
-          <button
-            onClick={dismiss}
-            className="rounded p-1 text-slate-300 hover:bg-white/10 hover:text-white"
-            aria-label="Cerrar bienvenida"
-          >
-            <X size={16} />
-          </button>
         </header>
 
-        <div className="space-y-4 px-5 py-4 text-sm leading-relaxed text-slate-700">
-          {/* Descripción del prototipo */}
+        {/* Línea acento rojo bajo el header (eco de la línea inferior del Header global). */}
+        <div className="h-[2px] w-full bg-inspi-red" />
+
+        {/* === Body === */}
+        <div className="space-y-3 px-5 py-4 text-[13px] leading-relaxed text-slate-700">
+          {/* Párrafo institucional */}
           <p>
-            Esta es una <b>versión prototipo</b> de <b>geoENT Ecuador</b> (EpiSIG · INSPI),
-            una plataforma geoespacial diseñada para fortalecer la toma de decisiones en
-            salud pública y la vigilancia epidemiológica en el Ecuador. Integra datos
-            territoriales, indicadores de carga de enfermedad y análisis multicriterio
-            con el fin de comprender los patrones espaciales de las{' '}
-            <b>enfermedades no transmisibles (ENT)</b> y orientar acciones priorizadas
-            sobre el territorio.
+            Esta es una <b>versión prototipo</b> del visor parroquial de Enfermedades
+            No Transmisibles (ENT) del <b>EpiSIG · INSPI</b>. Integra datos territoriales,
+            indicadores de carga de enfermedad y análisis multicriterio para orientar
+            decisiones priorizadas en salud pública.
           </p>
 
-          {/* Recordatorio de prototipo */}
-          <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-            Algunos módulos consumen <b>datos simulados estructurados</b> mientras
-            avanzan los proyectos científicos asociados. Encontrarás esa marca como
-            etiqueta <span className="font-semibold uppercase tracking-wider">simulación</span>{' '}
-            junto al nombre del módulo en el panel izquierdo.
+          {/* Callout: datos simulados — borde navy (estandarizado) */}
+          <div className="rounded-[3px] border border-inspi-navy/30 bg-inspi-navy/5 px-3 py-2 text-[12px] text-inspi-navy">
+            Algunos módulos consumen{' '}
+            <b>datos simulados estructurados</b> (ENSANUT-ECU, STEPS-OMS, GBD 2021)
+            marcados con la etiqueta{' '}
+            <span className="inline-flex items-center rounded-[3px] border border-inspi-line bg-inspi-bone px-1.5 py-px font-display text-[10px] font-bold uppercase tracking-[0.07em] text-inspi-navy">
+              Simulación
+            </span>.
           </div>
 
-          {/* Tip rápido */}
-          <div className="rounded-lg border-2 border-violet-200 bg-violet-50/60 p-3">
-            <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-violet-800">
-              <Lightbulb size={13} /> Tip rápido — animación de evolución temporal
+          {/* Tip card con borde rojo izquierdo */}
+          <div className="rounded-[3px] border border-inspi-line bg-inspi-bone/40">
+            <div className="border-l-[3px] border-inspi-red px-3 py-2.5">
+              <div className="mb-1.5 flex items-center gap-1.5 font-display text-[11px] font-bold uppercase tracking-[0.07em] text-inspi-red">
+                ▶ Tip rápido — Animación temporal
+              </div>
+              <ol className="list-decimal space-y-0.5 pl-5 text-[12.5px] text-slate-700 marker:font-semibold marker:text-inspi-navy">
+                <li>Active el módulo <b>Carga de enfermedad</b>.</li>
+                <li>Seleccione visualización <b>Hot Spots</b>.</li>
+                <li>Pulse <b>▶ Reproducir</b> en el panel temporal para recorrer 2013–2024.</li>
+              </ol>
             </div>
-            <p className="text-xs leading-relaxed text-slate-700">
-              Para visualizar la transición espacial y temporal de una ENT en el
-              Ecuador continental:
-            </p>
-            <ol className="mt-1.5 list-decimal space-y-1 pl-5 text-xs">
-              <li>
-                Ingrese al módulo{' '}
-                <span className="inline-flex items-center gap-1 rounded bg-rose-100 px-1.5 py-0.5 font-medium text-rose-700">
-                  <Activity size={11} /> Carga de Enfermedad
-                </span>{' '}
-                en el panel izquierdo.
-              </li>
-              <li>
-                Seleccione la visualización{' '}
-                <span className="inline-flex items-center gap-1 rounded bg-orange-100 px-1.5 py-0.5 font-medium text-orange-700">
-                  <Flame size={11} /> Hot Spot
-                </span>.
-              </li>
-              <li>
-                En la barra inferior haga clic en{' '}
-                <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 font-medium text-emerald-700">
-                  <Play size={11} /> Reproducir evolución temporal
-                </span>.
-              </li>
-            </ol>
-            <p className="mt-2 text-[11px] italic text-violet-800">
-              La animación recorre la serie 2013–2024 mostrando cómo se difunde la
-              enfermedad seleccionada a lo largo del territorio.
-            </p>
           </div>
         </div>
 
-        {/* Footer con CTA */}
-        <footer className="flex items-center justify-end gap-2 border-t border-slate-200 bg-slate-50 px-5 py-3">
+        {/* === Footer con CTA grande rojo === */}
+        <footer className="flex items-center justify-end gap-2 border-t border-inspi-line bg-inspi-bone px-5 py-3">
           <button
             onClick={dismiss}
-            className="rounded bg-inspi-red px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:brightness-110"
+            className="rounded-[3px] bg-inspi-red px-5 py-2 font-display text-[13px] font-bold text-white shadow-sm transition hover:brightness-110"
           >
             Empezar a explorar
           </button>

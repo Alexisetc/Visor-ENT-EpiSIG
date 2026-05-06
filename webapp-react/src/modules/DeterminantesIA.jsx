@@ -326,14 +326,14 @@ export default function DeterminantesIA() {
       )}
 
       {/* Footer */}
-      <div className="rounded border border-amber-200 bg-amber-50 p-2 text-[10px] leading-relaxed text-amber-800">
+      <div className="rounded-[3px] border border-inspi-navy/30 bg-inspi-navy/5 p-2 text-[10px] leading-relaxed text-inspi-navy">
         <div className="mb-0.5 flex items-center gap-1 font-semibold">
           <FlaskConical size={10} /> Simulación estructurada
         </div>
         ENSANUT-ECU 2018 + STEPS-OMS + CPV 2022 + GBD 2021 ajustado por factor
         urbano/rural y ruido σ=8%. MGWR: β nacional × kernel gaussiano anclado
         en focos reales.
-        <div className="mt-1.5 border-t border-amber-200 pt-1.5 text-[9.5px]">
+        <div className="mt-1.5 border-t border-inspi-navy/20 pt-1.5 text-[9.5px]">
           <span className="font-semibold">Reemplazo planeado:</span> resultados reales
           del Proyecto Econométrico Espacial INSPI F-I+D+i-075 (Duque-ESPE 2026-2027)
           y del Proyecto de Priorización MCDA (Núñez-UTE 2026-2028) cuando estén

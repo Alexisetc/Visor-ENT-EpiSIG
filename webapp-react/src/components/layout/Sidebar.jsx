@@ -96,10 +96,10 @@ export default function Sidebar() {
                 </div>
                 {m.simulada && (
                   <span
-                    className="ml-auto rounded-[3px] bg-inspi-red/10 px-1.5 py-0.5 font-display text-[9px] font-bold uppercase tracking-[0.07em] text-inspi-red"
+                    className="ml-auto rounded-[3px] bg-inspi-navy/10 px-1.5 py-0.5 font-display text-[9px] font-bold uppercase tracking-[0.07em] text-inspi-navy"
                     title="Datos simulados — no oficiales"
                   >
-                    SIM
+                    Simulación
                   </span>
                 )}
               </button>
