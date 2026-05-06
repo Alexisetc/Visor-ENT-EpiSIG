@@ -29,6 +29,7 @@ import HotSpotLayer        from './HotSpotLayer'
 import ProvinceOverlay     from './ProvinceOverlay'
 import ZoomControls        from './ZoomControls'
 import Legend              from './Legend'
+import { DEFAULT_CENTER, DEFAULT_ZOOM } from '../../lib/mapDefaults'
 
 // --- helper: hace fitBounds a la provincia seleccionada (o a Ecuador entero) ---
 function FitToProvince() {
@@ -39,7 +40,7 @@ function FitToProvince() {
   useEffect(() => {
     if (!geoProv) return
     if (!provFilter) {
-      map.setView([-2.0, -78.4], 6, { animate: true })
+      map.setView(DEFAULT_CENTER, DEFAULT_ZOOM, { animate: true })
       return
     }
     const f = (geoProv.features || []).find(ft => {
@@ -90,8 +91,8 @@ export default function MapView() {
   return (
     <div className="relative h-full w-full">
       <MapContainer
-        center={[-2.0, -78.4]}
-        zoom={6}
+        center={DEFAULT_CENTER}
+        zoom={DEFAULT_ZOOM}
         scrollWheelZoom
         zoomControl={false}
         attributionControl={false}

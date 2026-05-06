@@ -11,9 +11,7 @@
 // del mapa.
 
 import { ZoomIn, ZoomOut, Home } from 'lucide-react'
-
-const DEFAULT_CENTER = [-1.6, -78.3]
-const DEFAULT_ZOOM   = 7
+import { DEFAULT_CENTER, DEFAULT_ZOOM } from '../../lib/mapDefaults'
 
 export default function ZoomControls({ map }) {
   if (!map) return null
