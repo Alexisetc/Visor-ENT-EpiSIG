@@ -505,25 +505,10 @@ export default function HotSpotLayer() {
   const { mean, sd, metricLabel, noDataKeys, interpKeys } = kdeData
   const entLabel = ENT_LABEL[ent] || ent
 
-  // Helper: convierte un z-score normalizado a un color RGB Turbo.
-  // Usado para rellenar el polígono de parroquias cuyos pixels en el
-  // canvas KDE quedaron NaN (lejos de toda observación, peso bajo el
-  // umbral). Sin esto, las parroquias grandes con vecinos lejanos
-  // muestran huecos blancos visibles dentro del heatmap.
-  const fillFromValue = (val) => {
-    if (!Number.isFinite(val) || sd === 0) return null
-    const z = (val - mean) / sd
-    // Mapeo lineal a 0..1 en una banda razonable (-2.5..+2.5).
-    const t = Math.max(0, Math.min(1, (z + 2.5) / 5))
-    const idx = Math.floor(t * 255) * 3
-    return `rgb(${TURBO_LUT[idx]},${TURBO_LUT[idx + 1]},${TURBO_LUT[idx + 2]})`
-  }
-
   // Estilo:
   //  · fueraProv (dim)  → invisible (opacity 0)
   //  · sinDato (inProv) → fill gris + borde punteado (estándar sin-dato)
-  //  · conDato/interp   → fill Turbo de respaldo (cubre huecos KDE) +
-  //                        stroke fino oscuro
+  //  · conDato          → sin fill, stroke fino oscuro sobre el KDE
   //  · seleccionada     → fill o stroke amarillo
   const styleFn = (feature) => {
     const p = feature.properties || {}
@@ -547,19 +532,9 @@ export default function HotSpotLayer() {
         dashArray:   sel ? null : '2 3',
       }
     }
-    // Fill de respaldo: color Turbo derivado del valor de la parroquia.
-    // El L.imageOverlay del KDE va en kde-pane (z=350) DEBAJO del
-    // overlayPane (z=400) donde viven los polígonos. Por eso el polígono
-    // se renderiza ENCIMA del canvas — para que el KDE siga siendo el
-    // protagonista visual donde existe, este fill va en opacity baja
-    // (0.45 sin selección). En zonas donde el KDE quedó transparente
-    // (lejos de centroides), el fill compensa y la parroquia se ve
-    // pintada de su color esperado.
-    const v = valuesByKey.get(key)
-    const fallbackFill = fillFromValue(v)
     return {
-      fillColor:   fallbackFill || 'transparent',
-      fillOpacity: fallbackFill ? (sel ? 0.85 : 0.45) : 0,
+      fillColor:   'transparent',
+      fillOpacity: 0,
       color:       sel ? '#fbc400' : '#0f172a',
       weight:      sel ? 2.5 : 0.4,
       opacity:     sel ? 1 : 0.5,
