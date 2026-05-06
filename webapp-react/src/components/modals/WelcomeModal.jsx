@@ -16,8 +16,8 @@ import { useStore } from '../../store'
 import EpiLogo from '../brand/EpiLogo'
 import GeoEntLogo from '../brand/GeoEntLogo'
 
-// Bumpeada a v5 al integrar el logo geoENT y renovar el copy.
-export const WELCOME_LS_KEY = 'episig:welcome-seen-v5'
+// Bumpeada a v6 al renovar el pitch (propuesta de valor en 2 columnas).
+export const WELCOME_LS_KEY = 'episig:welcome-seen-v6'
 
 export default function WelcomeModal() {
   const modalOpen  = useStore(s => s.modalOpen)
@@ -55,9 +55,6 @@ export default function WelcomeModal() {
                 <div className="font-display text-[9.5px] font-semibold uppercase tracking-[0.12em] text-white/55">
                   INSPI · Centro de Investigación EpiSIG
                 </div>
-                <div className="mt-0.5 font-display text-[12px] font-medium text-white/85">
-                  Visor parroquial de Enfermedades No Transmisibles
-                </div>
               </div>
             </div>
             <button
@@ -86,13 +83,55 @@ export default function WelcomeModal() {
         {/* === Body === */}
         <div className="space-y-3.5 px-6 py-4 text-[13px] leading-[1.6] text-slate-700">
           <p>
-            <b className="text-inspi-navy">geoENT</b> convierte datos epidemiológicos
-            territoriales en evidencia accionable para la toma de decisiones en salud
-            pública del Ecuador continental. Diseñado por el{' '}
-            <b className="text-inspi-navy">Centro de Investigación EpiSIG · INSPI</b>,
-            integra carga de enfermedad, determinantes sociales y priorización
-            multicriterio sobre las <span className="font-mono tnum">1.049</span>{' '}
-            parroquias del país.
+            <b className="text-inspi-navy">geoENT</b> es la plataforma de investigación
+            espacial en Enfermedades No Transmisibles del{' '}
+            <b className="text-inspi-navy">Centro de Investigación EpiSIG · INSPI</b>.
+            Une dos preguntas críticas de la salud pública territorial en una sola
+            interfaz —{' '}
+            <span className="text-inspi-red">¿qué condiciones del territorio</span>{' '}
+            están conduciendo la carga de enfermedad, y{' '}
+            <span className="text-inspi-red">¿dónde concentrar las acciones</span>{' '}
+            de mayor impacto— sobre las{' '}
+            <span className="font-mono tnum">1.049</span> parroquias del Ecuador
+            continental.
+          </p>
+
+          {/* Mini-grid de propuesta de valor: dos columnas con los dos
+              enfoques que sustentan al visor (sin nombrar los proyectos
+              específicos), centrados en el "para qué" institucional. */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="rounded-[3px] border border-inspi-line bg-inspi-paper p-3">
+              <div className="font-display text-[9.5px] font-bold uppercase tracking-[0.08em] text-inspi-red">
+                Comprender
+              </div>
+              <div className="mt-1 font-display text-[11.5px] font-semibold leading-[1.35] text-inspi-navy">
+                Determinantes territoriales de las ENT
+              </div>
+              <div className="mt-1 font-display text-[10.5px] leading-[1.45] text-inspi-muted">
+                Modelado econométrico espacial para detectar qué factores
+                (pobreza, ambiente, hábitos, acceso a salud) explican la carga
+                local de enfermedad en cada parroquia.
+              </div>
+            </div>
+            <div className="rounded-[3px] border border-inspi-line bg-inspi-paper p-3">
+              <div className="font-display text-[9.5px] font-bold uppercase tracking-[0.08em] text-inspi-red">
+                Priorizar
+              </div>
+              <div className="mt-1 font-display text-[11.5px] font-semibold leading-[1.35] text-inspi-navy">
+                Decisiones de inversión en salud pública
+              </div>
+              <div className="mt-1 font-display text-[10.5px] leading-[1.45] text-inspi-muted">
+                Análisis multicriterio que combina mortalidad, carga de
+                enfermedad, costos y equidad para señalar dónde y en qué
+                ENT actuar primero.
+              </div>
+            </div>
+          </div>
+
+          <p className="text-[12px] text-inspi-muted">
+            Una sola plataforma para pasar de la <b className="text-inspi-navy">evidencia
+            espacial</b> a la <b className="text-inspi-navy">decisión territorial</b>{' '}
+            en salud pública.
           </p>
 
           {/* Callout: datos simulados — borde navy (estandarizado). */}

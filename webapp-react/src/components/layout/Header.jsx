@@ -34,10 +34,10 @@ export default function Header() {
         </div>
         <div className="min-w-0 border-l border-white/20 pl-3.5 leading-tight">
           <div className="truncate font-display text-[14px] font-bold tracking-tight text-white">
-            Visor ENT · Ecuador
+            <span className="text-inspi-red">geo</span>ENT · Ecuador
           </div>
-          <div className="mt-0.5 truncate font-display text-[10.5px] font-medium uppercase tracking-[0.08em] text-white/65">
-            INSPI · Sistema de Información Geográfica Epidemiológica
+          <div className="mt-0.5 truncate font-display text-[10.5px] font-medium uppercase tracking-[0.12em] text-white/65">
+            Visor de Investigación
           </div>
         </div>
       </div>

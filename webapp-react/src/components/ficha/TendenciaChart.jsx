@@ -1,88 +1,79 @@
-// TendenciaChart — AreaChart Recharts con la serie 2013→2024 COMPLETA para
-// la unidad seleccionada (parroquia, provincia agregada o nacional).
+// TendenciaChart — gráfico de tendencia 2013→2024 en SVG inline.
 //
-// Una sola serie, elegida por el prop `metric` (que sigue al toggle global
-// "Métrica del mapa"):
-//   · morbilidad → rate     (egresos /100k)   · color del grupo ENT
-//   · mortalidad → mortRate (defunciones /100k) · color rose-700
-//
-// Antes se dibujaban ambas simultáneamente, pero el usuario pidió que el
-// panel derecho refleje UNA sola métrica a la vez (la del toggle) para no
-// confundir lectores.
-//
-// La línea vertical punteada amarilla indica el año actualmente seleccionado
-// y NO corta la serie: siempre se muestran los 12 años.
+// Replica la propuesta de Claude Design: pill rojo del año al TOP del SVG
+// (NO detrás de la línea), línea de referencia roja punteada que llega hasta
+// el pill, dot grande en el año seleccionado, área degradada del color del
+// ENT, banner CAGR superior. Sin dependencia de Recharts para este chart
+// específico — más control sobre layout y orden de pintado.
 
-import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  ReferenceLine, CartesianGrid,
-} from 'recharts'
 import { ENT_COLOR } from '../../lib/colors'
 
 export default function TendenciaChart({ series, disease, year, metric = 'morbilidad' }) {
-  const data = series && series.length ? series : []
-  const isMort = metric === 'mortalidad'
-
-  // Color: grupo ENT para morbilidad, rose-700 para mortalidad
-  const color = isMort ? '#be123c' : (ENT_COLOR[disease] || '#1a1b4a')
+  const data = (series && series.length) ? series : []
+  const isMort  = metric === 'mortalidad'
+  const color   = isMort ? '#be123c' : (ENT_COLOR[disease] || '#1a1b4a')
   const dataKey = isMort ? 'mortRate' : 'rate'
-  const tooltipLabel = isMort ? 'Mortalidad /100k' : 'Morbilidad Hosp. /100k'
-  const gradId = `g-${disease}-${metric}`
-
+  const tooltipLabel = isMort ? 'Mortalidad /100k' : 'Morbilidad /100k'
   const hasData = data.some(d => (d[dataKey] || 0) > 0)
+  const gradId  = `g-${disease}-${metric}`
 
-  // Formateo compacto para tick del YAxis (325 → 325, 1250 → 1.3K, 12500 → 12K)
+  // Geometría del SVG (responsive vía viewBox).
+  const W = 320, H = 150
+  const padL = 30, padR = 8, padT = 18, padB = 22
+
+  const values = data.map(d => Number(d[dataKey] || 0))
+  const minV   = hasData ? Math.min(...values) * 0.92 : 0
+  const maxV   = hasData ? Math.max(...values) * 1.08 : 100
+  const range  = maxV - minV || 1
+  const years  = data.map(d => d.year)
+  const minYr  = years[0] ?? 2013
+  const maxYr  = years[years.length - 1] ?? 2024
+
+  const xs = (yr) => padL + ((yr - minYr) / (maxYr - minYr || 1)) * (W - padL - padR)
+  const ys = (v)  => padT + (1 - (v - minV) / range) * (H - padT - padB)
+
+  // CAGR sobre la serie completa.
+  let cagr = null
+  if (hasData && data.length >= 2) {
+    const first = Number(data[0][dataKey])
+    const last  = Number(data[data.length - 1][dataKey])
+    const span  = (data[data.length - 1].year - data[0].year)
+    if (first > 0 && last > 0 && span > 0) {
+      const r = Math.pow(last / first, 1 / span) - 1
+      if (Number.isFinite(r)) cagr = (r * 100).toFixed(1)
+    }
+  }
+
+  // Path de la serie + área cerrada al baseline.
+  let path = ''
+  let area = ''
+  if (hasData) {
+    path = data.map((d, i) =>
+      `${i === 0 ? 'M' : 'L'} ${xs(d.year).toFixed(1)} ${ys(d[dataKey] || 0).toFixed(1)}`
+    ).join(' ')
+    area = `${path} L ${xs(maxYr).toFixed(1)} ${(H - padB).toFixed(1)} L ${xs(minYr).toFixed(1)} ${(H - padB).toFixed(1)} Z`
+  }
+
+  // Y-ticks (3 niveles): min, mid, max.
+  const yTicks = [minV, (minV + maxV) / 2, maxV]
   const fmtY = (v) => {
-    if (v == null) return ''
     const n = Number(v)
     if (Math.abs(n) >= 10000) return `${Math.round(n / 1000)}K`
     if (Math.abs(n) >= 1000)  return `${(n / 1000).toFixed(1)}K`
     return String(Math.round(n))
   }
 
-  // Calcula CAGR (compound annual growth rate) sobre la serie completa.
-  // Si la serie es muy corta o el primer/último valor no son válidos,
-  // retorna null y omitimos el pill.
-  const cagr = (() => {
-    if (!hasData || data.length < 2) return null
-    const first = Number(data[0][dataKey])
-    const last  = Number(data[data.length - 1][dataKey])
-    if (!first || !last || first <= 0) return null
-    const years = data[data.length - 1].year - data[0].year
-    if (years <= 0) return null
-    const r = Math.pow(last / first, 1 / years) - 1
-    if (!Number.isFinite(r)) return null
-    return (r * 100).toFixed(1)
-  })()
+  // X-ticks (cada 3 años). Garantiza que minYr y maxYr estén incluidos.
+  const xTicks = [...new Set([minYr, minYr + 3, minYr + 6, minYr + 9, maxYr])]
+    .filter(t => t >= minYr && t <= maxYr)
 
-  // Pill con el año actual: rectangle rojo + texto blanco mono — anclado
-  // al ReferenceLine del año seleccionado (Recharts maneja el posicionamiento).
-  const yearPillLabel = (props) => {
-    const { viewBox } = props
-    if (!viewBox) return null
-    const x = viewBox.x
-    const y = viewBox.y + 2
-    return (
-      <g>
-        <rect x={x - 14} y={y} width={28} height={13} rx={2} fill="#B81D24" />
-        <text
-          x={x}
-          y={y + 9}
-          fill="#fff"
-          fontSize={9}
-          fontWeight={700}
-          textAnchor="middle"
-          fontFamily="Roboto Mono, monospace"
-        >
-          {year}
-        </text>
-      </g>
-    )
-  }
+  // Posición del pill del año (clampeada para que no se salga del SVG).
+  const yearX = xs(year)
+  const pillW = 32, pillH = 13
 
   return (
     <div className="rounded-[3px] border border-inspi-line bg-inspi-paper">
-      {/* CAGR pill en la esquina superior derecha del chart card. */}
+      {/* Banner CAGR superior. */}
       {cagr != null && (
         <div className="flex items-center justify-end border-b border-inspi-line bg-inspi-slate-50 px-2.5 py-1 font-display text-[9.5px] font-semibold text-inspi-muted">
           CAGR{' '}
@@ -92,84 +83,119 @@ export default function TendenciaChart({ series, disease, year, metric = 'morbil
           <span className="ml-1">/año</span>
         </div>
       )}
-      <div className="h-[160px] w-full p-1.5">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 22, right: 8, bottom: 2, left: 4 }}>
-            <defs>
-              <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={color} stopOpacity={0.45} />
-                <stop offset="100%" stopColor={color} stopOpacity={0.04} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="2 3" stroke="#E2E5EB" vertical={false} />
-            <XAxis
-              type="number"
-              dataKey="year"
-              domain={['dataMin', 'dataMax']}
-              ticks={data.map(d => d.year)}
-              tick={{ fontSize: 9, fill: '#6B7280', fontFamily: 'Roboto Mono, monospace' }}
-              axisLine={{ stroke: '#CBD5E1' }}
-              tickLine={false}
-              allowDecimals={false}
-              interval={0}
-              angle={-30}
-              textAnchor="end"
-              height={28}
-            />
-            <YAxis
-              tick={{ fontSize: 9, fill: '#9AA3AE', fontFamily: 'Roboto Mono, monospace' }}
-              axisLine={false}
-              tickLine={false}
-              width={36}
-              tickFormatter={fmtY}
-            />
-            <Tooltip
-              contentStyle={{
-                fontSize: 11, padding: '4px 8px', borderRadius: 4,
-                border: '1px solid #E2E5EB', fontFamily: 'Montserrat, sans-serif',
-              }}
-              formatter={(v) => [Number(v).toFixed(1), tooltipLabel]}
-              labelFormatter={l => `Año ${l}`}
-            />
-            <ReferenceLine
-              x={year}
-              stroke="#B81D24"
-              strokeWidth={1}
-              strokeDasharray="3 2"
-              opacity={0.85}
-              ifOverflow="extendDomain"
-              label={yearPillLabel}
-            />
-            <Area
-              type="monotone"
-              dataKey={dataKey}
+
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }}>
+        <defs>
+          <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%"   stopColor={color} stopOpacity="0.45" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.04" />
+          </linearGradient>
+        </defs>
+
+        {hasData && (
+          <>
+            {/* Y-grid + ticks */}
+            {yTicks.map((t, i) => (
+              <g key={`yt-${i}`}>
+                <line
+                  x1={padL} x2={W - padR}
+                  y1={ys(t)} y2={ys(t)}
+                  stroke="#E2E5EB" strokeWidth="0.5" strokeDasharray="2 3"
+                />
+                <text
+                  x={padL - 4} y={ys(t) + 3}
+                  fontSize="8" fill="#94A0AC" textAnchor="end"
+                  fontFamily="Roboto Mono, monospace"
+                >
+                  {fmtY(t)}
+                </text>
+              </g>
+            ))}
+
+            {/* Área */}
+            <path d={area} fill={`url(#${gradId})`} />
+
+            {/* Serie */}
+            <path
+              d={path}
+              fill="none"
               stroke={color}
-              strokeWidth={1.8}
-              fill={`url(#${gradId})`}
-              dot={(props) => {
-                const isSel = props.payload?.year === year
-                return (
-                  <circle
-                    cx={props.cx}
-                    cy={props.cy}
-                    r={isSel ? 3.5 : 1.6}
-                    fill={isSel ? color : '#fff'}
-                    stroke={color}
-                    strokeWidth={1.4}
-                  />
-                )
-              }}
-              activeDot={{ r: 4, stroke: color, strokeWidth: 1.6, fill: '#fff' }}
-              isAnimationActive={false}
+              strokeWidth="1.6"
+              strokeLinejoin="round"
             />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-      {!hasData && (
-        <div className="border-t border-inspi-line py-1.5 text-center font-display text-[10px] italic text-inspi-muted">
-          Sin datos reales para esta unidad · serie vacía
-        </div>
-      )}
+
+            {/* Línea de referencia del año seleccionado (rojo punteado). */}
+            <line
+              x1={yearX} x2={yearX}
+              y1={padT - 2} y2={H - padB}
+              stroke="#B81D24" strokeWidth="1"
+              strokeDasharray="3 2" opacity="0.85"
+            />
+
+            {/* Pill del año en el TOP del SVG (sobre la línea, no detrás). */}
+            <rect
+              x={yearX - pillW / 2}
+              y={2}
+              width={pillW} height={pillH}
+              rx="2"
+              fill="#B81D24"
+            />
+            <text
+              x={yearX} y={11}
+              fill="#fff"
+              fontSize="9" fontWeight="700"
+              textAnchor="middle"
+              fontFamily="Roboto Mono, monospace"
+            >
+              {year}
+            </text>
+
+            {/* Dots: año seleccionado más grande, otros pequeños. */}
+            {data.map((d) => {
+              const sel = d.year === year
+              return (
+                <circle
+                  key={d.year}
+                  cx={xs(d.year)} cy={ys(d[dataKey] || 0)}
+                  r={sel ? 3.4 : 1.6}
+                  fill={sel ? color : '#fff'}
+                  stroke={color} strokeWidth="1.4"
+                >
+                  <title>
+                    {`${tooltipLabel} · Año ${d.year}: ${Number(d[dataKey] || 0).toFixed(1)}`}
+                  </title>
+                </circle>
+              )
+            })}
+
+            {/* X-ticks */}
+            {xTicks.map((t) => (
+              <text
+                key={`xt-${t}`}
+                x={xs(t)} y={H - padB + 11}
+                fontSize="8" fill="#6B7280"
+                textAnchor="middle"
+                fontFamily="Roboto Mono, monospace"
+              >
+                {t}
+              </text>
+            ))}
+          </>
+        )}
+
+        {!hasData && (
+          <text
+            x={W / 2} y={H / 2}
+            fontSize="10"
+            fill="#9AA3AE"
+            textAnchor="middle"
+            fontStyle="italic"
+            fontFamily="Montserrat, sans-serif"
+          >
+            Sin datos reales para esta unidad · serie vacía
+          </text>
+        )}
+      </svg>
     </div>
   )
 }
