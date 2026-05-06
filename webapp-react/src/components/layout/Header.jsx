@@ -1,13 +1,29 @@
 // Header global — INSPI brand + año global + acciones (Export, Metodología, Settings)
-import { Activity, Download, Info, Settings, Sparkles } from 'lucide-react'
+import { Activity, Download, Info, Settings, Sparkles, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useStore } from '../../store'
 
 export default function Header() {
-  const year = useStore(s => s.year)
-  const openModal = useStore(s => s.openModal)
+  const year             = useStore(s => s.year)
+  const openModal        = useStore(s => s.openModal)
+  const sidebarCollapsed = useStore(s => s.sidebarCollapsed)
+  const toggleSidebar    = useStore(s => s.toggleSidebar)
 
   return (
     <header className="z-30 flex h-14 items-center gap-3 bg-inspi-navy px-5 text-white shadow-md">
+      {/* Toggle del panel de configuración (sidebar izquierdo). Patrón
+          Notion/VS Code: botón en la esquina izquierda del header. */}
+      <button
+        onClick={toggleSidebar}
+        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded text-slate-200 hover:bg-inspi-navy-2 hover:text-white"
+        title={sidebarCollapsed ? 'Mostrar panel de configuración' : 'Ocultar panel de configuración'}
+        aria-label={sidebarCollapsed ? 'Mostrar panel de configuración' : 'Ocultar panel de configuración'}
+        aria-expanded={!sidebarCollapsed}
+      >
+        {sidebarCollapsed
+          ? <PanelLeftOpen size={18} strokeWidth={2.2} />
+          : <PanelLeftClose size={18} strokeWidth={2.2} />}
+      </button>
+
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded bg-inspi-yellow text-inspi-navy">
           <Activity size={20} strokeWidth={2.5} />

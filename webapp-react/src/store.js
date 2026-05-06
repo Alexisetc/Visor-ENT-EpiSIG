@@ -23,7 +23,8 @@ export const useStore = create((set, get) => ({
   selectedDpa:   null,            // '170150' (Iñaquito) o null
   selectedProps: null,            // props del feature seleccionado
   playing:       false,
-  modalOpen:     null,            // 'metodologia' | 'export' | null
+  modalOpen:     null,            // 'metodologia' | 'welcome' | null
+  sidebarCollapsed: false,        // si true, el panel izquierdo de configuración se oculta
 
   setModule:        (m)        => set({ module: m }),
   setEnt:           (e)        => set({ ent: e }),
@@ -48,6 +49,7 @@ export const useStore = create((set, get) => ({
   setPlaying:       (p)        => set({ playing: p }),
   openModal:        (m)        => set({ modalOpen: m }),
   closeModal:       ()         => set({ modalOpen: null }),
+  toggleSidebar:    ()         => set(s => ({ sidebarCollapsed: !s.sidebarCollapsed })),
 
   // ====== DATASETS (cargados por useDataLoader) ======
   entData:     null,

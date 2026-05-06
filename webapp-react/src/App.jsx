@@ -18,9 +18,10 @@ import { Loader2 } from 'lucide-react'
 
 export default function App() {
   useDataLoader()
-  const loading   = useStore(s => s.loading)
-  const error     = useStore(s => s.error)
-  const openModal = useStore(s => s.openModal)
+  const loading          = useStore(s => s.loading)
+  const error            = useStore(s => s.error)
+  const openModal        = useStore(s => s.openModal)
+  const sidebarCollapsed = useStore(s => s.sidebarCollapsed)
 
   // Mostrar bienvenida automáticamente en la primera visita.
   // El usuario puede reabrirla desde el botón "Bienvenida" del Header.
@@ -37,10 +38,11 @@ export default function App() {
       <Header />
 
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
+        {!sidebarCollapsed && <Sidebar />}
 
         <main className="relative flex-1 overflow-hidden">
           <MapView />
+
           {loading && (
             <div className="pointer-events-none absolute left-1/2 top-3 z-[500] -translate-x-1/2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-900 shadow">
               <span className="inline-flex items-center gap-1.5">
@@ -59,18 +61,32 @@ export default function App() {
         <AnalyticsPanel />
       </div>
 
-      {/* Pie de página persistente con la autoría — patrón estándar de
-          páginas institucionales. Muy delgado (24px) para no comerle
-          viewport al mapa. */}
-      <footer className="z-30 flex h-6 flex-shrink-0 items-center justify-between border-t border-inspi-navy-2 bg-inspi-navy px-4 text-[10px] text-slate-300">
+      {/* Pie de página persistente — patrón institucional (estilo IHME-GBD,
+          Universidad de Washington, etc.): fondo tenue + entradas separadas
+          por "|", links subrayados al hover. Contraste con el header (que
+          va en color fuerte navy) para no recargar la pantalla. */}
+      <footer className="z-30 flex h-7 flex-shrink-0 flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t border-slate-200 bg-slate-50 px-4 text-[11px] text-slate-600">
+        <a
+          href="https://www.investigacionsalud.gob.ec/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-inspi-navy underline-offset-2 hover:text-amber-600 hover:underline"
+        >
+          INSPI
+        </a>
+        <span className="text-slate-300">|</span>
+        <a
+          href="https://www.investigacionsalud.gob.ec/webs/episig/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-inspi-navy underline-offset-2 hover:text-amber-600 hover:underline"
+        >
+          Centro de Investigación EpiSIG
+        </a>
+        <span className="text-slate-300">|</span>
         <span>
           Elaborado por:{' '}
-          <b className="font-semibold text-inspi-yellow">EpiSIG</b>
-          {' · '}
-          Econ. Alexis Núñez
-        </span>
-        <span className="text-slate-400">
-          INSPI Ecuador · {new Date().getFullYear()}
+          <b className="font-semibold text-slate-700">Econ. Alexis Núñez</b>
         </span>
       </footer>
 
