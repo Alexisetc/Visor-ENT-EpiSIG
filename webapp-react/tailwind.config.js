@@ -4,37 +4,48 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Paleta institucional EpiSIG · geoENT Ecuador
-        // Hex exactos del manual de marca:
-        //   - rojo  → ACENTO BRAND (reemplaza al yellow legacy)
-        //   - navy  → chrome principal/secundario
-        //   - muted/surface → grises de soporte
+        // === Paleta institucional EpiSIG (Manual de Diseño v2) ===
+        // Reglas: nada de gradientes decorativos. Solo el rojo de marca para
+        // acción/alerta, el navy para estructura. Amber solo para "warning",
+        // green solo para "positivo".
         inspi: {
-          navy:    '#0B1D3A',     // chrome principal (header / footer)
-          'navy-2':'#243A5E',     // chrome secundario / gradientes
-          red:     '#D32F2F',     // ACENTO BRAND — usado donde antes iba yellow
-          yellow:  '#fbc400',     // legacy: solo data viz (NO como accent UI)
-          muted:   '#9AA3AE',     // texto de apoyo brand
-          surface: '#E6E8EB',     // fondos suaves brand
-          // ENT viz palette — encoda categoría de enfermedad, no es accent
-          purple:  '#756bb1',     // neoplasia
-          orange:  '#e88a2c',     // metabolica
-          green:   '#31a354',     // respiratorio
-          gray:    '#6c7a89',     // nervioso
+          // Primarios — extraídos del logo
+          navy:    '#14213D',     // chrome principal, headers, texto fuerte
+          'navy-2':'#1E2D52',     // tono ligeramente más claro para gradientes muy puntuales
+          red:     '#B81D24',     // ACENTO BRAND, acción, métricas críticas
+          ink:     '#0E1729',     // texto base más fuerte
+          // Neutros / utilitarios
+          bone:    '#F5F2EC',     // off-white cálido (sidebar / fondos)
+          paper:   '#FFFFFF',     // fondos de tarjetas
+          'slate-50': '#F7F8FA',  // alterno
+          line:    '#E2E5EB',     // bordes 1px
+          muted:   '#6B7280',     // texto secundario
+          // Semánticos
+          amber:   '#C9981A',     // alertas / WIP / simulación
+          green:   '#2E7D4F',     // positivo
+          // === Legacy / data viz (NO usar como accent UI) ===
+          surface: '#E6E8EB',     // legacy: aún referenciado en algunos sitios
+          yellow:  '#fbc400',     // legacy data viz solamente
+          purple:  '#756bb1',     // ENT neoplasia
+          orange:  '#e88a2c',     // ENT metabolica
+          gray:    '#6c7a89',     // ENT nervioso
         },
-        // Gradiente quintiles (YlOrRd ColorBrewer 5)
+        // === Choropleth — gradiente rojo institucional (5 quintiles) ===
+        // Reemplaza al YlOrRd legacy. Arranca en rosa cálido y termina en
+        // borgoña profundo. Coherente con el rojo brand del logo.
         quintile: {
-          q1: '#fef0d9',
-          q2: '#fdcc8a',
-          q3: '#fc8d59',
-          q4: '#e34a33',
-          q5: '#b30000',
+          q1: '#FBE6E7',
+          q2: '#F4ABAF',
+          q3: '#E5575E',
+          q4: '#B81D24',
+          q5: '#6E0F14',
         }
       },
       fontFamily: {
-        // Manual de marca: Montserrat SemiBold (títulos) + Regular (textos)
+        // Manual: Montserrat (display + UI) y Roboto Mono (cifras/códigos)
         sans:    ['Montserrat', 'Inter', 'system-ui', 'Roboto', 'Arial', 'sans-serif'],
         display: ['Montserrat', 'Inter', 'sans-serif'],
+        mono:    ['"Roboto Mono"', 'JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       boxShadow: {
         'panel': '0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04)',

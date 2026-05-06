@@ -20,11 +20,11 @@ export default function ZoomControls({ map }) {
     map.setView(DEFAULT_CENTER, DEFAULT_ZOOM, { animate: true })
   }
 
-  const btn = 'flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 shadow-md transition hover:bg-inspi-navy hover:text-white hover:border-inspi-navy'
+  const btn = 'flex h-8 w-8 items-center justify-center rounded-[3px] border border-inspi-line bg-white text-inspi-navy shadow-sm transition hover:bg-inspi-navy hover:text-white hover:border-inspi-navy'
 
   return (
-    <div className="pointer-events-none absolute left-3 top-3 z-[500]">
-      <div className="pointer-events-auto flex flex-col gap-1.5">
+    <div className="pointer-events-none absolute right-3 top-3 z-[500]">
+      <div className="pointer-events-auto flex flex-col gap-1">
         <button
           type="button"
           onClick={() => map.zoomIn()}

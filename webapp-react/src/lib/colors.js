@@ -40,14 +40,20 @@ export const ENT_MAP = {
   nervioso:     { type: 'grupos', key: 'nervioso' },
 }
 
-// Escalas de coropleta por ENT (5-stop ColorBrewer)
+// === Coropleta — gradiente rojo institucional EpiSIG (5 quintiles) ===
+// Manual de Diseño v2: todas las ENT comparten el mismo gradiente rojo
+// (la categoría se identifica por el tag de ENT en el header del panel,
+// el legend del mapa y los chips contextuales — no por hue). Esto genera
+// continuidad visual y evita la fragmentación cromática del legacy.
+const QUINTILE_RED = ['#FBE6E7', '#F4ABAF', '#E5575E', '#B81D24', '#6E0F14']
+
 export const colorScales = {
-  todas:        ['#eef0f8','#9ba0d6','#5a5fb8','#2c2d8f','#1a1b4a'],
-  circulatorio: ['#fee5d9','#fcae91','#fb6a4a','#de2d26','#a50f15'],
-  neoplasia:    ['#f2f0f7','#cbc9e2','#9e9ac8','#756bb1','#54278f'],
-  metabolica:   ['#feedde','#fdbe85','#fd8d3c','#e6550d','#a63603'],
-  respiratorio: ['#edf8e9','#bae4b3','#74c476','#31a354','#006d2c'],
-  nervioso:     ['#f0f0f0','#cccccc','#969696','#636363','#252525'],
+  todas:        QUINTILE_RED,
+  circulatorio: QUINTILE_RED,
+  neoplasia:    QUINTILE_RED,
+  metabolica:   QUINTILE_RED,
+  respiratorio: QUINTILE_RED,
+  nervioso:     QUINTILE_RED,
 }
 
 // KDE qgis2web YlOrRd 9-stop (replica "Hot Spot OVITRAMPAS Pacto 2020") — legacy

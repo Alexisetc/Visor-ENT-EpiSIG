@@ -29,6 +29,7 @@ import HotSpotLayer        from './HotSpotLayer'
 import ProvinceOverlay     from './ProvinceOverlay'
 import ZoomControls        from './ZoomControls'
 import Legend              from './Legend'
+import MapTopOverlay       from './MapTopOverlay'
 import { DEFAULT_CENTER, DEFAULT_ZOOM } from '../../lib/mapDefaults'
 
 // --- helper: hace fitBounds a la provincia seleccionada (o a Ecuador entero) ---
@@ -116,7 +117,10 @@ export default function MapView() {
         <FitToProvince />
       </MapContainer>
 
-      {/* Overlays DOM sobre el mapa (fuera del leaflet-container) */}
+      {/* Overlays DOM sobre el mapa (fuera del leaflet-container).
+          Top: scope badge + métrica + stats. Top-right: ZoomControls.
+          Bottom-right: Legend. Bottom-left: AttributionControl. */}
+      <MapTopOverlay />
       <ZoomControls map={map} />
 
       {!ready && (

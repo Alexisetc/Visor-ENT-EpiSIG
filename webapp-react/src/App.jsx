@@ -61,32 +61,36 @@ export default function App() {
         <AnalyticsPanel />
       </div>
 
-      {/* Pie de página persistente — patrón institucional (estilo IHME-GBD,
-          Universidad de Washington, etc.): fondo tenue + entradas separadas
-          por "|", links subrayados al hover. Contraste con el header (que
-          va en color fuerte navy) para no recargar la pantalla. */}
-      <footer className="z-30 flex h-7 flex-shrink-0 flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t border-slate-200 bg-slate-50 px-4 text-[11px] text-slate-600">
+      {/* Pie de página institucional — Manual de Diseño v2.
+          26 px, fondo bone, separadores "|" en muted. */}
+      <footer className="z-30 flex h-[26px] flex-shrink-0 flex-wrap items-center justify-center gap-x-3 gap-y-0.5 border-t border-inspi-line bg-inspi-bone px-4 font-display text-[11px] text-inspi-muted">
         <a
           href="https://www.investigacionsalud.gob.ec/"
           target="_blank"
           rel="noopener noreferrer"
-          className="font-medium text-inspi-navy underline-offset-2 hover:text-inspi-red hover:underline"
+          className="font-semibold text-inspi-navy underline-offset-2 hover:text-inspi-red hover:underline"
         >
           INSPI
         </a>
-        <span className="text-slate-300">|</span>
+        <span className="text-inspi-line">|</span>
         <a
           href="https://www.investigacionsalud.gob.ec/webs/episig/"
           target="_blank"
           rel="noopener noreferrer"
-          className="font-medium text-inspi-navy underline-offset-2 hover:text-inspi-red hover:underline"
+          className="font-semibold text-inspi-navy underline-offset-2 hover:text-inspi-red hover:underline"
         >
           Centro de Investigación EpiSIG
         </a>
-        <span className="text-slate-300">|</span>
+        <span className="text-inspi-line">|</span>
         <span>
           Elaborado por:{' '}
-          <b className="font-semibold text-slate-700">Econ. Alexis Núñez</b>
+          <b className="font-semibold text-inspi-navy">Econ. Alexis Núñez</b>
+        </span>
+        <span className="text-inspi-line">|</span>
+        <span className="font-mono text-[10px] tnum text-inspi-muted">v0.1.0</span>
+        <span className="text-inspi-line">·</span>
+        <span className="font-display text-[10.5px] font-medium text-inspi-muted">
+          Abril {new Date().getFullYear()}
         </span>
       </footer>
 

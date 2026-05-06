@@ -55,9 +55,27 @@ export default function Legend() {
 
   const scaleCarga = colorScales[ent] || colorScales.todas
 
+  // Título principal limpio: "TASA · MÉTRICA" (eje izquierdo) + año (eje derecho).
+  const titleLeft = isHot
+    ? `Hot-spot · ${isMort ? 'Mortalidad' : 'Morbilidad'}`
+    : module === 'carga'         ? `Tasa · ${isMort ? 'Mortalidad' : 'Morbilidad'}`
+    : module === 'determinantes' ? 'Determinante dominante'
+    : module === 'mcda'          ? 'ENT prioritaria #1'
+    : ''
+
   return (
-    <div className="pointer-events-none absolute bottom-3 right-3 z-[400] max-w-[320px] rounded-lg border border-slate-200 bg-white/95 px-3 py-2 shadow-lg backdrop-blur">
-      <div className="mb-1 font-display text-[11px] font-semibold uppercase tracking-wider text-inspi-navy">
+    <div className="pointer-events-none absolute bottom-3 right-3 z-[400] w-[300px] max-w-[92vw] rounded-[3px] border border-inspi-line bg-white px-3 py-2 shadow-lg">
+      {/* Header con barra roja vertical 3px (eco del wordmark) */}
+      <div className="mb-1.5 flex items-center justify-between gap-2 border-l-[3px] border-inspi-red pl-2">
+        <div className="font-display text-[11px] font-bold uppercase tracking-[0.07em] text-inspi-navy">
+          {titleLeft}
+        </div>
+        <div className="font-mono text-[11px] font-semibold text-inspi-muted tnum">
+          {year}
+        </div>
+      </div>
+      {/* Título contextual menor (módulo concreto) */}
+      <div className="mb-1.5 -mt-1 pl-2 font-display text-[9px] font-medium uppercase tracking-[0.07em] text-inspi-muted truncate">
         {title}
       </div>
 
@@ -122,18 +140,37 @@ export default function Legend() {
 
       {/* ===== CARGA + COROPLETA: quintiles tasa /100k ===== */}
       {!isHot && module === 'carga' && (
-        <div className="flex items-center gap-1">
-          {scaleCarga.map((c, i) => (
-            <div key={i} className="flex flex-col items-center">
-              <div className="h-3 w-7" style={{ background: c }} />
-              <div className="mt-0.5 font-mono text-[9px] text-slate-500">
-                {i === 0 ? `<${fmt(limits[0])}`
-                  : i === scaleCarga.length - 1 ? `>${fmt(limits[3])}`
-                  : `${fmt(limits[i - 1])}–${fmt(limits[i])}`}
+        <>
+          <div className="flex items-center gap-px">
+            {scaleCarga.map((c, i) => (
+              <div key={i} className="flex flex-1 flex-col items-center">
+                <div className="h-3 w-full" style={{ background: c }} />
+                <div className="mt-0.5 font-mono text-[9.5px] font-medium text-inspi-navy tnum">
+                  {i === 0 ? `<${fmt(limits[0])}`
+                    : i === scaleCarga.length - 1 ? `>${fmt(limits[3])}`
+                    : `${fmt(limits[i - 1])}–${fmt(limits[i])}`}
+                </div>
               </div>
+            ))}
+          </div>
+          <div className="mt-1 font-display text-[9px] font-semibold uppercase tracking-[0.07em] text-inspi-muted">
+            Tasas /100.000 hab · Quintiles · {ENT_LABEL[ent]}
+          </div>
+          {/* Chips: sin dato + interp. IDW */}
+          <div className="mt-1.5 flex items-center gap-3 border-t border-inspi-line pt-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="block h-2.5 w-3.5 rounded-[2px] border border-dashed border-inspi-muted bg-inspi-line" />
+              <span className="font-display text-[9.5px] font-medium text-inspi-muted">Sin dato</span>
             </div>
-          ))}
-        </div>
+            <div className="flex items-center gap-1.5">
+              <span
+                className="block h-2.5 w-3.5 rounded-[2px]"
+                style={{ background: 'linear-gradient(90deg,#c7d2fe,#6366f1)' }}
+              />
+              <span className="font-display text-[9.5px] font-medium text-inspi-muted">Interp. IDW</span>
+            </div>
+          </div>
+        </>
       )}
 
       {/* ===== DETERMINANTES + COROPLETA: 7 swatches categóricos ===== */}

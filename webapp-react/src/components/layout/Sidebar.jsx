@@ -1,12 +1,7 @@
 // Sidebar — Panel izquierdo con módulos analíticos + controles globales.
-// Reemplaza .dash-sidebar del legacy. Estructura por módulos a la Gemini:
-// - Carga de Enfermedad: coropletas + hot spots + tendencia MK+Sen+FDR
-// - Determinantes:       MGWR betas locales + 7 determinantes parroquiales
-// - Priorización MCDA:   ranking y top-ENT por parroquia (6 criterios)
-//
-// La métrica morbilidad/mortalidad solo aplica al módulo 'carga' (los
-// otros dos agregan ambas métricas en sus scores). El toggle se oculta
-// fuera de ese contexto para no confundir al usuario.
+// Manual de Diseño v2: cards de módulo con descripción + barra activa roja
+// vertical, secciones con label uppercase + icono, lista de ENT con borde
+// activo rojo. 296 px de ancho.
 
 import { Activity, BrainCircuit, Star, Layers, Stethoscope, MapPin, Calendar, Gauge } from 'lucide-react'
 import { useStore } from '../../store'
@@ -16,37 +11,54 @@ import LayerToggle   from '../controls/LayerToggle'
 import MetricToggle  from '../controls/MetricToggle'
 import ProvinceSelect from '../controls/ProvinceSelect'
 
-// `simulada: true` agrega una etiqueta "simulación" al lado del label
-// del módulo en la sidebar — señaliza que los datos no son oficiales.
+// Cada módulo lleva una descripción corta de 1 línea (técnica del manual:
+// "Egresos · mortalidad", "MGWR · 7 factores", "Ranking ponderado").
+// `simulada: true` muestra el pill SIM rojo al costado.
 const MODULES = [
-  { id: 'carga',         label: 'Carga de Enfermedad', icon: Activity,     ready: true, color: 'text-rose-600'   },
-  { id: 'determinantes', label: 'Determinantes',       icon: BrainCircuit, ready: true, color: 'text-violet-600', simulada: true },
-  { id: 'mcda',          label: 'Priorización MCDA',   icon: Star,         ready: true, color: 'text-amber-600',  simulada: true },
+  {
+    id:    'carga',
+    label: 'Carga de enfermedad',
+    desc:  'Egresos · mortalidad',
+    icon:  Activity,
+    ready: true,
+  },
+  {
+    id:    'determinantes',
+    label: 'Determinantes',
+    desc:  'MGWR · 7 factores',
+    icon:  BrainCircuit,
+    ready: true,
+    simulada: true,
+  },
+  {
+    id:    'mcda',
+    label: 'Priorización MCDA',
+    desc:  'Ranking ponderado',
+    icon:  Star,
+    ready: true,
+    simulada: true,
+  },
 ]
 
-function ControlGroup({ icon: Icon, label, children }) {
+function SectionHeader({ icon: Icon, label }) {
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-        <Icon size={12} /> {label}
-      </div>
-      {children}
+    <div className="mb-1.5 flex items-center gap-1.5 font-display text-[10px] font-semibold uppercase tracking-[0.1em] text-inspi-muted">
+      <Icon size={11} strokeWidth={2.2} />
+      <span>{label}</span>
     </div>
   )
 }
 
 export default function Sidebar() {
-  const module = useStore(s => s.module)
+  const module    = useStore(s => s.module)
   const setModule = useStore(s => s.setModule)
 
   return (
-    <aside className="flex w-72 flex-shrink-0 flex-col gap-4 overflow-y-auto border-r border-slate-200 bg-white p-3">
-      {/* Módulos analíticos */}
+    <aside className="flex w-[296px] flex-shrink-0 flex-col gap-4 overflow-y-auto border-r border-inspi-line bg-inspi-bone p-3">
+      {/* === Módulos analíticos === */}
       <div>
-        <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-          Módulo analítico
-        </div>
-        <div className="space-y-1">
+        <SectionHeader icon={Layers} label="Módulo analítico" />
+        <div className="space-y-1.5">
           {MODULES.map(m => {
             const active = module === m.id
             const Icon = m.icon
@@ -55,23 +67,39 @@ export default function Sidebar() {
                 key={m.id}
                 onClick={() => m.ready && setModule(m.id)}
                 disabled={!m.ready}
-                className={`flex w-full items-center gap-2 rounded border px-2.5 py-2 text-left text-xs transition ${
-                  active
-                    ? 'border-inspi-navy bg-slate-50 text-inspi-navy shadow-sm'
-                    : m.ready
-                      ? 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-                      : 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-400'
-                }`}
                 title={m.label}
+                className={`relative flex w-full items-start gap-2.5 rounded-[3px] border px-2.5 py-2 text-left transition ${
+                  active
+                    ? 'border-inspi-navy bg-white shadow-sm'
+                    : m.ready
+                      ? 'border-inspi-line bg-white/50 hover:border-slate-300 hover:bg-white'
+                      : 'cursor-not-allowed border-inspi-line bg-inspi-line/40 opacity-60'
+                }`}
               >
-                <Icon size={14} className={active ? m.color : ''} />
-                <span className="font-medium">{m.label}</span>
+                {/* Barra roja vertical 3px en el módulo activo (eco del wordmark). */}
+                {active && (
+                  <span className="absolute left-0 top-0 h-full w-[3px] rounded-l-[3px] bg-inspi-red" />
+                )}
+
+                <Icon
+                  size={16}
+                  strokeWidth={2.1}
+                  className={active ? 'mt-0.5 flex-shrink-0 text-inspi-navy' : 'mt-0.5 flex-shrink-0 text-inspi-muted'}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className={`truncate font-display text-[12.5px] font-semibold leading-tight ${active ? 'text-inspi-navy' : 'text-slate-700'}`}>
+                    {m.label}
+                  </div>
+                  <div className="mt-0.5 truncate font-display text-[10px] font-medium text-inspi-muted">
+                    {m.desc}
+                  </div>
+                </div>
                 {m.simulada && (
                   <span
-                    className="ml-auto rounded bg-amber-100 px-1 py-0.5 text-[8.5px] font-semibold uppercase tracking-wider text-amber-700"
+                    className="ml-auto rounded-[3px] bg-inspi-red/10 px-1.5 py-0.5 font-display text-[9px] font-bold uppercase tracking-[0.07em] text-inspi-red"
                     title="Datos simulados — no oficiales"
                   >
-                    simulación
+                    SIM
                   </span>
                 )}
               </button>
@@ -80,29 +108,37 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <hr className="border-slate-100" />
-
-      <ControlGroup icon={Layers} label="Visualización">
+      {/* === Visualización === */}
+      <div>
+        <SectionHeader icon={Layers} label="Visualización" />
         <LayerToggle />
-      </ControlGroup>
+      </div>
 
+      {/* === Métrica del mapa (solo en Carga) === */}
       {module === 'carga' && (
-        <ControlGroup icon={Gauge} label="Métrica del mapa">
+        <div>
+          <SectionHeader icon={Gauge} label="Métrica del mapa" />
           <MetricToggle />
-        </ControlGroup>
+        </div>
       )}
 
-      <ControlGroup icon={Stethoscope} label="Grupo ENT">
+      {/* === Grupo ENT === */}
+      <div>
+        <SectionHeader icon={Stethoscope} label="Grupo ENT" />
         <EntSelector />
-      </ControlGroup>
+      </div>
 
-      <ControlGroup icon={MapPin} label="Provincia (zoom)">
+      {/* === Provincia (zoom) === */}
+      <div>
+        <SectionHeader icon={MapPin} label="Provincia (zoom)" />
         <ProvinceSelect />
-      </ControlGroup>
+      </div>
 
-      <ControlGroup icon={Calendar} label="Evolución temporal">
+      {/* === Evolución temporal === */}
+      <div>
+        <SectionHeader icon={Calendar} label="Evolución temporal" />
         <YearSlider />
-      </ControlGroup>
+      </div>
     </aside>
   )
 }

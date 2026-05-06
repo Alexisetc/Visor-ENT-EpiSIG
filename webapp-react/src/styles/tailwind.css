@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Tipografía base (Manual de Diseño v2): Montserrat para todo, Roboto Mono
+   para cifras / códigos / coordenadas. */
+html, body { font-family: 'Montserrat', system-ui, sans-serif; }
+
+/* Tabular numerals — alinea cifras en columnas (KPIs, rankings, año). */
+.tnum, .font-mono {
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
+
 /* Leaflet base override: el contenedor del mapa debe ocupar 100% */
 .leaflet-container {
   font-family: inherit;
