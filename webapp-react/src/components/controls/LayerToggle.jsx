@@ -29,7 +29,7 @@ export default function LayerToggle() {
             }`}
             title={t.label}
           >
-            <Icon size={14} className={active ? 'text-inspi-yellow' : ''} />
+            <Icon size={14} className={active ? 'text-inspi-red' : ''} />
             <span>{t.label}</span>
           </button>
         )

@@ -15,7 +15,7 @@ export default function Cite({ n, href, title }) {
         target="_blank"
         rel="noopener noreferrer"
         title={title || `Ver referencia ${n}`}
-        className="font-semibold text-inspi-navy underline-offset-2 hover:text-amber-600 hover:underline"
+        className="font-semibold text-inspi-navy underline-offset-2 hover:text-inspi-red hover:underline"
       >
         {n}
       </a>

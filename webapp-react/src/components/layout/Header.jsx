@@ -1,5 +1,6 @@
-// Header global — INSPI brand + año global + acciones (Export, Metodología, Settings)
-import { Activity, Download, Info, Settings, Sparkles, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+// Header global — wordmark geoENT + año + acciones (Bienvenida, Metodología,
+// Exportar, Configuración).
+import { Search, Download, Info, Settings, Sparkles, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useStore } from '../../store'
 
 export default function Header() {
@@ -25,15 +26,20 @@ export default function Header() {
       </button>
 
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded bg-inspi-yellow text-inspi-navy">
-          <Activity size={20} strokeWidth={2.5} />
+        {/* Iso — lupa sobre fondo rojo brand (referencia al manual de marca:
+            "lupa sobre cuadrícula" = territorio + investigación). */}
+        <div className="flex h-9 w-9 items-center justify-center rounded bg-inspi-red text-white">
+          <Search size={18} strokeWidth={2.6} />
         </div>
         <div>
-          <h1 className="font-display text-lg font-semibold leading-tight tracking-tight">
-            EpiSIG <span className="text-inspi-yellow">GeoENT Ecuador</span>
+          {/* Wordmark estilo manual de marca:
+                "geo" en rojo + "ENT" en blanco + " Ecuador" en muted. */}
+          <h1 className="font-display text-lg font-bold leading-tight tracking-tight">
+            <span className="text-inspi-red">geo</span><span className="text-white">ENT</span>
+            <span className="ml-1 font-semibold text-slate-300"> Ecuador</span>
           </h1>
           <p className="text-[11px] leading-tight text-slate-300">
-            Sistema de Vigilancia Espacial de Precisión · Ecuador Continental
+            EpiSIG · Visor de investigación · Gestión epidemiológica inteligente
           </p>
         </div>
       </div>
@@ -41,7 +47,7 @@ export default function Header() {
       <div className="ml-auto flex items-center gap-2">
         <div className="flex items-center gap-2 rounded bg-inspi-navy-2 px-3 py-1.5 text-xs">
           <span className="font-medium uppercase tracking-wider text-slate-300">Año</span>
-          <span className="font-mono text-base font-semibold text-inspi-yellow">{year}</span>
+          <span className="font-mono text-base font-semibold text-inspi-red">{year}</span>
         </div>
 
         <button

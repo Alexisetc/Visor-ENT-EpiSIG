@@ -30,7 +30,7 @@ export default function MetricToggle() {
             }`}
             title={t.hint}
           >
-            <Icon size={14} className={active ? 'text-inspi-yellow' : ''} />
+            <Icon size={14} className={active ? 'text-inspi-red' : ''} />
             <span>{t.label}</span>
           </button>
         )

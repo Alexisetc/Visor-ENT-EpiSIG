@@ -17,7 +17,7 @@ export default function YearSlider() {
       <div className="flex items-center gap-2">
         <button
           onClick={togglePlay}
-          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-inspi-yellow text-inspi-navy shadow hover:brightness-95"
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-inspi-red text-white shadow hover:brightness-110"
           title={playing ? 'Pausar animación' : 'Reproducir 2013→2024'}
           aria-label={playing ? 'Pausar' : 'Reproducir'}
         >
@@ -34,7 +34,7 @@ export default function YearSlider() {
         step={1}
         value={year}
         onChange={e => setYear(Number(e.target.value))}
-        className="w-full accent-inspi-yellow"
+        className="w-full accent-inspi-red"
         aria-label="Año"
       />
       <div className="flex justify-between font-mono text-[10px] text-slate-400">

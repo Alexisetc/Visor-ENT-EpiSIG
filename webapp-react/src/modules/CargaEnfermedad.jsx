@@ -175,7 +175,7 @@ export default function CargaEnfermedad() {
       <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-inspi-navy to-inspi-navy-2 p-3 text-white">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="text-[10px] font-medium uppercase tracking-wider text-inspi-yellow">
+            <div className="text-[10px] font-medium uppercase tracking-wider text-inspi-red">
               {ENT_LABEL[ent]}
             </div>
             <div className="truncate font-display text-base font-semibold">

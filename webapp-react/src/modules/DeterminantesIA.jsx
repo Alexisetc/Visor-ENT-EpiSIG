@@ -193,7 +193,7 @@ export default function DeterminantesIA() {
       <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-violet-700 to-inspi-navy p-3 text-white">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-inspi-yellow">
+            <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-inspi-red">
               <BrainCircuit size={11} /> Determinantes · MGWR
             </div>
             <div className="truncate font-display text-base font-semibold">

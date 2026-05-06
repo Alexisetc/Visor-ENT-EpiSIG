@@ -70,7 +70,7 @@ export default function App() {
           href="https://www.investigacionsalud.gob.ec/"
           target="_blank"
           rel="noopener noreferrer"
-          className="font-medium text-inspi-navy underline-offset-2 hover:text-amber-600 hover:underline"
+          className="font-medium text-inspi-navy underline-offset-2 hover:text-inspi-red hover:underline"
         >
           INSPI
         </a>
@@ -79,7 +79,7 @@ export default function App() {
           href="https://www.investigacionsalud.gob.ec/webs/episig/"
           target="_blank"
           rel="noopener noreferrer"
-          className="font-medium text-inspi-navy underline-offset-2 hover:text-amber-600 hover:underline"
+          className="font-medium text-inspi-navy underline-offset-2 hover:text-inspi-red hover:underline"
         >
           Centro de Investigación EpiSIG
         </a>

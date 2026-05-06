@@ -104,7 +104,7 @@ export default function MetodologiaModal() {
                   href={REF_1_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-medium text-inspi-navy underline-offset-2 hover:text-amber-600 hover:underline"
+                  className="font-medium text-inspi-navy underline-offset-2 hover:text-inspi-red hover:underline"
                 >
                   inspilip.gob.ec/index.php/inspi/article/view/853
                 </a>
