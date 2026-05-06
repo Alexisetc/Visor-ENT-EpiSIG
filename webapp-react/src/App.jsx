@@ -59,6 +59,21 @@ export default function App() {
         <AnalyticsPanel />
       </div>
 
+      {/* Pie de página persistente con la autoría — patrón estándar de
+          páginas institucionales. Muy delgado (24px) para no comerle
+          viewport al mapa. */}
+      <footer className="z-30 flex h-6 flex-shrink-0 items-center justify-between border-t border-inspi-navy-2 bg-inspi-navy px-4 text-[10px] text-slate-300">
+        <span>
+          Elaborado por:{' '}
+          <b className="font-semibold text-inspi-yellow">EpiSIG</b>
+          {' · '}
+          Econ. Alexis Núñez
+        </span>
+        <span className="text-slate-400">
+          INSPI Ecuador · {new Date().getFullYear()}
+        </span>
+      </footer>
+
       <MetodologiaModal />
       <WelcomeModal />
     </div>
