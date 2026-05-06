@@ -39,7 +39,7 @@ function FitToProvince() {
   useEffect(() => {
     if (!geoProv) return
     if (!provFilter) {
-      map.setView([-1.8, -78.4], 6, { animate: true })
+      map.setView([-2.0, -78.4], 6, { animate: true })
       return
     }
     const f = (geoProv.features || []).find(ft => {
@@ -90,7 +90,7 @@ export default function MapView() {
   return (
     <div className="relative h-full w-full">
       <MapContainer
-        center={[-1.8, -78.4]}
+        center={[-2.0, -78.4]}
         zoom={6}
         scrollWheelZoom
         zoomControl={false}
