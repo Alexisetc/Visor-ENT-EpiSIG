@@ -161,34 +161,34 @@ export default function PriorizacionMCDA() {
   const hasRanking = ranking.length > 0 && top && Number.isFinite(top.score) && top.score > 0
 
   return (
-    <div className="flex flex-col gap-3 p-3">
+    <div className="flex flex-col">
       {/* Header de panel — Manual de Diseño v2 (mismo patrón que Carga). */}
-      <section className="border-b border-inspi-line pb-2">
+      <section className="border-b border-inspi-line bg-gradient-to-b from-inspi-slate-50 to-inspi-paper px-4 pb-3 pt-3.5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1 font-display text-[10px] font-semibold uppercase tracking-[0.07em] text-inspi-muted">
-              <Star size={10} strokeWidth={2.4} />
+            <div className="flex items-center gap-1.5 font-display text-[9.5px] font-bold uppercase tracking-[0.08em] text-inspi-muted">
+              <Star size={11} strokeWidth={2.4} className="text-inspi-red" />
               <span>Priorización MCDA</span>
             </div>
-            <div className="mt-0.5 truncate font-display text-[18px] font-bold leading-tight text-inspi-navy">
+            <div className="mt-1 truncate font-display text-[17px] font-bold leading-[1.15] tracking-[-0.01em] text-inspi-navy">
               {unitLabel.title}
             </div>
             {unitLabel.sub && (
-              <div className="font-display text-[11px] font-medium text-inspi-muted">
+              <div className="mt-0.5 font-display text-[11px] font-medium text-inspi-muted">
                 {unitLabel.sub}
               </div>
             )}
-            <div className="mt-1.5 flex flex-wrap items-center gap-1">
+            <div className="mt-2 flex flex-wrap items-center gap-1">
               {hasRanking && (
                 <span
-                  className="rounded-[3px] px-1.5 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.07em] text-white"
+                  className="rounded-full px-2 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.05em] text-white"
                   style={{ background: top.color }}
                   title={`ENT prioritaria: ${ENT_LABEL[top.ent]}`}
                 >
                   #1 {ENT_LABEL[top.ent]}
                 </span>
               )}
-              <span className="rounded-[3px] bg-inspi-bone px-1.5 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.07em] text-inspi-navy">
+              <span className="rounded-full bg-inspi-amber/15 px-2 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.05em] text-inspi-amber">
                 Simulación
               </span>
             </div>
@@ -205,11 +205,14 @@ export default function PriorizacionMCDA() {
           )}
         </div>
         {!selectedDpa && (
-          <div className="mt-1.5 flex items-center gap-1 font-display text-[10px] italic text-inspi-muted">
+          <div className="mt-2 flex items-center gap-1 font-display text-[10px] italic text-inspi-muted">
             <Crosshair size={10} /> Click en una parroquia del mapa para ver el detalle
           </div>
         )}
       </section>
+
+      {/* Body del panel con padding propio. */}
+      <div className="flex flex-col gap-3.5 px-4 py-3.5">
 
       {/* Fallback: parroquia sin datos MCDA */}
       {!hasRanking && (
@@ -343,6 +346,8 @@ export default function PriorizacionMCDA() {
           y del Proyecto de Priorización MCDA (Núñez-UTE 2026-2028) cuando estén
           disponibles.
         </div>
+      </div>
+
       </div>
     </div>
   )

@@ -54,11 +54,11 @@ export default function Sidebar() {
   const setModule = useStore(s => s.setModule)
 
   return (
-    <aside className="flex w-[296px] flex-shrink-0 flex-col gap-4 overflow-y-auto border-r border-inspi-line bg-inspi-bone p-3">
-      {/* === Módulos analíticos === */}
-      <div>
+    <aside className="flex w-[296px] flex-shrink-0 flex-col overflow-y-auto border-r border-inspi-line bg-inspi-paper">
+      {/* === Módulos analíticos (en su propia sección con border-bottom) === */}
+      <div className="border-b border-inspi-line p-[14px]">
         <SectionHeader icon={Layers} label="Módulo analítico" />
-        <div className="space-y-1.5">
+        <div className="mt-2 space-y-1">
           {MODULES.map(m => {
             const active = module === m.id
             const Icon = m.icon
@@ -68,38 +68,37 @@ export default function Sidebar() {
                 onClick={() => m.ready && setModule(m.id)}
                 disabled={!m.ready}
                 title={m.label}
-                className={`relative flex w-full items-start gap-2.5 rounded-[3px] border px-2.5 py-2 text-left transition ${
+                className={`relative flex w-full items-center gap-2.5 rounded-[4px] border px-2.5 py-[9px] text-left transition ${
                   active
-                    ? 'border-inspi-navy bg-white shadow-sm'
+                    ? 'border-inspi-navy bg-inspi-navy text-white'
                     : m.ready
-                      ? 'border-inspi-line bg-white/50 hover:border-slate-300 hover:bg-white'
+                      ? 'border-inspi-line bg-inspi-paper text-inspi-ink hover:bg-inspi-slate-50'
                       : 'cursor-not-allowed border-inspi-line bg-inspi-line/40 opacity-60'
                 }`}
               >
-                {/* Barra roja vertical 3px en el módulo activo (eco del wordmark). */}
+                {/* Barra roja vertical 3px (eco del wordmark) en el módulo
+                    activo, sale ligeramente del borde izquierdo. */}
                 {active && (
-                  <span className="absolute left-0 top-0 h-full w-[3px] rounded-l-[3px] bg-inspi-red" />
+                  <span className="absolute -left-px top-1.5 bottom-1.5 w-[3px] rounded-r-[2px] bg-inspi-red" />
                 )}
 
-                <Icon
-                  size={16}
-                  strokeWidth={2.1}
-                  className={active ? 'mt-0.5 flex-shrink-0 text-inspi-navy' : 'mt-0.5 flex-shrink-0 text-inspi-muted'}
-                />
+                <Icon size={15} strokeWidth={2.1} className="flex-shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <div className={`truncate font-display text-[12.5px] font-semibold leading-tight ${active ? 'text-inspi-navy' : 'text-slate-700'}`}>
+                  <div className="truncate font-display text-[12.5px] font-semibold leading-[1.15]">
                     {m.label}
                   </div>
-                  <div className="mt-0.5 truncate font-display text-[10px] font-medium text-inspi-muted">
+                  <div className={`mt-px truncate font-display text-[10px] ${active ? 'text-white/65' : 'text-inspi-muted'}`}>
                     {m.desc}
                   </div>
                 </div>
                 {m.simulada && (
                   <span
-                    className="ml-auto rounded-[3px] bg-inspi-navy/10 px-1.5 py-0.5 font-display text-[9px] font-bold uppercase tracking-[0.07em] text-inspi-navy"
+                    className={`ml-auto flex-shrink-0 rounded-[3px] px-1.5 py-0.5 font-display text-[8.5px] font-bold uppercase tracking-[0.05em] ${
+                      active ? 'bg-white/16 text-white' : 'bg-inspi-navy/10 text-inspi-navy'
+                    }`}
                     title="Datos simulados — no oficiales"
                   >
-                    Simulación
+                    SIM
                   </span>
                 )}
               </button>
@@ -107,6 +106,9 @@ export default function Sidebar() {
           })}
         </div>
       </div>
+
+      {/* === Resto de controles + footer Fuentes === */}
+      <div className="flex flex-1 flex-col gap-[18px] p-[14px]">
 
       {/* === Visualización === */}
       <div>
@@ -138,6 +140,18 @@ export default function Sidebar() {
       <div>
         <SectionHeader icon={Calendar} label="Evolución temporal" />
         <YearSlider />
+      </div>
+
+      {/* === Footer Fuentes (institucional) === */}
+      <div className="mt-auto border-t border-inspi-line pt-3.5 font-display text-[9.5px] leading-[1.4] text-inspi-muted">
+        <div className="mb-1 font-bold text-inspi-navy">Fuentes</div>
+        INEC/MSP egresos hospitalarios 2013–2024<br/>
+        CPV 2022 · ENSANUT-ECU · STEPS-OMS<br/>
+        <span className="text-inspi-muted/80">
+          Corte al {new Date().toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+        </span>
+      </div>
+
       </div>
     </aside>
   )

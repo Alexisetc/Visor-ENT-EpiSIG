@@ -168,34 +168,34 @@ export default function CargaEnfermedad() {
   const activeCountLabel = isMort ? 'Muertes' : 'Casos'
 
   return (
-    <div className="flex flex-col gap-3 p-3">
+    <div className="flex flex-col">
       {/* Header de panel — Manual de Diseño v2.
-          Overline "ÁMBITO DE ANÁLISIS" + título grande + subtítulo +
-          chips contextuales (ENT, año, métrica). La X limpia un nivel
-          a la vez (parroquia → provincia → nacional). */}
-      <section className="border-b border-inspi-line pb-2">
+          Gradient slate-50→paper, overline "ÁMBITO DE ANÁLISIS", título
+          grande + subtítulo + chips contextuales. La X limpia un nivel a
+          la vez (parroquia → provincia → nacional). */}
+      <section className="border-b border-inspi-line bg-gradient-to-b from-inspi-slate-50 to-inspi-paper px-4 pb-3 pt-3.5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1 font-display text-[10px] font-semibold uppercase tracking-[0.07em] text-inspi-muted">
-              <MapPin size={10} strokeWidth={2.4} />
+            <div className="flex items-center gap-1.5 font-display text-[9.5px] font-bold uppercase tracking-[0.08em] text-inspi-muted">
+              <MapPin size={11} strokeWidth={2.4} className="text-inspi-red" />
               <span>Ámbito de análisis</span>
             </div>
-            <div className="mt-0.5 truncate font-display text-[18px] font-bold leading-tight text-inspi-navy">
+            <div className="mt-1 truncate font-display text-[17px] font-bold leading-[1.15] tracking-[-0.01em] text-inspi-navy">
               {unitLabel.title}
             </div>
             {unitLabel.sub && (
-              <div className="font-display text-[11px] font-medium text-inspi-muted">
+              <div className="mt-0.5 font-display text-[11px] font-medium text-inspi-muted">
                 {unitLabel.sub}
               </div>
             )}
-            <div className="mt-1.5 flex flex-wrap items-center gap-1">
-              <span className="rounded-[3px] bg-inspi-red/10 px-1.5 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.07em] text-inspi-red">
+            <div className="mt-2 flex flex-wrap items-center gap-1">
+              <span className="rounded-full bg-inspi-navy/[0.08] px-2 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.05em] text-inspi-navy">
                 {ENT_LABEL[ent]}
               </span>
-              <span className="rounded-[3px] bg-inspi-bone px-1.5 py-0.5 font-mono text-[10px] font-semibold text-inspi-navy tnum">
+              <span className="rounded-full bg-inspi-slate-50 px-2 py-0.5 font-mono text-[10px] font-semibold text-inspi-muted tnum">
                 {year}
               </span>
-              <span className="rounded-[3px] bg-inspi-bone px-1.5 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.07em] text-inspi-navy">
+              <span className={`rounded-full px-2 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.05em] ${isMort ? 'bg-inspi-red/10 text-inspi-red' : 'bg-inspi-navy/[0.08] text-inspi-navy'}`}>
                 {isMort ? 'Mortalidad' : 'Morbilidad'}
               </span>
             </div>
@@ -212,11 +212,14 @@ export default function CargaEnfermedad() {
           )}
         </div>
         {!selectedDpa && (
-          <div className="mt-1.5 flex items-center gap-1 font-display text-[10px] italic text-inspi-muted">
+          <div className="mt-2 flex items-center gap-1 font-display text-[10px] italic text-inspi-muted">
             <Crosshair size={10} /> Click en una parroquia del mapa para ver el detalle
           </div>
         )}
       </section>
+
+      {/* Body del panel con padding propio (separado del header) */}
+      <div className="flex flex-col gap-3.5 px-4 py-3.5">
 
       {/* KPI único — la métrica activa del mapa (morbilidad o mortalidad).
           Ocupa el ancho completo en lugar del 50 % anterior. */}
@@ -306,6 +309,14 @@ export default function CargaEnfermedad() {
           />
         </section>
       )}
+
+      {/* Cita de fuentes (institucional, al fin del panel) */}
+      <div className="border-t border-inspi-line pt-2.5 font-display text-[9.5px] leading-[1.45] text-inspi-muted">
+        <strong className="text-inspi-navy">Fuente:</strong> INEC/MSP egresos hospitalarios &amp; CNN INSPI.
+        Tendencia: Mann-Kendall + Sen + FDR. Datos prelim. SE&nbsp;14 — {new Date().getFullYear()}.
+      </div>
+
+      </div>
     </div>
   )
 }

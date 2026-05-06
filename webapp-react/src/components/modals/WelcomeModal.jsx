@@ -13,24 +13,10 @@
 import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { useStore } from '../../store'
+import EpiLogo from '../brand/EpiLogo'
 
-// Bumpeada a v3 al renovar copy + layout del manual revisado.
-export const WELCOME_LS_KEY = 'episig:welcome-seen-v3'
-
-// Iso EpiSIG inline (mismo del Header, escala mayor para el modal).
-function EpiSIGIso() {
-  return (
-    <div
-      className="grid h-7 w-7 grid-cols-2 grid-rows-2 gap-[2px] rounded-[3px] bg-white p-[2px] shadow-sm"
-      aria-hidden="true"
-    >
-      <div className="bg-inspi-red" />
-      <div className="bg-inspi-navy" />
-      <div className="bg-inspi-navy" />
-      <div className="bg-inspi-red" />
-    </div>
-  )
-}
+// Bumpeada a v4 al renovar el wordmark del header (logo SVG real).
+export const WELCOME_LS_KEY = 'episig:welcome-seen-v4'
 
 export default function WelcomeModal() {
   const modalOpen  = useStore(s => s.modalOpen)
@@ -63,12 +49,14 @@ export default function WelcomeModal() {
 
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
-              <EpiSIGIso />
+              <div className="flex-shrink-0 rounded-[3px] bg-white px-2 py-0.5">
+                <EpiLogo width={90} />
+              </div>
               <div>
-                <div className="font-display text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-300">
+                <div className="font-display text-[9.5px] font-semibold uppercase tracking-[0.1em] text-white/60">
                   INSPI · Visor parroquial
                 </div>
-                <h2 className="mt-0.5 font-display text-[18px] font-bold leading-tight text-white">
+                <h2 className="mt-1 font-display text-[16px] font-bold leading-tight text-white">
                   Bienvenido al Visor de Enfermedades No Transmisibles
                 </h2>
               </div>
@@ -83,8 +71,8 @@ export default function WelcomeModal() {
           </div>
         </header>
 
-        {/* Línea acento rojo bajo el header (eco de la línea inferior del Header global). */}
-        <div className="h-[2px] w-full bg-inspi-red" />
+        {/* Línea acento rojo 3px bajo el header (eco del Header global). */}
+        <div className="h-[3px] w-full bg-inspi-red" />
 
         {/* === Body === */}
         <div className="space-y-3 px-5 py-4 text-[13px] leading-relaxed text-slate-700">

@@ -186,29 +186,29 @@ export default function DeterminantesIA() {
   const hasAnyData = hasMgwr || hasDet
 
   return (
-    <div className="flex flex-col gap-3 p-3">
+    <div className="flex flex-col">
       {/* Header de panel — Manual de Diseño v2 (mismo patrón que Carga). */}
-      <section className="border-b border-inspi-line pb-2">
+      <section className="border-b border-inspi-line bg-gradient-to-b from-inspi-slate-50 to-inspi-paper px-4 pb-3 pt-3.5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1 font-display text-[10px] font-semibold uppercase tracking-[0.07em] text-inspi-muted">
-              <BrainCircuit size={10} strokeWidth={2.4} />
+            <div className="flex items-center gap-1.5 font-display text-[9.5px] font-bold uppercase tracking-[0.08em] text-inspi-muted">
+              <BrainCircuit size={11} strokeWidth={2.4} className="text-inspi-red" />
               <span>Determinantes · MGWR</span>
             </div>
-            <div className="mt-0.5 truncate font-display text-[18px] font-bold leading-tight text-inspi-navy">
+            <div className="mt-1 truncate font-display text-[17px] font-bold leading-[1.15] tracking-[-0.01em] text-inspi-navy">
               {unitLabel.title}
             </div>
             {unitLabel.sub && (
-              <div className="font-display text-[11px] font-medium text-inspi-muted">
+              <div className="mt-0.5 font-display text-[11px] font-medium text-inspi-muted">
                 {unitLabel.sub}
               </div>
             )}
-            <div className="mt-1.5 flex flex-wrap items-center gap-1">
-              <span className="rounded-[3px] bg-inspi-red/10 px-1.5 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.07em] text-inspi-red">
+            <div className="mt-2 flex flex-wrap items-center gap-1">
+              <span className="rounded-full bg-inspi-navy/[0.08] px-2 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.05em] text-inspi-navy">
                 {ENT_LABEL[effectiveEnt]}
                 {ent === 'todas' && <span className="ml-1 font-normal opacity-70">(default)</span>}
               </span>
-              <span className="rounded-[3px] bg-inspi-bone px-1.5 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.07em] text-inspi-navy">
+              <span className="rounded-full bg-inspi-amber/15 px-2 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.05em] text-inspi-amber">
                 Simulación
               </span>
             </div>
@@ -225,11 +225,14 @@ export default function DeterminantesIA() {
           )}
         </div>
         {!selectedDpa && (
-          <div className="mt-1.5 flex items-center gap-1 font-display text-[10px] italic text-inspi-muted">
+          <div className="mt-2 flex items-center gap-1 font-display text-[10px] italic text-inspi-muted">
             <Crosshair size={10} /> Click en una parroquia del mapa para ver el detalle
           </div>
         )}
       </section>
+
+      {/* Body del panel con padding propio. */}
+      <div className="flex flex-col gap-3.5 px-4 py-3.5">
 
       {/* Mensaje de "sin datos" si la parroquia no está en ningún dataset */}
       {!hasAnyData && (
@@ -336,6 +339,8 @@ export default function DeterminantesIA() {
           y del Proyecto de Priorización MCDA (Núñez-UTE 2026-2028) cuando estén
           disponibles.
         </div>
+      </div>
+
       </div>
     </div>
   )

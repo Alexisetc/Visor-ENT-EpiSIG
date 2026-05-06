@@ -1,26 +1,10 @@
 // Header global — Manual de Diseño v2 (institucional EpiSIG).
-// Estructura: [toggle] · [logo+wordmark] · [breadcrumb] · ⟶ [año] [acciones]
-// 56 px de alto, fondo navy, barra roja de 2 px al fondo (eco del wordmark).
+// Estructura: [toggle] · [logo + breadcrumb] · ⟶ [año + acciones]
+// 64 px de alto, fondo navy, borde inferior rojo 3 px (eco del wordmark).
 
 import { Download, Info, Settings, Sparkles, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useStore } from '../../store'
-
-// Iso EpiSIG: pequeño grid 2×2 de bricks (rojo arriba, navy oscuro abajo).
-// Aproximación CSS al logo del manual de marca — fácil de mantener,
-// reemplazable por SVG cuando esté el asset definitivo.
-function EpiSIGIso() {
-  return (
-    <div
-      className="grid h-7 w-7 grid-cols-2 grid-rows-2 gap-[2px] rounded-[3px] bg-white p-[2px] shadow-sm"
-      aria-hidden="true"
-    >
-      <div className="bg-inspi-red" />
-      <div className="bg-inspi-navy" />
-      <div className="bg-inspi-navy" />
-      <div className="bg-inspi-red" />
-    </div>
-  )
-}
+import EpiLogo from '../brand/EpiLogo'
 
 export default function Header() {
   const year             = useStore(s => s.year)
@@ -29,12 +13,11 @@ export default function Header() {
   const toggleSidebar    = useStore(s => s.toggleSidebar)
 
   return (
-    <header className="relative z-30 flex h-14 flex-shrink-0 items-center gap-3 bg-inspi-navy pl-3 pr-4 text-white shadow-md">
-      {/* Toggle del panel de configuración — card-style en slate-50 (igual
-          que en el screenshot del Manual). */}
+    <header className="relative z-30 flex h-16 flex-shrink-0 items-center gap-4 border-b-[3px] border-inspi-red bg-inspi-navy px-5 text-white shadow-md">
+      {/* Toggle del panel de configuración. */}
       <button
         onClick={toggleSidebar}
-        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded border border-white/20 bg-white/5 text-slate-200 transition hover:bg-white/15 hover:text-white"
+        className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[4px] border border-white/20 text-white/85 transition hover:bg-white/10 hover:text-white"
         title={sidebarCollapsed ? 'Mostrar panel de configuración' : 'Ocultar panel de configuración'}
         aria-label={sidebarCollapsed ? 'Mostrar panel de configuración' : 'Ocultar panel de configuración'}
         aria-expanded={!sidebarCollapsed}
@@ -44,39 +27,33 @@ export default function Header() {
           : <PanelLeftClose size={16} strokeWidth={2.2} />}
       </button>
 
-      {/* === Cluster: logo + wordmark + barra roja + breadcrumb === */}
-      <div className="flex items-center gap-3 rounded border border-white/10 bg-white/5 px-2.5 py-1">
-        <EpiSIGIso />
-        <div className="font-display text-base font-bold leading-none tracking-tight text-white">
-          <span className="text-inspi-red">Epi</span>SIG
+      {/* === Logo institucional EpiSIG + breadcrumb === */}
+      <div className="flex items-center gap-3.5">
+        <div className="rounded-[4px] bg-white px-2 py-1 shadow-sm">
+          <EpiLogo width={108} />
         </div>
-      </div>
-
-      {/* Barra roja vertical 2px (eco del wordmark) */}
-      <div className="h-7 w-[2px] flex-shrink-0 bg-inspi-red" />
-
-      {/* Breadcrumb / título del visor */}
-      <div className="min-w-0 leading-tight">
-        <div className="truncate font-display text-[14px] font-semibold text-white">
-          Visor ENT · Ecuador
-        </div>
-        <div className="truncate font-display text-[10px] font-medium uppercase tracking-[0.07em] text-slate-300">
-          INSPI · Sistema de Información Geográfica Epidemiológica
+        <div className="min-w-0 border-l border-white/20 pl-3.5 leading-tight">
+          <div className="truncate font-display text-[14px] font-bold tracking-tight text-white">
+            Visor ENT · Ecuador
+          </div>
+          <div className="mt-0.5 truncate font-display text-[10.5px] font-medium uppercase tracking-[0.08em] text-white/65">
+            INSPI · Sistema de Información Geográfica Epidemiológica
+          </div>
         </div>
       </div>
 
       {/* === Acciones a la derecha === */}
       <div className="ml-auto flex items-center gap-2">
-        {/* Año + Semana epidemiológica — card mono */}
-        <div className="flex items-center gap-2 rounded border border-white/15 bg-white/5 px-2.5 py-1">
-          <span className="font-display text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-300">
+        {/* Año + Semana epidemiológica — card mono. */}
+        <div className="flex items-center gap-2.5 rounded-[4px] border border-white/12 bg-white/[0.06] px-3 py-1.5">
+          <span className="font-display text-[9.5px] font-semibold uppercase tracking-[0.12em] text-white/60">
             Año
           </span>
-          <span className="font-mono text-[18px] font-bold leading-none text-white tnum">
+          <span className="font-mono text-[17px] font-bold leading-none text-white tnum tracking-[0.02em]">
             {year}
           </span>
-          <span className="h-4 w-px bg-white/20" />
-          <span className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] font-medium text-slate-300 tnum">
+          <span className="h-3.5 w-px bg-white/18" />
+          <span className="font-mono text-[10px] font-medium text-white/55 tnum">
             SE 14
           </span>
         </div>
@@ -108,8 +85,7 @@ export default function Header() {
         />
       </div>
 
-      {/* Bottom red bar — eco del isotipo (2px) */}
-      <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-inspi-red" />
+      {/* Borde inferior rojo 3px se aplica vía border-b en el <header>. */}
     </header>
   )
 }
@@ -122,13 +98,13 @@ function HeaderButton({ icon: Icon, label, title, onClick, wip = false, iconOnly
       <button
         disabled
         title={title}
-        className={`relative flex cursor-not-allowed items-center gap-1.5 rounded px-2.5 py-1.5 font-display text-[12px] font-medium text-slate-400 opacity-80 ${iconOnly ? 'p-1.5' : ''}`}
+        className={`relative flex cursor-not-allowed items-center gap-1.5 rounded-[4px] px-2.5 py-1.5 font-display text-[12px] font-medium text-white/60 opacity-90 ${iconOnly ? 'p-2' : ''}`}
         {...rest}
       >
         <Icon size={14} strokeWidth={2.2} />
         {!iconOnly && <span>{label}</span>}
         {!iconOnly && (
-          <span className="ml-0.5 rounded bg-white/10 px-1.5 py-0.5 text-[8.5px] font-semibold uppercase tracking-[0.07em] text-slate-300">
+          <span className="ml-1 rounded-[3px] bg-inspi-amber px-1.5 py-px text-[8.5px] font-bold uppercase tracking-[0.08em] text-white">
             En desarrollo
           </span>
         )}
