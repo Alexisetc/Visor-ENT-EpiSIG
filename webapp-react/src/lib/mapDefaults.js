@@ -7,5 +7,5 @@
 //
 // Cambiar acá actualiza los tres lugares a la vez.
 
-export const DEFAULT_CENTER = [-1.6, -78.3]
+export const DEFAULT_CENTER = [-1.8, -78.3]
 export const DEFAULT_ZOOM   = 7
