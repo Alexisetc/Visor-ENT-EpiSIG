@@ -20,8 +20,9 @@
 // consume drop-in (mismo schema).
 
 import { useMemo } from 'react'
-import { Crosshair, X, BrainCircuit, Gauge, FlaskConical } from 'lucide-react'
+import { Crosshair, X, BrainCircuit, Gauge, FlaskConical, Loader2 } from 'lucide-react'
 import { useStore } from '../store'
+import { useModuleDataLoader } from '../hooks/useDataLoader'
 import { ENT_LABEL, ENTS, DETS, DET_LABEL } from '../lib/colors'
 import { getParroquiaKey, getParroquiaLabel, getParroquiaLabelShort, getParroquiaProvKey, getProvLabel } from '../lib/parroquia'
 
@@ -40,6 +41,10 @@ const DET_META = {
 const DET_ORDER = ['pobreza', 'nbi', 'pm25', 'tabaquismo', 'obesidad', 'sedentarismo', 'acceso_salud_km']
 
 export default function DeterminantesIA() {
+  // Lazy-load: dispara fetch de mgwr_betas + determinantes_parroquial
+  // la primera vez que el usuario activa este módulo.
+  useModuleDataLoader('determinantes')
+
   const ent             = useStore(s => s.ent)
   const provFilter      = useStore(s => s.provFilter)
   const setProvFilter   = useStore(s => s.setProvFilter)
@@ -50,6 +55,7 @@ export default function DeterminantesIA() {
   const geoProv         = useStore(s => s.geoProv)
   const mgwrData        = useStore(s => s.mgwrData)
   const detData         = useStore(s => s.detData)
+  const moduleLoading   = useStore(s => s.moduleLoading.determinantes)
 
   // ENT efectiva para mostrar βs — si está "todas", tomamos la primera
   // circulatoria como default visual (siempre hay que mostrar algo).
@@ -174,8 +180,22 @@ export default function DeterminantesIA() {
 
   if (!mgwrData || !detData) {
     return (
-      <div className="flex h-full items-center justify-center p-6 text-xs text-slate-400">
-        Cargando datasets MGWR y determinantes…
+      <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
+        {moduleLoading ? (
+          <>
+            <Loader2 size={20} className="animate-spin text-inspi-red" strokeWidth={2.2} />
+            <div className="font-display text-[12px] font-semibold text-inspi-navy">
+              Cargando datos del módulo Determinantes…
+            </div>
+            <div className="font-display text-[10.5px] text-inspi-muted">
+              MGWR · 7 factores parroquiales
+            </div>
+          </>
+        ) : (
+          <div className="font-display text-[11px] italic text-inspi-muted">
+            Datos del módulo no disponibles. Recargá la página o intentá más tarde.
+          </div>
+        )}
       </div>
     )
   }

@@ -22,12 +22,17 @@
 // con criterios de priorización de salud pública (carga por habitante).
 
 import { useMemo } from 'react'
-import { Crosshair, X, Star, Award, FlaskConical } from 'lucide-react'
+import { Crosshair, X, Star, Award, FlaskConical, Loader2 } from 'lucide-react'
 import { useStore } from '../store'
+import { useModuleDataLoader } from '../hooks/useDataLoader'
 import { ENT_LABEL, ENT_COLOR, ENTS } from '../lib/colors'
 import { getParroquiaKey, getParroquiaLabel, getParroquiaLabelShort, getParroquiaProvKey, getProvLabel } from '../lib/parroquia'
 
 export default function PriorizacionMCDA() {
+  // Lazy-load: dispara fetch de priorizacion_mcda.json la primera vez
+  // que el usuario activa este módulo.
+  useModuleDataLoader('mcda')
+
   const provFilter      = useStore(s => s.provFilter)
   const setProvFilter   = useStore(s => s.setProvFilter)
   const selectedDpa     = useStore(s => s.selectedDpa)
@@ -36,6 +41,7 @@ export default function PriorizacionMCDA() {
   const geoParr         = useStore(s => s.geoParr)
   const geoProv         = useStore(s => s.geoProv)
   const mcdaData        = useStore(s => s.mcdaData)
+  const moduleLoading   = useStore(s => s.moduleLoading.mcda)
 
   // Unidad activa — (a) parroquia específica, (b) provincia agregada, (c) nacional agregado
   const unit = useMemo(() => {
@@ -148,8 +154,22 @@ export default function PriorizacionMCDA() {
 
   if (!mcdaData) {
     return (
-      <div className="flex h-full items-center justify-center p-6 text-xs text-slate-400">
-        Cargando dataset MCDA…
+      <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
+        {moduleLoading ? (
+          <>
+            <Loader2 size={20} className="animate-spin text-inspi-red" strokeWidth={2.2} />
+            <div className="font-display text-[12px] font-semibold text-inspi-navy">
+              Cargando datos del módulo Priorización MCDA…
+            </div>
+            <div className="font-display text-[10.5px] text-inspi-muted">
+              Ranking ponderado · 6 criterios
+            </div>
+          </>
+        ) : (
+          <div className="font-display text-[11px] italic text-inspi-muted">
+            Datos del módulo no disponibles. Recargá la página o intentá más tarde.
+          </div>
+        )}
       </div>
     )
   }

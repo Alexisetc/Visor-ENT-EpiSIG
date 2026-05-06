@@ -80,6 +80,13 @@ export const useStore = create((set, get) => ({
   loading: true,
   error:   null,
 
+  // moduleLoading[moduleId] === true mientras se cargan datasets
+  // diferidos del módulo (determinantes / mcda).
+  moduleLoading: {},
+  setModuleLoading: (moduleId, on) => set(s => ({
+    moduleLoading: { ...s.moduleLoading, [moduleId]: !!on },
+  })),
+
   setDataset: (key, value) => set({ [key]: value }),
   setLoading: (v)          => set({ loading: v }),
   setError:   (e)          => set({ error: e }),

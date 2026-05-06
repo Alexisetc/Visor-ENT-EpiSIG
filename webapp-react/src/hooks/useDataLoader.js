@@ -1,99 +1,156 @@
-// useDataLoader — Carga los 8 datasets del visor en paralelo y los inyecta
-// al store zustand. Se ejecuta una sola vez al montar <App />.
+// useDataLoader — Carga los datasets del visor en dos olas:
 //
-// Datasets servidos desde /assets/* (ver vite.config.js legacyAssetsMiddleware):
-//   ent_parroquial.json         Fase 5 del pipeline Python — egresos + defunciones
-//                               INEC 2013-2024, 1056 parroquias, + tendencias
-//                               MK+Sen+FDR embebidas por parroquia/provincia/nacional
-//   pob_parroquial.json         denominadores CPV 2022, 1040 parroquias
-//   parroquias_otp_simpl.geojson  1053 polígonos parroquiales (CONALI)
-//   provincias_otp.geojson      24 polígonos provinciales (INEC)
-//   priorizacion_mcda.json      ranking MCDA por parroquia (simulación)
-//   mgwr_betas.json             β locales MGWR por parroquia (simulación)
-//   determinantes_parroquial.json  7 determinantes por parroquia (simulación)
-//   estudio_ent.json            estudio mortalidad ENT 2017-2023 (nacional)
+//   1. CRÍTICOS — al montar <App />: lo que la vista por defecto
+//      (Carga de Enfermedad + mapa) necesita para ser usable. Sin
+//      estos el visor no tiene sentido. ~3.3 MB gzip.
+//
+//   2. POR MÓDULO — bajo demanda cuando el usuario activa el módulo
+//      correspondiente. Determinantes y Priorización MCDA tienen sus
+//      datasets propios que no cargan hasta que el usuario los pide.
+//      ~630 KB gzip distribuidos entre los dos módulos.
+//
+// Beneficio: la primera carga descarga ~16% menos peso (~630 KB) y,
+// más importante, evita parsear ~2.2 MB de JSON adicional en el
+// thread principal mientras el visor se inicializa.
 
 import { useEffect } from 'react'
 import { useStore } from '../store'
 
-// === Estrategia de carga de datasets ===
-//
-// En DEV usamos `${BASE}assets/*` que va contra la copia local del repo
-// (servida por Vite + el legacyAssetsMiddleware).
-//
-// En PROD el cache CDN de GitHub Pages (cache-bog) está siendo lento
-// para esta región (~9 KB/s, 12 min para parroquias_otp_simpl.geojson).
-// Cambiamos a jsDelivr (CDN gratuito que mirroreaba automáticamente
-// el repo de GitHub) que sirve a ~175 KB/s desde cache-gig (Río de
-// Janeiro), 18× más rápido. Cache-Control: max-age=604800 (1 semana)
-// vs los 10 min de GitHub Pages. Mismo source of truth: los assets
-// de webapp/assets/ del repo en master.
 const BASE = import.meta.env.BASE_URL
-
-// CDN jsDelivr para producción. En dev queda `null` y se usa BASE.
 const PROD = import.meta.env.PROD
+
+// CDN jsDelivr en prod (mucho más rápido que GitHub Pages para LATAM),
+// fallback al asset local en dev (Vite middleware).
 const CDN_BASE = PROD
   ? 'https://cdn.jsdelivr.net/gh/Alexisetc/Visor-ENT-EpiSIG@master/webapp/assets/'
   : `${BASE}assets/`
 
-const DATASETS = [
-  { key: 'entData',      file: 'ent_parroquial.json'        },
-  { key: 'pobData',      file: 'pob_parroquial.json'        },
-  { key: 'geoParr',      file: 'parroquias_otp_simpl.geojson' },
-  { key: 'geoProv',      file: 'provincias_otp.geojson'     },
-  { key: 'mcdaData',     file: 'priorizacion_mcda.json'     },
-  { key: 'mgwrData',     file: 'mgwr_betas.json'            },
-  { key: 'detData',      file: 'determinantes_parroquial.json' },
-  { key: 'estudioData',  file: 'estudio_ent.json'           },
-].map(d => ({ ...d, url: `${CDN_BASE}${d.file}` }))
+function url(file) { return `${CDN_BASE}${file}` }
 
-async function fetchJSON(url) {
-  const r = await fetch(url)
-  if (!r.ok) throw new Error(`${url} → HTTP ${r.status}`)
-  return r.json()
+// === Datasets críticos (siempre se cargan al montar la app) ===
+// Carga de Enfermedad + capa parroquial + provincias + estudio nacional.
+const CRITICAL = [
+  { key: 'entData',     url: url('ent_parroquial.json')        },
+  { key: 'pobData',     url: url('pob_parroquial.json')        },
+  { key: 'geoParr',     url: url('parroquias_otp_simpl.geojson') },
+  { key: 'geoProv',     url: url('provincias_otp.geojson')     },
+  { key: 'estudioData', url: url('estudio_ent.json')           },
+]
+
+// === Datasets diferidos por módulo ===
+// Cada entrada se carga la primera vez que el usuario activa el módulo
+// correspondiente, y queda cacheada en el store para visitas siguientes
+// dentro de la misma sesión.
+export const MODULE_DATASETS = {
+  determinantes: [
+    { key: 'mgwrData', url: url('mgwr_betas.json')            },
+    { key: 'detData',  url: url('determinantes_parroquial.json') },
+  ],
+  mcda: [
+    { key: 'mcdaData', url: url('priorizacion_mcda.json')     },
+  ],
 }
 
+const FETCH_TIMEOUT_MS = 60_000
+
+async function fetchJSON(url, { signal } = {}) {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(new Error('timeout')), FETCH_TIMEOUT_MS)
+  if (signal) signal.addEventListener('abort', () => ctrl.abort(signal.reason))
+  try {
+    const r = await fetch(url, { signal: ctrl.signal })
+    if (!r.ok) throw new Error(`${url} → HTTP ${r.status}`)
+    return await r.json()
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+// Hook principal — solo carga los datasets críticos. Los módulos
+// diferidos los pide useModuleDataLoader cuando corresponde.
 export function useDataLoader() {
   const setDataset = useStore(s => s.setDataset)
   const setLoading = useStore(s => s.setLoading)
   const setError   = useStore(s => s.setError)
 
   useEffect(() => {
-    let cancelled = false
+    const ctrl = new AbortController()
     setLoading(true)
-    Promise.all(DATASETS.map(d =>
-      fetchJSON(d.url)
-        .then(json => ({ key: d.key, json }))
-        .catch(err => {
-          console.warn(`[EpiSIG] ${d.key} no disponible:`, err.message)
-          return { key: d.key, json: null }
+    let okCount = 0
+
+    const promises = CRITICAL.map(d =>
+      fetchJSON(d.url, { signal: ctrl.signal })
+        .then(json => {
+          if (ctrl.signal.aborted) return
+          setDataset(d.key, json)
+          okCount += 1
         })
-    )).then(results => {
-      if (cancelled) return
-      const summary = []
-      for (const { key, json } of results) {
-        setDataset(key, json)
-        if (json) {
-          if (key === 'entData')  summary.push(`ent: ${Object.keys(json.parroquias || {}).length} parr × ${(json.anios || []).length} años`)
-          if (key === 'pobData')  summary.push(`pob: ${Object.keys(json.poblacion || {}).length} parr`)
-          if (key === 'geoParr')  summary.push(`geo: ${(json.features || []).length} polig.`)
-          if (key === 'mcdaData') summary.push(`mcda: ${Object.keys(json.parroquias || {}).length} parr`)
-          if (key === 'mgwrData') summary.push(`mgwr: ${Object.keys(json.parroquias || {}).length} parr`)
-          if (key === 'detData')  summary.push(`det: ${Object.keys(json.parroquias || {}).length} parr`)
-          if (key === 'estudioData') summary.push(`estudio: ${Object.keys(json.grupos || {}).length} grupos × ${(json.anios || []).length} años`)
-        }
-      }
-      if (import.meta.env.DEV) {
-        console.log('[EpiSIG] Datos cargados →', summary.join(' · '))
-      }
+        .catch(err => {
+          if (ctrl.signal.aborted) return
+          console.warn(`[EpiSIG] ${d.key} no disponible:`, err.message)
+          setDataset(d.key, null)
+        })
+    )
+
+    Promise.allSettled(promises).then(() => {
+      if (ctrl.signal.aborted) return
       setLoading(false)
-    }).catch(err => {
-      if (cancelled) return
-      console.error('[EpiSIG] Error cargando datos:', err)
-      setError(err.message)
-      setLoading(false)
+      if (okCount === 0) {
+        setError('No se pudo cargar ningún dataset crítico (timeout o red).')
+      }
     })
-    return () => { cancelled = true }
+
+    return () => { ctrl.abort() }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+}
+
+// === Hook secundario: useModuleDataLoader(moduleId) ===
+//
+// Se monta dentro de cada módulo (Determinantes, MCDA) y dispara la
+// carga de los datasets que ese módulo necesita SI todavía no están
+// en el store. Idempotente: si ya están cargados, no hace nada.
+
+const moduleFetchInFlight = new Set()
+
+export function useModuleDataLoader(moduleId) {
+  const setDataset       = useStore(s => s.setDataset)
+  const setModuleLoading = useStore(s => s.setModuleLoading)
+  const datasets = MODULE_DATASETS[moduleId]
+
+  useEffect(() => {
+    if (!datasets) return
+    // Lo que no esté ya en el store y no esté en flight ahora mismo.
+    const missing = datasets.filter(d => {
+      const current = useStore.getState()[d.key]
+      return current == null && !moduleFetchInFlight.has(d.key)
+    })
+    if (missing.length === 0) return
+
+    missing.forEach(d => moduleFetchInFlight.add(d.key))
+    setModuleLoading(moduleId, true)
+
+    const ctrl = new AbortController()
+    const promises = missing.map(d =>
+      fetchJSON(d.url, { signal: ctrl.signal })
+        .then(json => {
+          if (ctrl.signal.aborted) return
+          setDataset(d.key, json)
+        })
+        .catch(err => {
+          if (ctrl.signal.aborted) return
+          console.warn(`[EpiSIG·${moduleId}] ${d.key} no disponible:`, err.message)
+          setDataset(d.key, null)
+        })
+        .finally(() => moduleFetchInFlight.delete(d.key))
+    )
+
+    Promise.allSettled(promises).then(() => {
+      if (ctrl.signal.aborted) return
+      setModuleLoading(moduleId, false)
+    })
+
+    return () => { ctrl.abort() }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moduleId])
 }
