@@ -10,7 +10,7 @@
 // continental, -1.6, -78.3 z=7), sin importar el provFilter — es el "home"
 // del mapa.
 
-import { ZoomIn, ZoomOut, Home } from 'lucide-react'
+import { ZoomIn, ZoomOut, Minimize2 } from 'lucide-react'
 import { DEFAULT_CENTER, DEFAULT_ZOOM } from '../../lib/mapDefaults'
 
 export default function ZoomControls({ map }) {
@@ -50,7 +50,7 @@ export default function ZoomControls({ map }) {
           title="Restablecer zoom"
           aria-label="Restablecer zoom"
         >
-          <Home size={15} strokeWidth={2.2} />
+          <Minimize2 size={15} strokeWidth={2.2} />
         </button>
       </div>
     </div>
