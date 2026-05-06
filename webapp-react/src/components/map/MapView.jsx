@@ -19,7 +19,7 @@
 // reorganiza los hijos y los botones se superponen. Usamos ref={setMap} para
 // capturar la instancia y se la pasamos al overlay como prop.
 
-import { MapContainer, TileLayer, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, AttributionControl, useMap } from 'react-leaflet'
 import { useEffect, useState } from 'react'
 import { useStore } from '../../store'
 import ChoroplethLayer     from './ChoroplethLayer'
@@ -94,10 +94,15 @@ export default function MapView() {
         zoom={7}
         scrollWheelZoom
         zoomControl={false}
+        attributionControl={false}
         ref={setMap}
         className="h-full w-full"
         style={{ background: '#eef3f7' }}
       >
+        {/* Atribución reposicionada a bottom-left para no chocar con la leyenda
+            (que vive en bottom-right). Default Leaflet la coloca en bottom-right. */}
+        <AttributionControl position="bottomleft" prefix={false} />
+
         {/* Basemap SIN nombres de ciudades (light_nolabels) */}
         <TileLayer
           attribution='&copy; <a href="https://carto.com/">CartoDB</a> · OSM'
