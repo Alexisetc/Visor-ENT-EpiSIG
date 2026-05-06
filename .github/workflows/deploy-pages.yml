@@ -72,3 +72,25 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # Purga el cache de jsDelivr (12 h por defecto) para que los datasets
+  # actualizados se vean en producción inmediatamente. Sin esto, el
+  # visor seguía sirviendo la versión vieja hasta 12 horas tras un
+  # deploy con cambios en webapp/assets/.
+  purge-cdn:
+    name: Purge jsDelivr cache
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Purge dataset URLs
+        run: |
+          REPO="Alexisetc/Visor-ENT-EpiSIG"
+          BASE="https://purge.jsdelivr.net/gh/${REPO}@master/webapp/assets"
+          for f in pob_parroquial.json ent_parroquial.json \
+                   parroquias_otp_simpl.geojson provincias_otp.geojson \
+                   priorizacion_mcda.json mgwr_betas.json \
+                   determinantes_parroquial.json estudio_ent.json; do
+            echo "→ $f"
+            curl -fsS "${BASE}/${f}" || echo "  (purge failed, no critico)"
+            echo ""
+          done
