@@ -98,6 +98,12 @@ export function useDataLoader() {
       if (okCount === 0) {
         setError('No se pudo cargar ningún dataset crítico (timeout o red).')
       }
+      // === Prefetch idle de los datasets diferidos ===
+      // Cuando el thread principal está libre, descargamos los datasets
+      // de Determinantes/MCDA en background. Si el usuario hace click
+      // en uno de esos módulos antes de que termine el prefetch, el
+      // useModuleDataLoader detecta que ya está en flight y no duplica.
+      schedulePrefetch(setDataset, ctrl.signal)
     })
 
     return () => { ctrl.abort() }
@@ -105,13 +111,48 @@ export function useDataLoader() {
   }, [])
 }
 
+// Set compartido entre el prefetch idle y useModuleDataLoader para
+// evitar fetches duplicados si el usuario hace click en un módulo
+// mientras el prefetch está en flight.
+const moduleFetchInFlight = new Set()
+
+// Prefetch de los datasets diferidos durante el idle del browser.
+// Usa requestIdleCallback con fallback a setTimeout 1.5s.
+function schedulePrefetch(setDataset, signal) {
+  const idle = (cb) => {
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(cb, { timeout: 5000 })
+    } else {
+      setTimeout(cb, 1500)
+    }
+  }
+  idle(() => {
+    if (signal.aborted) return
+    const all = Object.values(MODULE_DATASETS).flat()
+    all.forEach(d => {
+      // Si el usuario ya disparó el módulo (carrera), useModuleDataLoader
+      // habrá puesto la entrada en moduleFetchInFlight. No duplicar.
+      const current = useStore.getState()[d.key]
+      if (current != null) return
+      if (moduleFetchInFlight.has(d.key)) return
+      moduleFetchInFlight.add(d.key)
+      fetchJSON(d.url, { signal })
+        .then(json => { if (!signal.aborted) setDataset(d.key, json) })
+        .catch(err => {
+          if (!signal.aborted) {
+            console.warn(`[EpiSIG·prefetch] ${d.key} no disponible:`, err.message)
+          }
+        })
+        .finally(() => moduleFetchInFlight.delete(d.key))
+    })
+  })
+}
+
 // === Hook secundario: useModuleDataLoader(moduleId) ===
 //
 // Se monta dentro de cada módulo (Determinantes, MCDA) y dispara la
 // carga de los datasets que ese módulo necesita SI todavía no están
 // en el store. Idempotente: si ya están cargados, no hace nada.
-
-const moduleFetchInFlight = new Set()
 
 export function useModuleDataLoader(moduleId) {
   const setDataset       = useStore(s => s.setDataset)

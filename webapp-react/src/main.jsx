@@ -13,3 +13,16 @@ createRoot(document.getElementById('root')).render(
     <App />
   </StrictMode>,
 )
+
+// === Service Worker para cachear datasets jsDelivr ===
+// Solo en PROD (en dev queremos network siempre) y solo si el browser
+// soporta SW. Beneficio: segunda visita carga datasets de disco en
+// ~50ms en vez de re-bajar de jsDelivr.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    const swUrl = `${import.meta.env.BASE_URL}sw.js`
+    navigator.serviceWorker.register(swUrl).catch((err) => {
+      console.warn('[EpiSIG] SW register falló:', err.message)
+    })
+  })
+}
