@@ -1,13 +1,14 @@
-// ProvinceSelect — Dropdown de las 24 provincias para zoom + dimming
-// (parroquias fuera de la provincia se renderizan al 30% opacidad).
-// Carga las provincias desde geoProv (cargado por useDataLoader).
+// ProvinceSelect — Combobox tipo type-ahead de las 24 provincias.
+// Carga las provincias desde geoProv (cargado por useDataLoader) y delega
+// la UX de filtrado/teclado a <SearchableSelect>.
 
 import { useMemo } from 'react'
 import { useStore } from '../../store'
+import SearchableSelect from './SearchableSelect'
 
 export default function ProvinceSelect() {
-  const geoProv     = useStore(s => s.geoProv)
-  const provFilter  = useStore(s => s.provFilter)
+  const geoProv       = useStore(s => s.geoProv)
+  const provFilter    = useStore(s => s.provFilter)
   const setProvFilter = useStore(s => s.setProvFilter)
 
   const options = useMemo(() => {
@@ -15,32 +16,26 @@ export default function ProvinceSelect() {
     return (geoProv.features || [])
       .map(f => {
         const p = f.properties || {}
-        return {
-          code: String(p.DPA_PROVIN ?? p.dpa_provin ?? p.PROV_CODE ?? p.code ?? '').padStart(2, '0'),
-          name: p.DPA_DESPRO ?? p.dpa_despro ?? p.NAME_1 ?? p.PROV_NAME ?? p.name ?? '—',
-        }
+        const code = String(p.DPA_PROVIN ?? p.dpa_provin ?? p.PROV_CODE ?? p.code ?? '').padStart(2, '0')
+        const name = p.DPA_DESPRO ?? p.dpa_despro ?? p.NAME_1 ?? p.PROV_NAME ?? p.name ?? '—'
+        return { value: code, label: name, secondary: code }
       })
-      .filter(o => o.code && o.code !== '00')
-      .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+      .filter(o => o.value && o.value !== '00')
+      .sort((a, b) => a.label.localeCompare(b.label, 'es'))
   }, [geoProv])
 
-  // Mientras geoProv aún no carga (loading inicial) mostramos placeholder
-  // neutral en vez de "0 provincias" — más honesto que un conteo vacío.
   const loading = !geoProv
 
   return (
-    <select
-      value={provFilter || ''}
-      onChange={e => setProvFilter(e.target.value || null)}
-      disabled={loading}
-      className="w-full rounded border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 shadow-sm focus:border-inspi-navy focus:outline-none focus:ring-1 focus:ring-inspi-navy disabled:cursor-wait disabled:text-slate-400"
-    >
-      <option value="">
-        {loading ? '— Cargando provincias… —' : `— Nacional (${options.length} provincias) —`}
-      </option>
-      {options.map(o => (
-        <option key={o.code} value={o.code}>{o.name}</option>
-      ))}
-    </select>
+    <SearchableSelect
+      value={provFilter || null}
+      onChange={(v) => setProvFilter(v)}
+      options={options}
+      placeholder={loading ? 'Cargando provincias…' : `Buscar entre ${options.length} provincias…`}
+      loading={loading}
+      loadingText="— Cargando provincias… —"
+      emptyText="Provincia no encontrada"
+      clearLabel="— Nacional (todas las provincias) —"
+    />
   )
 }
