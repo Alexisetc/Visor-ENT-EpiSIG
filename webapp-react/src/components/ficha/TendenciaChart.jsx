@@ -40,74 +40,133 @@ export default function TendenciaChart({ series, disease, year, metric = 'morbil
     return String(Math.round(n))
   }
 
+  // Calcula CAGR (compound annual growth rate) sobre la serie completa.
+  // Si la serie es muy corta o el primer/último valor no son válidos,
+  // retorna null y omitimos el pill.
+  const cagr = (() => {
+    if (!hasData || data.length < 2) return null
+    const first = Number(data[0][dataKey])
+    const last  = Number(data[data.length - 1][dataKey])
+    if (!first || !last || first <= 0) return null
+    const years = data[data.length - 1].year - data[0].year
+    if (years <= 0) return null
+    const r = Math.pow(last / first, 1 / years) - 1
+    if (!Number.isFinite(r)) return null
+    return (r * 100).toFixed(1)
+  })()
+
+  // Pill con el año actual: rectangle rojo + texto blanco mono — anclado
+  // al ReferenceLine del año seleccionado (Recharts maneja el posicionamiento).
+  const yearPillLabel = (props) => {
+    const { viewBox } = props
+    if (!viewBox) return null
+    const x = viewBox.x
+    const y = viewBox.y + 2
+    return (
+      <g>
+        <rect x={x - 14} y={y} width={28} height={13} rx={2} fill="#B81D24" />
+        <text
+          x={x}
+          y={y + 9}
+          fill="#fff"
+          fontSize={9}
+          fontWeight={700}
+          textAnchor="middle"
+          fontFamily="Roboto Mono, monospace"
+        >
+          {year}
+        </text>
+      </g>
+    )
+  }
+
   return (
-    <div className="rounded border border-slate-200 bg-white p-2">
-      <div className="h-[180px] w-full">
+    <div className="rounded-[3px] border border-inspi-line bg-inspi-paper">
+      {/* CAGR pill en la esquina superior derecha del chart card. */}
+      {cagr != null && (
+        <div className="flex items-center justify-end border-b border-inspi-line bg-inspi-slate-50 px-2.5 py-1 font-display text-[9.5px] font-semibold text-inspi-muted">
+          CAGR{' '}
+          <span className={`ml-1 font-mono tnum ${Number(cagr) >= 0 ? 'text-inspi-red' : 'text-inspi-green'}`}>
+            {Number(cagr) >= 0 ? '+' : ''}{cagr}%
+          </span>
+          <span className="ml-1">/año</span>
+        </div>
+      )}
+      <div className="h-[160px] w-full p-1.5">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 22, right: 14, bottom: 2, left: 4 }}>
+          <AreaChart data={data} margin={{ top: 22, right: 8, bottom: 2, left: 4 }}>
             <defs>
               <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={color} stopOpacity={0.55} />
-                <stop offset="100%" stopColor={color} stopOpacity={0.05} />
+                <stop offset="0%" stopColor={color} stopOpacity={0.45} />
+                <stop offset="100%" stopColor={color} stopOpacity={0.04} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="2 4" stroke="#e2e8f0" vertical={false} />
+            <CartesianGrid strokeDasharray="2 3" stroke="#E2E5EB" vertical={false} />
             <XAxis
               type="number"
               dataKey="year"
               domain={['dataMin', 'dataMax']}
               ticks={data.map(d => d.year)}
-              tick={{ fontSize: 9, fill: '#64748b' }}
-              axisLine={{ stroke: '#cbd5e1' }}
+              tick={{ fontSize: 9, fill: '#6B7280', fontFamily: 'Roboto Mono, monospace' }}
+              axisLine={{ stroke: '#CBD5E1' }}
               tickLine={false}
               allowDecimals={false}
               interval={0}
-              angle={-35}
+              angle={-30}
               textAnchor="end"
-              height={32}
+              height={28}
             />
             <YAxis
-              tick={{ fontSize: 10, fill: '#64748b' }}
+              tick={{ fontSize: 9, fill: '#9AA3AE', fontFamily: 'Roboto Mono, monospace' }}
               axisLine={false}
               tickLine={false}
-              width={44}
+              width={36}
               tickFormatter={fmtY}
             />
             <Tooltip
-              contentStyle={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: `1px solid ${color}` }}
+              contentStyle={{
+                fontSize: 11, padding: '4px 8px', borderRadius: 4,
+                border: '1px solid #E2E5EB', fontFamily: 'Montserrat, sans-serif',
+              }}
               formatter={(v) => [Number(v).toFixed(1), tooltipLabel]}
               labelFormatter={l => `Año ${l}`}
             />
             <ReferenceLine
               x={year}
-              stroke="#fbc400"
-              strokeWidth={2.5}
-              strokeDasharray="4 3"
+              stroke="#B81D24"
+              strokeWidth={1}
+              strokeDasharray="3 2"
+              opacity={0.85}
               ifOverflow="extendDomain"
-              label={{
-                value: String(year),
-                position: 'insideTopRight',
-                fill: '#d97706',
-                fontSize: 10,
-                fontWeight: 700,
-                offset: 4,
-              }}
+              label={yearPillLabel}
             />
             <Area
               type="monotone"
               dataKey={dataKey}
               stroke={color}
-              strokeWidth={2.2}
+              strokeWidth={1.8}
               fill={`url(#${gradId})`}
-              dot={false}
-              activeDot={{ r: 3.5, stroke: color, strokeWidth: 1.5, fill: '#fff' }}
+              dot={(props) => {
+                const isSel = props.payload?.year === year
+                return (
+                  <circle
+                    cx={props.cx}
+                    cy={props.cy}
+                    r={isSel ? 3.5 : 1.6}
+                    fill={isSel ? color : '#fff'}
+                    stroke={color}
+                    strokeWidth={1.4}
+                  />
+                )
+              }}
+              activeDot={{ r: 4, stroke: color, strokeWidth: 1.6, fill: '#fff' }}
               isAnimationActive={false}
             />
           </AreaChart>
         </ResponsiveContainer>
       </div>
       {!hasData && (
-        <div className="mt-1 text-center text-[10px] italic text-slate-400">
+        <div className="border-t border-inspi-line py-1.5 text-center font-display text-[10px] italic text-inspi-muted">
           Sin datos reales para esta unidad · serie vacía
         </div>
       )}

@@ -355,50 +355,57 @@ export default function PriorizacionMCDA() {
 
 // ───── Subcomponentes ─────
 
+// Gradient institucional navy → red (mismo lenguaje que Determinantes).
+// Conservamos el `color` de la ENT solo para la pastilla del rank, así
+// el ranking sigue siendo visualmente diferenciable por categoría sin
+// que las barras compitan en hue.
+const MCDA_GRADIENT = 'linear-gradient(90deg, #14213D 0%, #B81D24 100%)'
+
 function RankRow({ rank, label, score, maxScore, color }) {
   const pct = maxScore > 0 ? Math.max(0, Math.min(100, (score / maxScore) * 100)) : 0
   return (
     <div>
-      <div className="mb-0.5 flex items-center justify-between text-[10.5px]">
+      <div className="mb-1 flex items-center justify-between gap-2 text-[10.5px]">
         <span className="flex min-w-0 items-center gap-1.5 truncate">
           <span
-            className="inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full text-[8.5px] font-bold text-white"
+            className="inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[3px] font-mono text-[9.5px] font-bold text-white"
             style={{ background: color }}
+            title={`Categoría ENT del rank #${rank}`}
           >
             {rank}
           </span>
-          <span className="truncate font-medium text-slate-700">{label}</span>
+          <span className="truncate font-display font-semibold text-inspi-navy">{label}</span>
         </span>
-        <span className="flex-shrink-0 font-mono text-slate-700">{score.toFixed(3)}</span>
+        <span className="flex-shrink-0 font-mono text-[11px] font-bold text-inspi-navy tnum">{score.toFixed(3)}</span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+      <div className="h-1.5 overflow-hidden rounded-full bg-inspi-slate-100">
         <div
           className="h-full rounded-full transition-all"
-          style={{ width: `${pct}%`, background: color }}
+          style={{ width: `${pct}%`, background: MCDA_GRADIENT }}
         />
       </div>
     </div>
   )
 }
 
-function CritRow({ label, peso, value, aporte, color }) {
+function CritRow({ label, peso, value, aporte }) {
   const pct = Math.max(0, Math.min(100, value * 100))
   return (
     <div>
-      <div className="mb-0.5 flex items-center justify-between text-[10px]">
-        <span className="truncate font-medium text-slate-600">
+      <div className="mb-0.5 flex items-center justify-between gap-2 text-[10px]">
+        <span className="truncate font-display font-medium text-inspi-ink">
           {label}
-          <span className="ml-1 font-normal text-slate-400">(×{peso})</span>
+          <span className="ml-1 font-mono font-normal text-inspi-muted/80">×{peso}</span>
         </span>
-        <span className="flex-shrink-0 font-mono text-slate-700">
+        <span className="flex-shrink-0 font-mono text-inspi-navy tnum">
           {value.toFixed(2)}
-          <span className="ml-1 text-[9px] text-slate-400">→ {aporte.toFixed(3)}</span>
+          <span className="ml-1 text-[9px] text-inspi-muted/70">→ {aporte.toFixed(3)}</span>
         </span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+      <div className="h-1.5 overflow-hidden rounded-full bg-inspi-slate-100">
         <div
           className="h-full rounded-full transition-all"
-          style={{ width: `${pct}%`, background: color }}
+          style={{ width: `${pct}%`, background: MCDA_GRADIENT }}
         />
       </div>
     </div>

@@ -1,18 +1,51 @@
-// MetodologiaModal — Texto de metodología (qué es real, qué es simulación
-// estructurada). Replica el modal naranja del legacy. Activado desde Header.
+// MetodologiaModal — Documenta qué es real y qué es simulación estructurada
+// en cada capa del visor. Manual de Diseño v2: header navy + barra roja,
+// secciones con pill REAL/SIMULADO de alto contraste.
 
 import { useEffect } from 'react'
-import { X, FlaskConical } from 'lucide-react'
+import { X, FlaskConical, Database, BookOpen } from 'lucide-react'
 import { useStore } from '../../store'
 import Cite from '../ficha/Cite'
 
-// URL canónica de la referencia [1] — clasificación de ENT y metodología
-// de tendencias usadas en este visor.
 const REF_1_URL   = 'https://www.inspilip.gob.ec/index.php/inspi/article/view/853'
 const REF_1_TITLE = 'Evolución de la mortalidad por enfermedades no transmisibles en Ecuador (2017-2023)'
 
+// Pill REAL / SIMULADO con tratamiento contrastado.
+function StatusPill({ status }) {
+  const isReal = status === 'real'
+  return (
+    <span
+      className={`inline-flex flex-shrink-0 items-center gap-1 rounded-full px-2 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.08em] ${
+        isReal
+          ? 'bg-inspi-green/12 text-inspi-green ring-1 ring-inspi-green/25'
+          : 'bg-inspi-amber/15 text-inspi-amber ring-1 ring-inspi-amber/30'
+      }`}
+    >
+      <span className={`block h-1.5 w-1.5 rounded-full ${isReal ? 'bg-inspi-green' : 'bg-inspi-amber'}`} />
+      {isReal ? 'Datos reales' : 'Simulado'}
+    </span>
+  )
+}
+
+// Sección de capa con encabezado destacado + pill de estado.
+function Section({ title, status, children }) {
+  return (
+    <div className="rounded-[4px] border border-inspi-line bg-inspi-paper">
+      <div className="flex items-center justify-between gap-2 border-b border-inspi-line bg-inspi-slate-50 px-3.5 py-2">
+        <h3 className="font-display text-[12.5px] font-bold text-inspi-navy">
+          {title}
+        </h3>
+        <StatusPill status={status} />
+      </div>
+      <div className="px-3.5 py-2.5 text-[11.5px] leading-[1.55] text-slate-700">
+        {children}
+      </div>
+    </div>
+  )
+}
+
 export default function MetodologiaModal() {
-  const modalOpen = useStore(s => s.modalOpen)
+  const modalOpen  = useStore(s => s.modalOpen)
   const closeModal = useStore(s => s.closeModal)
 
   useEffect(() => {
@@ -29,77 +62,101 @@ export default function MetodologiaModal() {
       className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm"
       onClick={e => { if (e.target === e.currentTarget) closeModal() }}
     >
-      <div className="max-h-[85vh] w-[640px] max-w-[92vw] overflow-y-auto rounded-lg bg-white shadow-2xl">
-        <header className="flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-amber-50 to-white px-5 py-3">
-          <div className="flex items-center gap-2">
-            <FlaskConical size={18} className="text-amber-600" />
-            <h2 className="font-display text-base font-semibold text-inspi-navy">
-              Metodología · qué es real, qué es simulación estructurada
-            </h2>
+      <div className="max-h-[88vh] w-[700px] max-w-[92vw] overflow-y-auto rounded-[4px] bg-inspi-paper shadow-2xl">
+        {/* === Header navy con barra roja superior === */}
+        <header className="relative bg-inspi-navy px-5 py-3.5 text-white">
+          <span className="absolute left-0 right-0 top-0 h-[2px] bg-inspi-red" />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-[3px] bg-white/10">
+                <FlaskConical size={16} className="text-inspi-red" />
+              </div>
+              <div className="leading-tight">
+                <div className="font-display text-[9.5px] font-semibold uppercase tracking-[0.12em] text-white/55">
+                  Documentación técnica
+                </div>
+                <h2 className="mt-0.5 font-display text-[15px] font-bold text-white">
+                  Metodología — Qué es real, qué es simulación estructurada
+                </h2>
+              </div>
+            </div>
+            <button
+              onClick={closeModal}
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded text-white/70 hover:bg-white/10 hover:text-white"
+              aria-label="Cerrar"
+            >
+              <X size={16} />
+            </button>
           </div>
-          <button onClick={closeModal} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
-            <X size={16} />
-          </button>
         </header>
+        <div className="h-[3px] w-full bg-inspi-red" />
 
-        <div className="space-y-3 px-5 py-4 text-sm leading-relaxed text-slate-700">
-          <p>
-            Las tres capas analíticas de este visor combinan <b>datos reales</b> y
-            <b> simulaciones defendibles</b>. Esta nota documenta cada una para uso institucional.
+        {/* === Body === */}
+        <div className="space-y-3 px-5 py-4 text-[12.5px] leading-relaxed text-slate-700">
+          {/* Resumen ejecutivo */}
+          <p className="border-l-[3px] border-inspi-red bg-inspi-bone/40 px-3 py-2 text-[12px]">
+            Las tres capas analíticas de geoENT combinan{' '}
+            <b className="text-inspi-navy">datos reales</b> de fuentes oficiales y{' '}
+            <b className="text-inspi-navy">simulaciones estructuradas defendibles</b>.
+            Esta nota documenta el origen y el método de cada una para uso institucional.
           </p>
 
-          <div>
-            <h3 className="font-display text-sm font-semibold text-inspi-navy">Egresos hospitalarios y defunciones 2013–2024</h3>
-            <p className="text-xs">
-              <b>Reales.</b> Microdato crudo INEC (EGH + EDG) procesado por el pipeline
-              Python <code>scripts/ent_pipeline/</code> (Fases 0-5, reemplaza el
-              <code> CONSOLIDADO_egresos.xlsx</code> opaco). Clasificación CIE-10 según los
-              5 grupos del estudio<Cite n={1} href={REF_1_URL} title={REF_1_TITLE} />
-              {' '}(circulatorio I00-I99, neoplasias C00-D48, metabólicas E00-E90,
-              respiratorio J00-J99, nervioso G00-G99). Tendencias con Mann-Kendall (τ) +
-              pendiente de Sen + FDR Benjamini-Hochberg.
+          {/* Cuatro capas */}
+          <Section title="Egresos hospitalarios y defunciones · 2013–2024" status="real">
+            Microdato crudo <b>INEC</b> (EGH + EDG) procesado por el pipeline Python{' '}
+            <code className="rounded bg-inspi-slate-50 px-1 py-px font-mono text-[10.5px] text-inspi-navy">scripts/ent_pipeline/</code>{' '}
+            (Fases 0-5). Clasificación CIE-10 según los 5 grupos del estudio
+            <Cite n={1} href={REF_1_URL} title={REF_1_TITLE} />{' '}
+            (circulatorio I00-I99, neoplasias C00-D48, metabólicas E00-E90,
+            respiratorio J00-J99, nervioso G00-G99). Tendencias con{' '}
+            <b>Mann-Kendall</b> (τ) + <b>pendiente de Sen</b> + <b>FDR Benjamini-Hochberg</b>.
+          </Section>
+
+          <Section title="Determinantes parroquiales · MGWR" status="simulado">
+            Valor provincial base (<b>ENSANUT-ECU 2018</b>, <b>STEPS-OMS</b>, <b>GBD 2021</b>,
+            <b> CPV 2022</b>) × factor urbano/rural × ruido gaussiano σ=8%.
+            Acceso a salud: distancia euclidiana al centroide de la cabecera cantonal
+            (EPSG:32717).
+          </Section>
+
+          <Section title="Priorización MCDA" status="simulado">
+            Suma ponderada (<b>Marsh/ISPOR 2016</b>, <b>Baltussen 2006</b>) con 6 criterios:
+            mortalidad (0.30), egresos (0.20), AVAD-GBD (0.15), tendencia CAGR (0.15),
+            costo-sistema (0.10), brecha urbano-rural (0.10). Parroquias con &lt;10 casos
+            heredan el ranking cantonal.
+          </Section>
+
+          <Section title="MGWR local — coeficientes β espaciales" status="simulado">
+            Regresión geográficamente ponderada multiescala (<b>Oshan 2020</b>): β nacional ×
+            kernel gaussiano anclado en focos reales (Quito/Guayaquil para PM2.5; Amazonía
+            para pobreza; Costa urbana para obesidad).
+          </Section>
+
+          {/* Reemplazo planeado destacado */}
+          <div className="rounded-[4px] border border-inspi-navy/30 bg-inspi-navy/[0.04] p-3.5">
+            <div className="mb-1.5 flex items-center gap-1.5 font-display text-[10px] font-bold uppercase tracking-[0.08em] text-inspi-navy">
+              <Database size={11} strokeWidth={2.4} />
+              Reemplazo planeado
+            </div>
+            <p className="text-[11.5px] leading-[1.55] text-slate-700">
+              Cuando estén disponibles, los datos simulados serán reemplazados por
+              resultados reales del{' '}
+              <b className="text-inspi-navy">Proyecto Econométrico Espacial INSPI F-I+D+i-075</b>{' '}
+              (Duque-ESPE 2026-2027) y del{' '}
+              <b className="text-inspi-navy">Proyecto de Priorización MCDA</b>{' '}
+              (Núñez-UTE 2026-2028). El esquema de datos se mantiene drop-in.
             </p>
           </div>
 
-          <div>
-            <h3 className="font-display text-sm font-semibold text-inspi-navy">Determinantes parroquiales</h3>
-            <p className="text-xs">
-              <b>Simulados.</b> Valor provincial base (ENSANUT-ECU 2018, STEPS-OMS, GBD 2021,
-              CPV 2022) × factor urbano/rural × ruido gaussiano σ=8%. Acceso a salud:
-              distancia euclidiana al centroide de la cabecera cantonal (EPSG:32717).
-            </p>
-          </div>
-
-          <div>
-            <h3 className="font-display text-sm font-semibold text-inspi-navy">Priorización MCDA</h3>
-            <p className="text-xs">
-              <b>Simulada.</b> Suma ponderada (Marsh/ISPOR 2016, Baltussen 2006) con 6 criterios:
-              mortalidad (0.30), egresos (0.20), AVAD-GBD (0.15), tendencia CAGR (0.15),
-              costo-sistema (0.10), brecha urbano-rural (0.10). Parroquias con &lt;10 casos
-              heredan el ranking cantonal.
-            </p>
-          </div>
-
-          <div>
-            <h3 className="font-display text-sm font-semibold text-inspi-navy">MGWR local</h3>
-            <p className="text-xs">
-              <b>Simulada.</b> Regresión geográficamente ponderada multiescala (Oshan 2020):
-              β nacional × kernel gaussiano anclado en focos reales (Quito/Guayaquil para PM2.5;
-              Amazonía para pobreza; Costa urbana para obesidad).
-            </p>
-          </div>
-
-          <div className="rounded-[3px] border border-inspi-navy/30 bg-inspi-navy/5 p-3 text-xs text-inspi-navy">
-            <b>Reemplazo planeado:</b> resultados reales del Proyecto Econométrico Espacial
-            INSPI F-I+D+i-075 (Duque-ESPE 2026-2027) y del Proyecto de Priorización MCDA
-            (Núñez-UTE 2026-2028) cuando estén disponibles.
-          </div>
-
-          <div>
-            <h3 className="font-display text-sm font-semibold text-inspi-navy">Referencias</h3>
-            <ol className="list-decimal space-y-1 pl-5 text-xs">
+          {/* Referencias */}
+          <div className="rounded-[4px] border border-inspi-line bg-inspi-paper">
+            <div className="flex items-center gap-1.5 border-b border-inspi-line bg-inspi-slate-50 px-3.5 py-2 font-display text-[10px] font-bold uppercase tracking-[0.08em] text-inspi-navy">
+              <BookOpen size={11} strokeWidth={2.4} />
+              Referencias
+            </div>
+            <ol className="list-decimal space-y-1.5 px-3.5 py-2.5 pl-9 text-[11.5px] marker:font-bold marker:text-inspi-red">
               <li id="ref-1">
-                {REF_1_TITLE}. Revista INSPILIP.{' '}
+                {REF_1_TITLE}. <i>Revista INSPILIP</i>.{' '}
                 <a
                   href={REF_1_URL}
                   target="_blank"
@@ -112,6 +169,19 @@ export default function MetodologiaModal() {
             </ol>
           </div>
         </div>
+
+        {/* Footer */}
+        <footer className="flex items-center justify-between gap-2 border-t border-inspi-line bg-inspi-bone px-5 py-2.5">
+          <span className="font-display text-[10px] font-medium uppercase tracking-[0.08em] text-inspi-muted">
+            Documento técnico · revisión {new Date().toLocaleDateString('es-EC', { month: 'long', year: 'numeric' })}
+          </span>
+          <button
+            onClick={closeModal}
+            className="rounded-[3px] bg-inspi-navy px-4 py-1.5 font-display text-[12px] font-semibold text-white hover:brightness-125"
+          >
+            Cerrar
+          </button>
+        </footer>
       </div>
     </div>
   )

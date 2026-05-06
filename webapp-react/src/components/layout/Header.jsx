@@ -94,23 +94,23 @@ export default function Header() {
 // "en desarrollo" (deshabilitado + pill rojo).
 function HeaderButton({ icon: Icon, label, title, onClick, wip = false, iconOnly = false, ...rest }) {
   if (wip) {
+    // Indicador sutil para features "en construcción": el botón se ve
+    // deshabilitado (opacidad reducida + cursor-not-allowed) y un punto
+    // amber pequeño en la esquina superior derecha indica el WIP. El
+    // tooltip explica al hover. No queremos pills llamativos — la idea
+    // es que se note solo si el usuario ya está mirando ese botón.
     return (
       <button
         disabled
         title={title}
-        className={`relative flex cursor-not-allowed items-center gap-1.5 rounded-[4px] px-2.5 py-1.5 font-display text-[12px] font-medium text-white/60 opacity-90 ${iconOnly ? 'p-2' : ''}`}
+        className={`relative flex cursor-not-allowed items-center gap-1.5 rounded-[4px] px-2.5 py-1.5 font-display text-[12px] font-medium text-white/45 ${iconOnly ? 'p-2' : ''}`}
         {...rest}
       >
         <Icon size={14} strokeWidth={2.2} />
         {!iconOnly && <span>{label}</span>}
-        {!iconOnly && (
-          <span className="ml-1 rounded-[3px] bg-inspi-amber px-1.5 py-px text-[8.5px] font-bold uppercase tracking-[0.08em] text-white">
-            En desarrollo
-          </span>
-        )}
-        {iconOnly && (
-          <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-inspi-amber ring-2 ring-inspi-navy" />
-        )}
+        {/* Punto amber discreto en la esquina superior derecha — mismo
+            tratamiento para texto e iconOnly. */}
+        <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-inspi-amber" />
       </button>
     )
   }

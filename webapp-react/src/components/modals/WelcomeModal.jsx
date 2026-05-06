@@ -14,9 +14,10 @@ import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { useStore } from '../../store'
 import EpiLogo from '../brand/EpiLogo'
+import GeoEntLogo from '../brand/GeoEntLogo'
 
-// Bumpeada a v4 al renovar el wordmark del header (logo SVG real).
-export const WELCOME_LS_KEY = 'episig:welcome-seen-v4'
+// Bumpeada a v5 al integrar el logo geoENT y renovar el copy.
+export const WELCOME_LS_KEY = 'episig:welcome-seen-v5'
 
 export default function WelcomeModal() {
   const modalOpen  = useStore(s => s.modalOpen)
@@ -41,29 +42,27 @@ export default function WelcomeModal() {
       className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm"
       onClick={e => { if (e.target === e.currentTarget) dismiss() }}
     >
-      <div className="max-h-[85vh] w-[680px] max-w-[92vw] overflow-y-auto rounded-[4px] bg-inspi-paper shadow-2xl">
-        {/* === Header navy con barra roja superior y iso === */}
-        <header className="relative bg-inspi-navy px-5 pb-4 pt-4 text-white">
-          {/* Barra roja superior 2 px (eco del wordmark). */}
+      <div className="max-h-[88vh] w-[700px] max-w-[92vw] overflow-y-auto rounded-[4px] bg-inspi-paper shadow-2xl">
+        {/* === Header navy con barra roja superior y EpiSIG mark === */}
+        <header className="relative bg-inspi-navy px-5 pb-3.5 pt-4 text-white">
           <span className="absolute left-0 right-0 top-0 h-[2px] bg-inspi-red" />
-
           <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 rounded-[3px] bg-white px-2 py-0.5">
-                <EpiLogo width={90} />
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0 rounded-[3px] bg-white px-2 py-1">
+                <EpiLogo width={88} />
               </div>
               <div>
-                <div className="font-display text-[9.5px] font-semibold uppercase tracking-[0.1em] text-white/60">
-                  INSPI · Visor parroquial
+                <div className="font-display text-[9.5px] font-semibold uppercase tracking-[0.12em] text-white/55">
+                  INSPI · Centro de Investigación EpiSIG
                 </div>
-                <h2 className="mt-1 font-display text-[16px] font-bold leading-tight text-white">
-                  Bienvenido al Visor de Enfermedades No Transmisibles
-                </h2>
+                <div className="mt-0.5 font-display text-[12px] font-medium text-white/85">
+                  Visor parroquial de Enfermedades No Transmisibles
+                </div>
               </div>
             </div>
             <button
               onClick={dismiss}
-              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded text-slate-300 hover:bg-white/10 hover:text-white"
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded text-white/70 hover:bg-white/10 hover:text-white"
               aria-label="Cerrar bienvenida"
             >
               <X size={16} />
@@ -74,43 +73,59 @@ export default function WelcomeModal() {
         {/* Línea acento rojo 3px bajo el header (eco del Header global). */}
         <div className="h-[3px] w-full bg-inspi-red" />
 
+        {/* === Hero: logo geoENT centrado + saludo === */}
+        <div className="border-b border-inspi-line bg-gradient-to-b from-inspi-slate-50 to-inspi-paper px-5 pb-4 pt-5 text-center">
+          <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-inspi-muted">
+            Bienvenido a
+          </div>
+          <div className="mx-auto mt-3 flex items-center justify-center">
+            <GeoEntLogo width={300} showTagline />
+          </div>
+        </div>
+
         {/* === Body === */}
-        <div className="space-y-3 px-5 py-4 text-[13px] leading-relaxed text-slate-700">
-          {/* Párrafo institucional */}
+        <div className="space-y-3.5 px-6 py-4 text-[13px] leading-[1.6] text-slate-700">
           <p>
-            Esta es una <b>versión prototipo</b> del visor parroquial de Enfermedades
-            No Transmisibles (ENT) del <b>EpiSIG · INSPI</b>. Integra datos territoriales,
-            indicadores de carga de enfermedad y análisis multicriterio para orientar
-            decisiones priorizadas en salud pública.
+            <b className="text-inspi-navy">geoENT</b> convierte datos epidemiológicos
+            territoriales en evidencia accionable para la toma de decisiones en salud
+            pública del Ecuador continental. Diseñado por el{' '}
+            <b className="text-inspi-navy">Centro de Investigación EpiSIG · INSPI</b>,
+            integra carga de enfermedad, determinantes sociales y priorización
+            multicriterio sobre las <span className="font-mono tnum">1.049</span>{' '}
+            parroquias del país.
           </p>
 
-          {/* Callout: datos simulados — borde navy (estandarizado) */}
-          <div className="rounded-[3px] border border-inspi-navy/30 bg-inspi-navy/5 px-3 py-2 text-[12px] text-inspi-navy">
+          {/* Callout: datos simulados — borde navy (estandarizado). */}
+          <div className="rounded-[3px] border border-inspi-navy/25 bg-inspi-navy/[0.04] px-3.5 py-2.5 text-[12px] text-inspi-navy">
             Algunos módulos consumen{' '}
             <b>datos simulados estructurados</b> (ENSANUT-ECU, STEPS-OMS, GBD 2021)
             marcados con la etiqueta{' '}
-            <span className="inline-flex items-center rounded-[3px] border border-inspi-line bg-inspi-bone px-1.5 py-px font-display text-[10px] font-bold uppercase tracking-[0.07em] text-inspi-navy">
+            <span className="inline-flex items-center rounded-[3px] border border-inspi-line bg-inspi-paper px-1.5 py-px font-display text-[10px] font-bold uppercase tracking-[0.07em] text-inspi-navy">
               Simulación
-            </span>.
+            </span>{' '}
+            mientras avanzan los proyectos de investigación asociados.
           </div>
 
-          {/* Tip card con borde rojo izquierdo */}
+          {/* Tip card con borde rojo izquierdo. */}
           <div className="rounded-[3px] border border-inspi-line bg-inspi-bone/40">
-            <div className="border-l-[3px] border-inspi-red px-3 py-2.5">
-              <div className="mb-1.5 flex items-center gap-1.5 font-display text-[11px] font-bold uppercase tracking-[0.07em] text-inspi-red">
-                ▶ Tip rápido — Animación temporal
+            <div className="border-l-[3px] border-inspi-red px-3.5 py-2.5">
+              <div className="mb-1.5 flex items-center gap-1.5 font-display text-[10.5px] font-bold uppercase tracking-[0.08em] text-inspi-red">
+                ▸ Tip rápido — Animación temporal
               </div>
               <ol className="list-decimal space-y-0.5 pl-5 text-[12.5px] text-slate-700 marker:font-semibold marker:text-inspi-navy">
                 <li>Active el módulo <b>Carga de enfermedad</b>.</li>
-                <li>Seleccione visualización <b>Hot Spots</b>.</li>
-                <li>Pulse <b>▶ Reproducir</b> en el panel temporal para recorrer 2013–2024.</li>
+                <li>Seleccione la visualización <b>Hot Spots</b>.</li>
+                <li>Pulse <b>▶ Reproducir</b> para recorrer la serie 2013–2024.</li>
               </ol>
             </div>
           </div>
         </div>
 
         {/* === Footer con CTA grande rojo === */}
-        <footer className="flex items-center justify-end gap-2 border-t border-inspi-line bg-inspi-bone px-5 py-3">
+        <footer className="flex items-center justify-between gap-2 border-t border-inspi-line bg-inspi-bone px-5 py-3">
+          <span className="font-display text-[10px] font-medium uppercase tracking-[0.08em] text-inspi-muted">
+            v0.1.0 · Prototipo institucional
+          </span>
           <button
             onClick={dismiss}
             className="rounded-[3px] bg-inspi-red px-5 py-2 font-display text-[13px] font-bold text-white shadow-sm transition hover:brightness-110"

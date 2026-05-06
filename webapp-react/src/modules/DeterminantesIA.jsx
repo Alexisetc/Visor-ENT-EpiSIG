@@ -365,45 +365,51 @@ function R2Bar({ r2 }) {
   )
 }
 
-function BetaRow({ label, value, max, color }) {
+// === Filas con gradient navy → red (institucional) ===
+// Reemplaza los colores chillones por categoría con un gradient horizontal
+// uniforme. La proporción del fill comunica la magnitud sin distraer
+// con hue. El layout 3-col (label fija / barra flexible / valor mono)
+// alinea visualmente todas las filas.
+
+const ROW_GRADIENT = 'linear-gradient(90deg, #14213D 0%, #B81D24 100%)'
+
+function BetaRow({ label, value, max }) {
   const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0
   return (
-    <div>
-      <div className="flex items-center justify-between text-[10.5px]">
-        <span className="truncate font-medium text-slate-600">{label}</span>
-        <span className="flex-shrink-0 font-mono text-slate-700">
-          β={Number(value || 0).toFixed(2)}
-        </span>
-      </div>
-      <div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+    <div className="grid grid-cols-[90px_1fr_50px] items-center gap-2">
+      <span className="truncate font-display text-[11px] text-inspi-ink">{label}</span>
+      <div className="h-1.5 overflow-hidden rounded-full bg-inspi-slate-100">
         <div
           className="h-full rounded-full transition-all"
-          style={{ width: `${pct}%`, background: color }}
+          style={{ width: `${pct}%`, background: ROW_GRADIENT }}
         />
       </div>
+      <span className="flex-shrink-0 text-right font-mono text-[10.5px] font-semibold text-inspi-navy tnum">
+        β={Number(value || 0).toFixed(2)}
+      </span>
     </div>
   )
 }
 
-function DetRow({ label, value, max, unit, color }) {
+function DetRow({ label, value, max, unit }) {
   const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0
   const formatted = unit === '%'
-    ? `${value.toFixed(1)} %`
+    ? `${value.toFixed(1)}%`
     : unit === 'km'
       ? `${value.toFixed(2)} km`
       : `${value.toFixed(1)} ${unit}`
   return (
-    <div>
-      <div className="flex items-center justify-between text-[10.5px]">
-        <span className="truncate font-medium text-slate-600">{label}</span>
-        <span className="flex-shrink-0 font-mono text-slate-700">{formatted}</span>
-      </div>
-      <div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+    <div className="grid grid-cols-[90px_1fr_60px] items-center gap-2">
+      <span className="truncate font-display text-[11px] text-inspi-ink">{label}</span>
+      <div className="h-1.5 overflow-hidden rounded-full bg-inspi-slate-100">
         <div
           className="h-full rounded-full transition-all"
-          style={{ width: `${pct}%`, background: color }}
+          style={{ width: `${pct}%`, background: ROW_GRADIENT }}
         />
       </div>
+      <span className="flex-shrink-0 text-right font-mono text-[10.5px] font-semibold text-inspi-navy tnum">
+        {formatted}
+      </span>
     </div>
   )
 }

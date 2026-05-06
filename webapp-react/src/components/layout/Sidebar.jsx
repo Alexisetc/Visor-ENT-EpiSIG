@@ -98,7 +98,7 @@ export default function Sidebar() {
                     }`}
                     title="Datos simulados — no oficiales"
                   >
-                    SIM
+                    Simulación
                   </span>
                 )}
               </button>
