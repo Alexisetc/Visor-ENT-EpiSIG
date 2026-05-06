@@ -150,11 +150,11 @@ export default function SearchableSelect({
             <button
               type="button"
               onMouseDown={e => { e.preventDefault(); commit(null) }}
-              className="mr-0.5 flex h-5 w-5 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              className="mr-1 flex h-5 w-5 items-center justify-center rounded text-slate-500 hover:bg-slate-200 hover:text-slate-700"
               title="Limpiar selección"
               aria-label="Limpiar selección"
             >
-              <X size={12} />
+              <X size={14} strokeWidth={2.2} />
             </button>
           )}
           <ChevronDown size={14} className={`text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />

@@ -30,7 +30,7 @@ export default function EntSelector() {
       options={OPTIONS}
       placeholder={`Buscar entre ${OPTIONS.length} grupos ENT…`}
       emptyText="Grupo ENT no encontrado"
-      clearLabel="— Todas las ENT —"
+      clearLabel="Todas las ENT"
     />
   )
 }

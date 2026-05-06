@@ -35,7 +35,7 @@ export default function ProvinceSelect() {
       loading={loading}
       loadingText="— Cargando provincias… —"
       emptyText="Provincia no encontrada"
-      clearLabel="— Nacional (todas las provincias) —"
+      clearLabel="Nacional (todas las provincias)"
     />
   )
 }
