@@ -1,4 +1,4 @@
-// Legend — Leyenda flotante bottom-left. Cambia según módulo + layerType:
+// Legend — Leyenda flotante bottom-right. Cambia según módulo + layerType:
 //
 //   module='carga' + layer='coropleta'         → 5 swatches por quintil (paleta ENT)
 //                  + layer='heatmap' (hot-spot)→ bipolar RdBu + tamaño |z|, puntos en centroides
@@ -56,7 +56,7 @@ export default function Legend() {
   const scaleCarga = colorScales[ent] || colorScales.todas
 
   return (
-    <div className="pointer-events-none absolute bottom-3 left-3 z-[400] max-w-[320px] rounded-lg border border-slate-200 bg-white/95 px-3 py-2 shadow-lg backdrop-blur">
+    <div className="pointer-events-none absolute bottom-3 right-3 z-[400] max-w-[320px] rounded-lg border border-slate-200 bg-white/95 px-3 py-2 shadow-lg backdrop-blur">
       <div className="mb-1 font-display text-[11px] font-semibold uppercase tracking-wider text-inspi-navy">
         {title}
       </div>
