@@ -16,10 +16,12 @@ import LayerToggle   from '../controls/LayerToggle'
 import MetricToggle  from '../controls/MetricToggle'
 import ProvinceSelect from '../controls/ProvinceSelect'
 
+// `simulada: true` agrega una etiqueta "simulación" al lado del label
+// del módulo en la sidebar — señaliza que los datos no son oficiales.
 const MODULES = [
   { id: 'carga',         label: 'Carga de Enfermedad', icon: Activity,     ready: true, color: 'text-rose-600'   },
-  { id: 'determinantes', label: 'Determinantes',       icon: BrainCircuit, ready: true, color: 'text-violet-600' },
-  { id: 'mcda',          label: 'Priorización MCDA',   icon: Star,         ready: true, color: 'text-amber-600'  },
+  { id: 'determinantes', label: 'Determinantes',       icon: BrainCircuit, ready: true, color: 'text-violet-600', simulada: true },
+  { id: 'mcda',          label: 'Priorización MCDA',   icon: Star,         ready: true, color: 'text-amber-600',  simulada: true },
 ]
 
 function ControlGroup({ icon: Icon, label, children }) {
@@ -64,6 +66,14 @@ export default function Sidebar() {
               >
                 <Icon size={14} className={active ? m.color : ''} />
                 <span className="font-medium">{m.label}</span>
+                {m.simulada && (
+                  <span
+                    className="ml-auto rounded bg-amber-100 px-1 py-0.5 text-[8.5px] font-semibold uppercase tracking-wider text-amber-700"
+                    title="Datos simulados — no oficiales"
+                  >
+                    simulación
+                  </span>
+                )}
               </button>
             )
           })}

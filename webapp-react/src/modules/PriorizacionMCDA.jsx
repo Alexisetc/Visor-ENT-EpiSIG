@@ -319,7 +319,13 @@ export default function PriorizacionMCDA() {
         Suma ponderada (Marsh/ISPOR 2016, Baltussen 2006) con pesos:
         mortalidad 0.30 · egresos 0.20 · AVAD-GBD 0.15 · tendencia CAGR 0.15 ·
         costo-sistema 0.10 · equidad urbano-rural 0.10. Parroquias con &lt;10 casos
-        heredan el ranking cantonal. Reemplazable por Proyecto Duque 2026-2028.
+        heredan el ranking cantonal.
+        <div className="mt-1.5 border-t border-amber-200 pt-1.5 text-[9.5px]">
+          <span className="font-semibold">Reemplazo planeado:</span> resultados reales
+          del Proyecto Econométrico Espacial INSPI F-I+D+i-075 (Duque-ESPE 2026-2027)
+          y del Proyecto de Priorización MCDA (Núñez-UTE 2026-2028) cuando estén
+          disponibles.
+        </div>
       </div>
     </div>
   )

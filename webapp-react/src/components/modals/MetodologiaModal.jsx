@@ -84,8 +84,8 @@ export default function MetodologiaModal() {
 
           <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs">
             <b>Reemplazo planeado:</b> resultados reales del Proyecto Econométrico Espacial
-            INSPI F-I+D+i-075 (Núñez-ESPE 2026-2027) y del Proyecto de Priorización MCDA
-            (Duque 2026-2028) cuando estén disponibles.
+            INSPI F-I+D+i-075 (Duque-ESPE 2026-2027) y del Proyecto de Priorización MCDA
+            (Núñez-UTE 2026-2028) cuando estén disponibles.
           </div>
         </div>
       </div>
