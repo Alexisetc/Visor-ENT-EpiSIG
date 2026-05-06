@@ -1,5 +1,5 @@
 // Header global — INSPI brand + año global + acciones (Export, Metodología, Settings)
-import { Activity, Download, Info, Settings } from 'lucide-react'
+import { Activity, Download, Info, Settings, Sparkles } from 'lucide-react'
 import { useStore } from '../../store'
 
 export default function Header() {
@@ -28,6 +28,13 @@ export default function Header() {
           <span className="font-mono text-base font-semibold text-inspi-yellow">{year}</span>
         </div>
 
+        <button
+          onClick={() => openModal('welcome')}
+          className="flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs text-slate-200 hover:bg-inspi-navy-2 hover:text-white"
+          title="Mostrar mensaje de bienvenida"
+        >
+          <Sparkles size={14} /> Bienvenida
+        </button>
         <button
           onClick={() => openModal('metodologia')}
           className="flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs text-slate-200 hover:bg-inspi-navy-2 hover:text-white"

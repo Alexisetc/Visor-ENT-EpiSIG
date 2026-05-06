@@ -5,6 +5,7 @@
 //   · Priorización MCDA (ranking ENT por parroquia, 6 criterios ponderados)
 // Serie temporal 2013→2024 (12 años), animable con el Play del YearSlider.
 
+import { useEffect } from 'react'
 import { useDataLoader } from './hooks/useDataLoader'
 import { useStore } from './store'
 import Header from './components/layout/Header'
@@ -12,12 +13,24 @@ import Sidebar from './components/layout/Sidebar'
 import AnalyticsPanel from './components/layout/AnalyticsPanel'
 import MapView from './components/map/MapView'
 import MetodologiaModal from './components/modals/MetodologiaModal'
+import WelcomeModal, { WELCOME_LS_KEY } from './components/modals/WelcomeModal'
 import { Loader2 } from 'lucide-react'
 
 export default function App() {
   useDataLoader()
-  const loading = useStore(s => s.loading)
-  const error   = useStore(s => s.error)
+  const loading   = useStore(s => s.loading)
+  const error     = useStore(s => s.error)
+  const openModal = useStore(s => s.openModal)
+
+  // Mostrar bienvenida automáticamente en la primera visita.
+  // El usuario puede reabrirla desde el botón "Bienvenida" del Header.
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem(WELCOME_LS_KEY)) openModal('welcome')
+    } catch { /* sin localStorage: la mostramos igual una vez por sesión */
+      openModal('welcome')
+    }
+  }, [openModal])
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-slate-50 text-slate-800">
@@ -47,6 +60,7 @@ export default function App() {
       </div>
 
       <MetodologiaModal />
+      <WelcomeModal />
     </div>
   )
 }
