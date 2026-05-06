@@ -228,9 +228,6 @@ export default function DeterminantesIA() {
                 {ENT_LABEL[effectiveEnt]}
                 {ent === 'todas' && <span className="ml-1 font-normal opacity-70">(default)</span>}
               </span>
-              <span className="rounded-full bg-inspi-amber/15 px-2 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.05em] text-inspi-amber">
-                Simulación
-              </span>
             </div>
           </div>
           {(selectedDpa || provFilter) && (

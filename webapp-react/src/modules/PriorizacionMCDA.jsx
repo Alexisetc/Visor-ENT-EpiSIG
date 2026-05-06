@@ -224,9 +224,6 @@ export default function PriorizacionMCDA() {
                   #{focusEnt.rank} {ENT_LABEL[focusEnt.ent]}
                 </span>
               )}
-              <span className="rounded-full bg-inspi-amber/15 px-2 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.05em] text-inspi-amber">
-                Simulación
-              </span>
             </div>
           </div>
           {(selectedDpa || provFilter) && (

@@ -16,11 +16,17 @@ import { getParroquiaKey, getParroquiaLabel, getParroquiaProvKey } from '../../l
 import { ENT_COLOR, ENT_LABEL } from '../../lib/colors'
 
 export default function MCDALayer() {
+  const ent         = useStore(s => s.ent)
   const geoParr     = useStore(s => s.geoParr)
   const mcdaData    = useStore(s => s.mcdaData)
   const provFilter  = useStore(s => s.provFilter)
   const selectedDpa = useStore(s => s.selectedDpa)
   const setSelected = useStore(s => s.setSelected)
+
+  // Si el usuario filtra una ENT específica en el sidebar, las parroquias
+  // donde esa ENT NO es la prioridad #1 quedan atenuadas (foco visual
+  // sobre las que sí tienen el problema seleccionado como prioridad).
+  const focusEnt = ent !== 'todas' ? ent : null
 
   const styleFn = (feature) => {
     const p = feature.properties || {}
@@ -31,12 +37,23 @@ export default function MCDALayer() {
     const row = mcdaData?.parroquias?.[key]
     const top = row?.ranking?.[0]
     const fillColor = top ? (top.color || ENT_COLOR[top.ent] || '#cbd5e1') : '#e2e8f0'
+
+    // Foco por ENT: si el usuario seleccionó una ENT y esa parroquia no
+    // la tiene como #1 → fillOpacity bajo + opacity de borde más bajo
+    // (mantenemos el contorno visible para no romper el mapa).
+    const offFocus = focusEnt && top?.ent !== focusEnt
+
+    let fillOpacity, opacity
+    if (dim)            { fillOpacity = 0.12; opacity = 0.35 }
+    else if (offFocus)  { fillOpacity = 0.18; opacity = 0.45 }
+    else                { fillOpacity = 0.78; opacity = 1    }
+
     return {
       fillColor,
       weight: sel ? 2.5 : 0.4,
       color: sel ? '#fbc400' : '#374151',
-      fillOpacity: dim ? 0.15 : 0.78,
-      opacity: dim ? 0.4 : 1,
+      fillOpacity,
+      opacity,
     }
   }
 
@@ -72,16 +89,22 @@ export default function MCDALayer() {
         const sel = key === selectedDpa
         const provKey = getParroquiaProvKey(p)
         const dim = provFilter && provKey !== provFilter
+        const top = mcdaData?.parroquias?.[key]?.ranking?.[0]
+        const offFocus = focusEnt && top?.ent !== focusEnt
+        const opacity = dim ? 0.35 : (offFocus ? 0.45 : 1)
         e.target.setStyle({
           weight: sel ? 2.5 : 0.4,
           color: sel ? '#fbc400' : '#374151',
-          opacity: dim ? 0.4 : 1,
+          opacity,
         })
       },
     })
   }
 
-  const layerKey = `mcda|${provFilter || 'nat'}|${selectedDpa || 'none'}`
+  // El layerKey incluye el ENT en foco para que la capa se re-renderice
+  // (con el nuevo styleFn que aplica el dimming) cuando el usuario
+  // cambia de ENT en el sidebar.
+  const layerKey = `mcda|${provFilter || 'nat'}|${selectedDpa || 'none'}|${focusEnt || 'all'}`
   return (
     <GeoJSON
       key={layerKey}
