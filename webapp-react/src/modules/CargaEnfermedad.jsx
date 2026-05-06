@@ -30,6 +30,7 @@ import {
 } from '../lib/trend'
 import KPIBlock from '../components/ficha/KPIBlock'
 import TendenciaChart from '../components/ficha/TendenciaChart'
+import Cite from '../components/ficha/Cite'
 
 export default function CargaEnfermedad() {
   usePlay()
@@ -236,7 +237,12 @@ export default function CargaEnfermedad() {
         <section className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
           <div className="mb-2 flex items-center justify-between">
             <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-              Análisis de tendencia · metodología Morales
+              Análisis de tendencia · metodología del estudio
+              <Cite
+                n={1}
+                href="https://www.inspilip.gob.ec/index.php/inspi/article/view/853"
+                title="Evolución de la mortalidad por enfermedades no transmisibles en Ecuador (2017-2023)"
+              />
             </div>
             <div className="text-[9px] font-medium text-slate-400">
               {YEARS[0]}–{YEARS[YEARS.length - 1]} · n={activeTrend.n}

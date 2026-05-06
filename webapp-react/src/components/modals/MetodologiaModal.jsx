@@ -4,6 +4,12 @@
 import { useEffect } from 'react'
 import { X, FlaskConical } from 'lucide-react'
 import { useStore } from '../../store'
+import Cite from '../ficha/Cite'
+
+// URL canónica de la referencia [1] — clasificación de ENT y metodología
+// de tendencias usadas en este visor.
+const REF_1_URL   = 'https://www.inspilip.gob.ec/index.php/inspi/article/view/853'
+const REF_1_TITLE = 'Evolución de la mortalidad por enfermedades no transmisibles en Ecuador (2017-2023)'
 
 export default function MetodologiaModal() {
   const modalOpen = useStore(s => s.modalOpen)
@@ -48,9 +54,10 @@ export default function MetodologiaModal() {
               <b>Reales.</b> Microdato crudo INEC (EGH + EDG) procesado por el pipeline
               Python <code>scripts/ent_pipeline/</code> (Fases 0-5, reemplaza el
               <code> CONSOLIDADO_egresos.xlsx</code> opaco). Clasificación CIE-10 según los
-              5 grupos de Leonel Morales (circulatorio I00-I99, neoplasias C00-D48,
-              metabólicas E00-E90, respiratorio J00-J99, nervioso G00-G99).
-              Tendencias con Mann-Kendall (τ) + pendiente de Sen + FDR Benjamini-Hochberg.
+              5 grupos del estudio<Cite n={1} href={REF_1_URL} title={REF_1_TITLE} />
+              {' '}(circulatorio I00-I99, neoplasias C00-D48, metabólicas E00-E90,
+              respiratorio J00-J99, nervioso G00-G99). Tendencias con Mann-Kendall (τ) +
+              pendiente de Sen + FDR Benjamini-Hochberg.
             </p>
           </div>
 
@@ -86,6 +93,23 @@ export default function MetodologiaModal() {
             <b>Reemplazo planeado:</b> resultados reales del Proyecto Econométrico Espacial
             INSPI F-I+D+i-075 (Duque-ESPE 2026-2027) y del Proyecto de Priorización MCDA
             (Núñez-UTE 2026-2028) cuando estén disponibles.
+          </div>
+
+          <div>
+            <h3 className="font-display text-sm font-semibold text-inspi-navy">Referencias</h3>
+            <ol className="list-decimal space-y-1 pl-5 text-xs">
+              <li id="ref-1">
+                {REF_1_TITLE}. Revista INSPILIP.{' '}
+                <a
+                  href={REF_1_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-inspi-navy underline-offset-2 hover:text-amber-600 hover:underline"
+                >
+                  inspilip.gob.ec/index.php/inspi/article/view/853
+                </a>
+              </li>
+            </ol>
           </div>
         </div>
       </div>
