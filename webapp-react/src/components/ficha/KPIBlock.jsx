@@ -1,51 +1,37 @@
-// KPIBlock — tarjeta de un solo indicador con variación interanual (YoY) y
-// píldora de tendencia estadística (Mann-Kendall + Sen + FDR, pre-computada
-// en Fase 5 del pipeline Python).
-//
-//   · title     'Tasa de Morbilidad Hospitalaria' | 'Tasa de Mortalidad' …
-//   · value     número (la tasa del año actual)
-//   · prev      número (tasa del año anterior) · opcional
-//   · prevYear  etiqueta para mostrar junto al delta ('2022' → "↑ 12% vs 2022")
-//   · unit      'por 100k hab.'
-//   · trend     output de lookupTrend() — opcional; píldora con clase + % anual
-//                (campos esperados: valid, dir, clase, annualPct, pValue, tau)
-//
-// Los conteos absolutos (casos / muertes / pobl) se muestran en un bloque
-// compartido debajo de ambos KPIs (ver CifrasBase en CargaEnfermedad.jsx) —
-// antes estaban duplicados dentro de cada KPIBlock y hacían overflow en el
-// grid angosto de 2 columnas.
+// KPIBlock — Tarjeta KPI institucional (Manual de Diseño v2).
+// Borde superior rojo de 2 px (eco del wordmark), número grande en mono
+// con tabular-nums, delta YoY con flecha, píldora de tendencia MK+Sen+FDR.
 //
 // Convención de colores (métricas de salud: subir es malo):
-//   · Ascendente  → rojo
-//   · Descendente → verde
-//   · Estable     → gris
+//   · Ascendente  → rojo (inspi-red)
+//   · Descendente → verde (inspi-green)
+//   · Estable     → muted
 
 import { TrendingUp, TrendingDown, Minus, ArrowUpRight, ArrowDownRight, MoveRight } from 'lucide-react'
 import { deltaYoY } from '../../lib/trend'
 
 export default function KPIBlock({
-  title, value, prev, prevYear, unit = 'por 100k hab.',
-  real = true, accent = 'navy',
+  title, value, prev, prevYear, unit = '/100k',
+  real = true,
   trend,
 }) {
   const delta = deltaYoY(value, prev)
-  const accentColor = accent === 'red' ? 'text-rose-600' : 'text-inspi-navy'
 
   const deltaColor =
-    !delta || delta.dir === 'flat' ? 'text-slate-400'
-    : delta.dir === 'up'            ? 'text-rose-600'
-    :                                  'text-emerald-600'
+    !delta || delta.dir === 'flat' ? 'text-inspi-muted'
+    : delta.dir === 'up'            ? 'text-inspi-red'
+    :                                  'text-inspi-green'
 
   const DeltaIcon =
     !delta || delta.dir === 'flat' ? Minus
     : delta.dir === 'up'            ? TrendingUp
     :                                  TrendingDown
 
-  // Estilos de la píldora de tendencia
+  // Píldora de tendencia (MK+Sen+FDR)
   const trendStyles = {
-    up:   'bg-rose-50    text-rose-700    ring-rose-200',
-    down: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-    flat: 'bg-slate-100  text-slate-600   ring-slate-200',
+    up:   'border-inspi-red/30    bg-inspi-red/5    text-inspi-red',
+    down: 'border-inspi-green/30  bg-inspi-green/5  text-inspi-green',
+    flat: 'border-inspi-line      bg-inspi-bone     text-inspi-muted',
   }
   const TrendIcon = !trend?.valid ? null
     : trend.dir === 'up'   ? ArrowUpRight
@@ -53,36 +39,40 @@ export default function KPIBlock({
     :                         MoveRight
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-3 shadow-sm">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+    <div className="relative rounded-[3px] border border-inspi-line bg-white p-2.5 shadow-sm">
+      {/* Borde superior rojo 2 px (acento brand). */}
+      <span className="absolute left-0 right-0 top-0 h-[2px] bg-inspi-red" />
+
+      <div className="font-display text-[10px] font-semibold uppercase tracking-[0.07em] text-inspi-muted">
         {title}
       </div>
-      <div className="mt-0.5 flex items-baseline gap-2">
-        <div className={`font-display text-3xl font-bold leading-none ${accentColor}`}>
-          {Number.isFinite(value) ? value.toFixed(1) : '—'}
+
+      <div className="mt-1 flex items-baseline gap-1">
+        <div className="font-mono text-[26px] font-bold leading-none text-inspi-navy tnum">
+          {Number.isFinite(value) ? value.toFixed(0) : '—'}
         </div>
-        <div className="text-[10px] text-slate-400">{unit}</div>
+        <div className="font-mono text-[10px] font-medium text-inspi-muted tnum">{unit}</div>
       </div>
 
       {delta ? (
-        <div className={`mt-1.5 flex items-center gap-1 text-[11px] font-semibold ${deltaColor}`}>
-          <DeltaIcon size={12} strokeWidth={2.5} />
+        <div className={`mt-1 flex items-center gap-1 font-display text-[11px] font-semibold ${deltaColor}`}>
+          <DeltaIcon size={11} strokeWidth={2.5} />
           <span>
             {delta.dir === 'flat' ? 'sin cambio' : `${Math.abs(delta.pct)}%`}
             {prevYear !== undefined && prevYear !== null && (
-              <span className="ml-1 font-normal text-slate-400">vs {prevYear}</span>
+              <span className="ml-1 font-normal text-inspi-muted">vs {prevYear}</span>
             )}
           </span>
         </div>
       ) : (
-        <div className="mt-1.5 text-[10px] italic text-slate-300">— sin año base —</div>
+        <div className="mt-1 font-display text-[10px] italic text-inspi-muted">— sin año base —</div>
       )}
 
       {/* Píldora de tendencia estadística (Mann-Kendall + Sen + FDR) */}
       {trend?.valid && TrendIcon && (
-        <div className="mt-2">
+        <div className="mt-1.5">
           <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${trendStyles[trend.dir]}`}
+            className={`inline-flex items-center gap-1 rounded-[3px] border px-1.5 py-0.5 font-display text-[10px] font-semibold ${trendStyles[trend.dir]}`}
             title={
               (trend.pValue != null
                 ? `p(FDR)=${trend.pValue < 0.001 ? '<0.001' : trend.pValue.toFixed(3)}`
@@ -91,9 +81,8 @@ export default function KPIBlock({
               (trend.n ? ` · n=${trend.n}` : '')
             }
           >
-            <TrendIcon size={10} strokeWidth={2.5} />
-            {trend.clase}
-            <span className="font-mono font-normal opacity-80">
+            MK <TrendIcon size={9} strokeWidth={2.6} />
+            <span className="font-mono font-medium tnum">
               {trend.annualPct >= 0 ? '+' : ''}{trend.annualPct}%/año
             </span>
           </span>
@@ -101,7 +90,7 @@ export default function KPIBlock({
       )}
 
       {!real && (
-        <div className="mt-1 text-[9px] italic text-amber-600">simulación</div>
+        <div className="mt-1 font-display text-[9px] italic text-inspi-amber">simulación</div>
       )}
     </div>
   )

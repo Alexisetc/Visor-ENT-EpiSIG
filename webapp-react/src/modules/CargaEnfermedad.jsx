@@ -169,48 +169,54 @@ export default function CargaEnfermedad() {
 
   return (
     <div className="flex flex-col gap-3 p-3">
-      {/* Header — yellow = ENT activo, title = unidad espacial, sub = contexto.
-          La X aparece según haya parroquia o provincia y limpia un nivel a
-          la vez (parroquia → provincia → nacional). */}
-      <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-inspi-navy to-inspi-navy-2 p-3 text-white">
+      {/* Header de panel — Manual de Diseño v2.
+          Overline "ÁMBITO DE ANÁLISIS" + título grande + subtítulo +
+          chips contextuales (ENT, año, métrica). La X limpia un nivel
+          a la vez (parroquia → provincia → nacional). */}
+      <section className="border-b border-inspi-line pb-2">
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="text-[10px] font-medium uppercase tracking-wider text-inspi-red">
-              {ENT_LABEL[ent]}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1 font-display text-[10px] font-semibold uppercase tracking-[0.07em] text-inspi-muted">
+              <MapPin size={10} strokeWidth={2.4} />
+              <span>Ámbito de análisis</span>
             </div>
-            <div className="truncate font-display text-base font-semibold">
+            <div className="mt-0.5 truncate font-display text-[18px] font-bold leading-tight text-inspi-navy">
               {unitLabel.title}
             </div>
             {unitLabel.sub && (
-              <div className="text-[11px] text-slate-300">{unitLabel.sub}</div>
+              <div className="font-display text-[11px] font-medium text-inspi-muted">
+                {unitLabel.sub}
+              </div>
             )}
+            <div className="mt-1.5 flex flex-wrap items-center gap-1">
+              <span className="rounded-[3px] bg-inspi-red/10 px-1.5 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.07em] text-inspi-red">
+                {ENT_LABEL[ent]}
+              </span>
+              <span className="rounded-[3px] bg-inspi-bone px-1.5 py-0.5 font-mono text-[10px] font-semibold text-inspi-navy tnum">
+                {year}
+              </span>
+              <span className="rounded-[3px] bg-inspi-bone px-1.5 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.07em] text-inspi-navy">
+                {isMort ? 'Mortalidad' : 'Morbilidad'}
+              </span>
+            </div>
           </div>
-          {selectedDpa ? (
+          {(selectedDpa || provFilter) && (
             <button
-              onClick={clearSelected}
-              className="flex-shrink-0 rounded p-1 text-slate-300 hover:bg-white/10 hover:text-white"
-              title="Quitar selección de parroquia (vuelve a la provincia)"
-              aria-label="Deseleccionar parroquia"
+              onClick={selectedDpa ? clearSelected : () => setProvFilter(null)}
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-[3px] text-inspi-muted hover:bg-inspi-line hover:text-inspi-navy"
+              title={selectedDpa ? 'Quitar selección de parroquia' : 'Quitar filtro de provincia'}
+              aria-label={selectedDpa ? 'Deseleccionar parroquia' : 'Quitar filtro de provincia'}
             >
               <X size={14} />
             </button>
-          ) : provFilter ? (
-            <button
-              onClick={() => setProvFilter(null)}
-              className="flex-shrink-0 rounded p-1 text-slate-300 hover:bg-white/10 hover:text-white"
-              title="Quitar filtro de provincia (vuelve a vista nacional)"
-              aria-label="Quitar filtro de provincia"
-            >
-              <X size={14} />
-            </button>
-          ) : null}
+          )}
         </div>
         {!selectedDpa && (
-          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-slate-300">
-            <Crosshair size={10} /> Click en una parroquia del mapa para ver detalle
+          <div className="mt-1.5 flex items-center gap-1 font-display text-[10px] italic text-inspi-muted">
+            <Crosshair size={10} /> Click en una parroquia del mapa para ver el detalle
           </div>
         )}
-      </div>
+      </section>
 
       {/* KPI único — la métrica activa del mapa (morbilidad o mortalidad).
           Ocupa el ancho completo en lugar del 50 % anterior. */}
@@ -230,9 +236,7 @@ export default function CargaEnfermedad() {
         <CifrasBase
           countValue={activeCount}
           countLabel={activeCountLabel}
-          countColor={isMort ? 'text-rose-700' : 'text-inspi-navy'}
           pob={currentYear.pob}
-          year={year}
         />
       )}
 
@@ -308,27 +312,28 @@ export default function CargaEnfermedad() {
 
 // ───── Subcomponentes ─────
 
-function CifrasBase({ countValue, countLabel, countColor, pob, year }) {
+function CifrasBase({ countValue, countLabel, pob }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
-      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-        Cifras del año {year}
-      </div>
-      <div className="grid grid-cols-2 gap-4 text-center">
-        <Cifra label={countLabel} value={countValue} color={countColor} />
-        <Cifra label="Población"  value={pob}        color="text-slate-700" />
-      </div>
+    <div className="grid grid-cols-2 gap-2">
+      <Cifra label={countLabel} value={countValue} />
+      <Cifra label="Población"  value={pob} formatM />
     </div>
   )
 }
 
-function Cifra({ label, value, color }) {
+function Cifra({ label, value, formatM = false }) {
+  // Población se muestra en millones (17.53M) cuando es grande
+  const display = formatM && value >= 1_000_000
+    ? `${(value / 1_000_000).toFixed(2)}M`
+    : Number(value || 0).toLocaleString('es')
   return (
-    <div className="min-w-0">
-      <div className={`truncate font-mono text-lg font-semibold ${color}`}>
-        {Number(value || 0).toLocaleString('es')}
+    <div className="rounded-[3px] border border-inspi-line bg-inspi-bone/40 px-2.5 py-1.5">
+      <div className="font-display text-[9px] font-semibold uppercase tracking-[0.07em] text-inspi-muted">
+        {label}
       </div>
-      <div className="text-[9px] uppercase tracking-wider text-slate-400">{label}</div>
+      <div className="mt-0.5 truncate font-mono text-[18px] font-bold leading-none text-inspi-navy tnum">
+        {display}
+      </div>
     </div>
   )
 }

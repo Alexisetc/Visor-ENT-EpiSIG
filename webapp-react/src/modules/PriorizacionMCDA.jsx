@@ -162,59 +162,54 @@ export default function PriorizacionMCDA() {
 
   return (
     <div className="flex flex-col gap-3 p-3">
-      {/* Header — yellow = módulo (Priorización MCDA), title = unidad
-          espacial, sub = contexto. La X limpia parroquia → provincia →
-          nacional, un nivel a la vez. */}
-      <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-amber-700 to-inspi-navy p-3 text-white">
+      {/* Header de panel — Manual de Diseño v2 (mismo patrón que Carga). */}
+      <section className="border-b border-inspi-line pb-2">
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-inspi-red">
-              <Star size={11} /> Priorización MCDA
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1 font-display text-[10px] font-semibold uppercase tracking-[0.07em] text-inspi-muted">
+              <Star size={10} strokeWidth={2.4} />
+              <span>Priorización MCDA</span>
             </div>
-            <div className="truncate font-display text-base font-semibold">
+            <div className="mt-0.5 truncate font-display text-[18px] font-bold leading-tight text-inspi-navy">
               {unitLabel.title}
             </div>
             {unitLabel.sub && (
-              <div className="text-[11px] text-slate-300">{unitLabel.sub}</div>
+              <div className="font-display text-[11px] font-medium text-inspi-muted">
+                {unitLabel.sub}
+              </div>
             )}
-          </div>
-          <div className="flex flex-shrink-0 items-start gap-1">
-            {hasRanking && (
-              <span
-                className="rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider shadow-sm"
-                style={{ background: top.color, color: 'white' }}
-                title={`ENT prioritaria: ${ENT_LABEL[top.ent]}`}
-              >
-                #1 {ENT_LABEL[top.ent]}
+            <div className="mt-1.5 flex flex-wrap items-center gap-1">
+              {hasRanking && (
+                <span
+                  className="rounded-[3px] px-1.5 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.07em] text-white"
+                  style={{ background: top.color }}
+                  title={`ENT prioritaria: ${ENT_LABEL[top.ent]}`}
+                >
+                  #1 {ENT_LABEL[top.ent]}
+                </span>
+              )}
+              <span className="rounded-[3px] bg-inspi-bone px-1.5 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.07em] text-inspi-navy">
+                Simulación
               </span>
-            )}
-            {selectedDpa ? (
-              <button
-                onClick={clearSelected}
-                className="rounded p-1 text-slate-300 hover:bg-white/10 hover:text-white"
-                title="Quitar selección de parroquia (vuelve a la provincia)"
-                aria-label="Deseleccionar parroquia"
-              >
-                <X size={14} />
-              </button>
-            ) : provFilter ? (
-              <button
-                onClick={() => setProvFilter(null)}
-                className="rounded p-1 text-slate-300 hover:bg-white/10 hover:text-white"
-                title="Quitar filtro de provincia (vuelve a vista nacional)"
-                aria-label="Quitar filtro de provincia"
-              >
-                <X size={14} />
-              </button>
-            ) : null}
+            </div>
           </div>
+          {(selectedDpa || provFilter) && (
+            <button
+              onClick={selectedDpa ? clearSelected : () => setProvFilter(null)}
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-[3px] text-inspi-muted hover:bg-inspi-line hover:text-inspi-navy"
+              title={selectedDpa ? 'Quitar selección de parroquia' : 'Quitar filtro de provincia'}
+              aria-label={selectedDpa ? 'Deseleccionar parroquia' : 'Quitar filtro de provincia'}
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
         {!selectedDpa && (
-          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-slate-300">
-            <Crosshair size={10} /> Click en una parroquia del mapa para ver detalle
+          <div className="mt-1.5 flex items-center gap-1 font-display text-[10px] italic text-inspi-muted">
+            <Crosshair size={10} /> Click en una parroquia del mapa para ver el detalle
           </div>
         )}
-      </div>
+      </section>
 
       {/* Fallback: parroquia sin datos MCDA */}
       {!hasRanking && (
@@ -320,15 +315,15 @@ export default function PriorizacionMCDA() {
         </section>
       )}
 
-      {/* Contexto de la unidad */}
+      {/* Contexto de la unidad — base CPV 2022 */}
       {unit && (unit.pob > 0 || unit.casos > 0) && (
-        <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
-          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-            Contexto (base CPV 2022)
+        <div>
+          <div className="mb-1 font-display text-[10px] font-semibold uppercase tracking-[0.07em] text-inspi-muted">
+            Contexto · base CPV 2022
           </div>
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <Cifra label="Casos ENT" value={unit.casos} color="text-amber-700" />
-            <Cifra label="Población"  value={unit.pob}   color="text-slate-700" />
+          <div className="grid grid-cols-2 gap-2">
+            <Cifra label="Casos ENT" value={unit.casos} />
+            <Cifra label="Población" value={unit.pob} formatM />
           </div>
         </div>
       )}
@@ -405,13 +400,18 @@ function CritRow({ label, peso, value, aporte, color }) {
   )
 }
 
-function Cifra({ label, value, color }) {
+function Cifra({ label, value, formatM = false }) {
+  const display = formatM && value >= 1_000_000
+    ? `${(value / 1_000_000).toFixed(2)}M`
+    : Number(value || 0).toLocaleString('es')
   return (
-    <div className="min-w-0">
-      <div className={`truncate font-mono text-lg font-semibold ${color}`}>
-        {Number(value || 0).toLocaleString('es')}
+    <div className="rounded-[3px] border border-inspi-line bg-inspi-bone/40 px-2.5 py-1.5">
+      <div className="font-display text-[9px] font-semibold uppercase tracking-[0.07em] text-inspi-muted">
+        {label}
       </div>
-      <div className="text-[9px] uppercase tracking-wider text-slate-400">{label}</div>
+      <div className="mt-0.5 truncate font-mono text-[18px] font-bold leading-none text-inspi-navy tnum">
+        {display}
+      </div>
     </div>
   )
 }

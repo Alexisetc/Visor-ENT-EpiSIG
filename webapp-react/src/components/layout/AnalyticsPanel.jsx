@@ -13,7 +13,7 @@ export default function AnalyticsPanel() {
   const module = useStore(s => s.module)
 
   return (
-    <aside className="flex w-[340px] flex-shrink-0 flex-col overflow-y-auto border-l border-slate-200 bg-white">
+    <aside className="flex w-[360px] flex-shrink-0 flex-col overflow-y-auto border-l border-inspi-line bg-inspi-paper">
       {module === 'carga'         && <CargaEnfermedad />}
       {module === 'determinantes' && <DeterminantesIA />}
       {module === 'mcda'          && <PriorizacionMCDA />}

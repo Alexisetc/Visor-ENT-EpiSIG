@@ -187,52 +187,49 @@ export default function DeterminantesIA() {
 
   return (
     <div className="flex flex-col gap-3 p-3">
-      {/* Header — yellow = módulo (Determinantes · MGWR), title = unidad
-          espacial, sub = contexto (provincia o n parroquias). La X limpia
-          parroquia → provincia → nacional, un nivel a la vez. */}
-      <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-violet-700 to-inspi-navy p-3 text-white">
+      {/* Header de panel — Manual de Diseño v2 (mismo patrón que Carga). */}
+      <section className="border-b border-inspi-line pb-2">
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-inspi-red">
-              <BrainCircuit size={11} /> Determinantes · MGWR
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1 font-display text-[10px] font-semibold uppercase tracking-[0.07em] text-inspi-muted">
+              <BrainCircuit size={10} strokeWidth={2.4} />
+              <span>Determinantes · MGWR</span>
             </div>
-            <div className="truncate font-display text-base font-semibold">
+            <div className="mt-0.5 truncate font-display text-[18px] font-bold leading-tight text-inspi-navy">
               {unitLabel.title}
             </div>
             {unitLabel.sub && (
-              <div className="text-[11px] text-slate-300">{unitLabel.sub}</div>
+              <div className="font-display text-[11px] font-medium text-inspi-muted">
+                {unitLabel.sub}
+              </div>
             )}
-            <div className="mt-1 inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white">
-              ENT: {ENT_LABEL[effectiveEnt]}
-              {ent === 'todas' && <span className="ml-1 opacity-70">(default)</span>}
+            <div className="mt-1.5 flex flex-wrap items-center gap-1">
+              <span className="rounded-[3px] bg-inspi-red/10 px-1.5 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.07em] text-inspi-red">
+                {ENT_LABEL[effectiveEnt]}
+                {ent === 'todas' && <span className="ml-1 font-normal opacity-70">(default)</span>}
+              </span>
+              <span className="rounded-[3px] bg-inspi-bone px-1.5 py-0.5 font-display text-[9.5px] font-bold uppercase tracking-[0.07em] text-inspi-navy">
+                Simulación
+              </span>
             </div>
           </div>
-          {selectedDpa ? (
+          {(selectedDpa || provFilter) && (
             <button
-              onClick={clearSelected}
-              className="flex-shrink-0 rounded p-1 text-slate-300 hover:bg-white/10 hover:text-white"
-              title="Quitar selección de parroquia (vuelve a la provincia)"
-              aria-label="Deseleccionar parroquia"
+              onClick={selectedDpa ? clearSelected : () => setProvFilter(null)}
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-[3px] text-inspi-muted hover:bg-inspi-line hover:text-inspi-navy"
+              title={selectedDpa ? 'Quitar selección de parroquia' : 'Quitar filtro de provincia'}
+              aria-label={selectedDpa ? 'Deseleccionar parroquia' : 'Quitar filtro de provincia'}
             >
               <X size={14} />
             </button>
-          ) : provFilter ? (
-            <button
-              onClick={() => setProvFilter(null)}
-              className="flex-shrink-0 rounded p-1 text-slate-300 hover:bg-white/10 hover:text-white"
-              title="Quitar filtro de provincia (vuelve a vista nacional)"
-              aria-label="Quitar filtro de provincia"
-            >
-              <X size={14} />
-            </button>
-          ) : null}
+          )}
         </div>
         {!selectedDpa && (
-          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-slate-300">
-            <Crosshair size={10} /> Click en una parroquia del mapa para ver detalle
+          <div className="mt-1.5 flex items-center gap-1 font-display text-[10px] italic text-inspi-muted">
+            <Crosshair size={10} /> Click en una parroquia del mapa para ver el detalle
           </div>
         )}
-      </div>
+      </section>
 
       {/* Mensaje de "sin datos" si la parroquia no está en ningún dataset */}
       {!hasAnyData && (
