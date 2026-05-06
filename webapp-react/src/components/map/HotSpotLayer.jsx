@@ -96,7 +96,17 @@ const IDW_EPS     = 1e-9    // evita división por cero si distancia == 0
 // Módulos determinantes/mcda no usan 'interp' (sus valores=0 son ausencia).
 
 function carga_value(key, { ent, year, entData, pobData, isMort }) {
-  if (!entData?.parroquias?.[key]) return { value: null, status: 'nodata' }
+  // Si la parroquia no está en entData (no figura en los egresos
+  // hospitalarios INEC) PERO tiene población válida en pobData
+  // (parroquia phantom — creada por CONALI post-INEC, o cantón nuevo
+  // como Sevilla Don Bosco 1413), la marcamos para INTERPOLACIÓN IDW
+  // desde sus vecinas observadas, en vez de pintarla gris "sin dato".
+  // Solo se considera nodata real cuando tampoco hay población.
+  if (!entData?.parroquias?.[key]) {
+    const pobP = getPob(pobData, key, year)
+    if (pobP > 0) return { value: 0, status: 'interp' }
+    return { value: null, status: 'nodata' }
+  }
   // Denominador anual log-share (Fase 6); cae al snapshot 2022 si la serie
   // anual no está presente para este DPA6.
   const pob = getPob(pobData, key, year)

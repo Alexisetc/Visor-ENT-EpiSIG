@@ -1,18 +1,20 @@
 // EpiSIG · geoENT — Service Worker
 //
-// Estrategia: cache-first para los datasets JSON/GeoJSON servidos por
-// jsDelivr (cdn.jsdelivr.net). Network-first (default fetch) para todo
-// lo demás — no queremos cachear HTML, JS ni CSS aquí porque Vite ya
-// los versiona por hash.
+// Estrategia: NETWORK-FIRST con cache fallback para los datasets JSON/
+// GeoJSON servidos por jsDelivr (cdn.jsdelivr.net). Network-first
+// asegura que el usuario siempre vea la última versión publicada de los
+// datasets — el cache solo se usa como red de seguridad si la red falla
+// (offline o CDN caído). jsDelivr es lo bastante rápido (~30s p/ el
+// geojson grande) para que esto sea aceptable, y elimina la categoría
+// de bug "datos viejos servidos del cache después de un redeploy".
 //
-// Beneficio: segunda visita del usuario carga los datasets de disco
-// (~50ms) en vez de re-bajar de jsDelivr (~30s en peores casos).
+// Network-first también significa que pushear datos nuevos llega al
+// usuario INMEDIATAMENTE en su próxima visita, sin esperar a que el
+// background revalidate del cache-first se complete.
 //
-// Versionado: si cambia DATA_CACHE bump del número, los browsers
-// activan el nuevo SW y purgan el viejo cache. Útil si el formato
-// de los datasets cambia y queremos invalidar lo cacheado en el wild.
+// Versionado: si cambia DATA_CACHE bump del número. v2 = network-first.
 
-const DATA_CACHE = 'episig-data-v1'
+const DATA_CACHE = 'episig-data-v2'
 
 const DATA_HOST_RX = /^https:\/\/cdn\.jsdelivr\.net\/gh\/Alexisetc\/Visor-ENT-EpiSIG@/
 
@@ -38,32 +40,33 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const req = event.request
-  // Solo interceptar GET, mismo origin permite que jsDelivr (CORS)
-  // pase el cache.match.
   if (req.method !== 'GET') return
   if (!DATA_HOST_RX.test(req.url)) return
 
+  // === NETWORK-FIRST ===
+  // 1. Intentar red. Si OK → guardar en cache y devolver al cliente.
+  // 2. Si falla red → buscar en cache. Si hay → devolver. Si no →
+  //    error claro al cliente.
   event.respondWith((async () => {
     const cache = await caches.open(DATA_CACHE)
-    const cached = await cache.match(req)
-    if (cached) {
-      // Background: revalidar de manera asíncrona — si el archivo
-      // cambió, el siguiente fetch ya tendrá la versión nueva.
-      event.waitUntil((async () => {
-        try {
-          const fresh = await fetch(req)
-          if (fresh.ok) cache.put(req, fresh.clone())
-        } catch { /* offline → cache es nuestra red de seguridad */ }
-      })())
-      return cached
-    }
-    // No estaba en cache → ir a red, cachear si OK.
     try {
       const fresh = await fetch(req)
-      if (fresh.ok) cache.put(req, fresh.clone())
+      if (fresh.ok) {
+        // No bloqueamos al usuario esperando que termine el cache.put,
+        // pero tampoco tiramos el promise: lo dejamos vivir vía
+        // event.waitUntil. fresh.clone() es necesario porque el
+        // response solo puede leerse una vez.
+        event.waitUntil(cache.put(req, fresh.clone()))
+        return fresh
+      }
+      // Network respondió pero con error (5xx, 404…) — caer al cache.
+      const cached = await cache.match(req)
+      if (cached) return cached
       return fresh
     } catch (err) {
-      // Sin red y sin cache → error claro al cliente.
+      // Sin red → cache. Si tampoco hay cache → error claro.
+      const cached = await cache.match(req)
+      if (cached) return cached
       return new Response(
         JSON.stringify({ error: 'offline', url: req.url }),
         { status: 504, headers: { 'Content-Type': 'application/json' } }
