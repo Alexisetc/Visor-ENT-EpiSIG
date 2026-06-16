@@ -19,22 +19,24 @@ import { useStore } from '../store'
 const BASE = import.meta.env.BASE_URL
 const PROD = import.meta.env.PROD
 
-// CDN jsDelivr en prod (mucho más rápido que GitHub Pages para LATAM),
-// fallback al asset local en dev (Vite middleware).
-const CDN_BASE = PROD
-  ? 'https://cdn.jsdelivr.net/gh/Alexisetc/Visor-ENT-EpiSIG@master/webapp/assets/'
-  : `${BASE}assets/`
+// En produccion usar primero los assets del dominio propio
+// (https://visor.investigacion.me/assets/*). jsDelivr queda como respaldo:
+// algunas redes bloquean CDN externas y dejaban el visor sin datos aunque
+// GitHub Pages si tenia los JSON/GeoJSON publicados.
+const LOCAL_ASSETS_BASE = `${BASE}assets/`
+const CDN_ASSETS_BASE = 'https://cdn.jsdelivr.net/gh/Alexisetc/Visor-ENT-EpiSIG@master/webapp/assets/'
+const ASSET_BASES = PROD ? [LOCAL_ASSETS_BASE, CDN_ASSETS_BASE] : [LOCAL_ASSETS_BASE]
 
-function url(file) { return `${CDN_BASE}${file}` }
+function urls(file) { return ASSET_BASES.map(base => `${base}${file}`) }
 
 // === Datasets críticos (siempre se cargan al montar la app) ===
 // Carga de Enfermedad + capa parroquial + provincias + estudio nacional.
 const CRITICAL = [
-  { key: 'entData',     url: url('ent_parroquial.json')        },
-  { key: 'pobData',     url: url('pob_parroquial.json')        },
-  { key: 'geoParr',     url: url('parroquias_otp_simpl.geojson') },
-  { key: 'geoProv',     url: url('provincias_otp.geojson')     },
-  { key: 'estudioData', url: url('estudio_ent.json')           },
+  { key: 'entData',     urls: urls('ent_parroquial.json')          },
+  { key: 'pobData',     urls: urls('pob_parroquial.json')          },
+  { key: 'geoParr',     urls: urls('parroquias_otp_simpl.geojson') },
+  { key: 'geoProv',     urls: urls('provincias_otp.geojson')       },
+  { key: 'estudioData', urls: urls('estudio_ent.json')             },
 ]
 
 // === Datasets diferidos por módulo ===
@@ -43,11 +45,11 @@ const CRITICAL = [
 // dentro de la misma sesión.
 export const MODULE_DATASETS = {
   determinantes: [
-    { key: 'mgwrData', url: url('mgwr_betas.json')            },
-    { key: 'detData',  url: url('determinantes_parroquial.json') },
+    { key: 'mgwrData', urls: urls('mgwr_betas.json')              },
+    { key: 'detData',  urls: urls('determinantes_parroquial.json') },
   ],
   mcda: [
-    { key: 'mcdaData', url: url('priorizacion_mcda.json')     },
+    { key: 'mcdaData', urls: urls('priorizacion_mcda.json')       },
   ],
 }
 
@@ -66,6 +68,19 @@ async function fetchJSON(url, { signal } = {}) {
   }
 }
 
+async function fetchJSONWithFallback(urlList, { signal } = {}) {
+  const failures = []
+  for (const candidate of urlList) {
+    try {
+      return await fetchJSON(candidate, { signal })
+    } catch (err) {
+      failures.push(`${candidate}: ${err.message}`)
+      if (signal?.aborted) throw err
+    }
+  }
+  throw new Error(failures.join(' | '))
+}
+
 // Hook principal — solo carga los datasets críticos. Los módulos
 // diferidos los pide useModuleDataLoader cuando corresponde.
 export function useDataLoader() {
@@ -79,7 +94,7 @@ export function useDataLoader() {
     let okCount = 0
 
     const promises = CRITICAL.map(d =>
-      fetchJSON(d.url, { signal: ctrl.signal })
+      fetchJSONWithFallback(d.urls, { signal: ctrl.signal })
         .then(json => {
           if (ctrl.signal.aborted) return
           setDataset(d.key, json)
@@ -136,7 +151,7 @@ function schedulePrefetch(setDataset, signal) {
       if (current != null) return
       if (moduleFetchInFlight.has(d.key)) return
       moduleFetchInFlight.add(d.key)
-      fetchJSON(d.url, { signal })
+      fetchJSONWithFallback(d.urls, { signal })
         .then(json => { if (!signal.aborted) setDataset(d.key, json) })
         .catch(err => {
           if (!signal.aborted) {
@@ -173,7 +188,7 @@ export function useModuleDataLoader(moduleId) {
 
     const ctrl = new AbortController()
     const promises = missing.map(d =>
-      fetchJSON(d.url, { signal: ctrl.signal })
+      fetchJSONWithFallback(d.urls, { signal: ctrl.signal })
         .then(json => {
           if (ctrl.signal.aborted) return
           setDataset(d.key, json)

@@ -1,7 +1,8 @@
 // EpiSIG · geoENT — Service Worker
 //
 // Estrategia: NETWORK-FIRST con cache fallback para los datasets JSON/
-// GeoJSON servidos por jsDelivr (cdn.jsdelivr.net). Network-first
+// GeoJSON servidos por el dominio propio o por jsDelivr (fallback).
+// Network-first
 // asegura que el usuario siempre vea la última versión publicada de los
 // datasets — el cache solo se usa como red de seguridad si la red falla
 // (offline o CDN caído). jsDelivr es lo bastante rápido (~30s p/ el
@@ -12,11 +13,17 @@
 // usuario INMEDIATAMENTE en su próxima visita, sin esperar a que el
 // background revalidate del cache-first se complete.
 //
-// Versionado: si cambia DATA_CACHE bump del número. v2 = network-first.
+// Versionado: si cambia DATA_CACHE bump del número.
 
-const DATA_CACHE = 'episig-data-v2'
+const DATA_CACHE = 'episig-data-v3'
 
 const DATA_HOST_RX = /^https:\/\/cdn\.jsdelivr\.net\/gh\/Alexisetc\/Visor-ENT-EpiSIG@/
+const DATA_PATH_RX = /^\/assets\/.+\.(json|geojson)$/
+
+function isDatasetRequest(url) {
+  if (DATA_HOST_RX.test(url.href)) return true
+  return url.origin === self.location.origin && DATA_PATH_RX.test(url.pathname)
+}
 
 self.addEventListener('install', (event) => {
   // Activarse inmediatamente sin esperar a que se cierren las pestañas
@@ -41,7 +48,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request
   if (req.method !== 'GET') return
-  if (!DATA_HOST_RX.test(req.url)) return
+  const url = new URL(req.url)
+  if (!isDatasetRequest(url)) return
 
   // === NETWORK-FIRST ===
   // 1. Intentar red. Si OK → guardar en cache y devolver al cliente.
