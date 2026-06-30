@@ -2,9 +2,10 @@
 // Estructura: [toggle] · [logo + breadcrumb] · ⟶ [año + acciones]
 // 64 px de alto, fondo navy, borde inferior rojo 3 px (eco del wordmark).
 
-import { Download, Info, Settings, Sparkles, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { Download, Info, Settings, Sparkles, Compass, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useStore } from '../../store'
 import EpiLogo from '../brand/EpiLogo'
+import { startTour } from '../../tour/tourController'
 
 export default function Header() {
   const year             = useStore(s => s.year)
@@ -58,6 +59,12 @@ export default function Header() {
           </span>
         </div>
 
+        <HeaderButton
+          onClick={() => startTour('manual')}
+          icon={Compass}
+          label="Recorrido"
+          title="Iniciar recorrido guiado"
+        />
         <HeaderButton
           onClick={() => openModal('welcome')}
           icon={Sparkles}

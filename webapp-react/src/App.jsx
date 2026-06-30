@@ -8,6 +8,7 @@
 import { useEffect } from 'react'
 import { useDataLoader } from './hooks/useDataLoader'
 import { useStore } from './store'
+import { useKioskAttract } from './tour/useKioskAttract'
 import Header from './components/layout/Header'
 import Sidebar from './components/layout/Sidebar'
 import AnalyticsPanel from './components/layout/AnalyticsPanel'
@@ -18,17 +19,20 @@ import { Loader2 } from 'lucide-react'
 
 export default function App() {
   useDataLoader()
+  useKioskAttract()
   const loading          = useStore(s => s.loading)
   const error            = useStore(s => s.error)
   const openModal        = useStore(s => s.openModal)
   const sidebarCollapsed = useStore(s => s.sidebarCollapsed)
 
-  // Mostrar bienvenida automáticamente en la primera visita.
-  // El usuario puede reabrirla desde el botón "Bienvenida" del Header.
+  // Mostrar bienvenida automaticamente en la primera visita.
+  // En modo kiosco (?kiosk=1) se suprime — el bucle atractor maneja la pantalla.
   useEffect(() => {
+    const kiosk = new URLSearchParams(window.location.search).get('kiosk') === '1'
+    if (kiosk) return
     try {
       if (!localStorage.getItem(WELCOME_LS_KEY)) openModal('welcome')
-    } catch { /* sin localStorage: la mostramos igual una vez por sesión */
+    } catch {
       openModal('welcome')
     }
   }, [openModal])
@@ -40,7 +44,7 @@ export default function App() {
       <div className="flex flex-1 overflow-hidden">
         {!sidebarCollapsed && <Sidebar />}
 
-        <main className="relative flex-1 overflow-hidden">
+        <main data-tour="map" className="relative flex-1 overflow-hidden">
           <MapView />
 
           {loading && (

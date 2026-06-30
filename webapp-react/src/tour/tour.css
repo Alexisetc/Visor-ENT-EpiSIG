@@ -1,0 +1,101 @@
+.episig-tour.driver-popover {
+  background: #ffffff;
+  border-radius: 10px;
+  border: 0.5px solid #d9dee6;
+  box-shadow: 0 8px 24px rgba(17, 36, 63, 0.18);
+  max-width: 322px;
+  padding: 0;
+  font-family: inherit;
+}
+.episig-tour .driver-popover-title {
+  display: block;
+  background: #11243f;
+  color: #ffffff;
+  border-bottom: 3px solid #C8102E;
+  margin: 0;
+  padding: 10px 13px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 10px 10px 0 0;
+}
+.episig-tour .driver-popover-description {
+  padding: 12px 13px 4px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #3d4757;
+  margin: 0;
+}
+.episig-tour .driver-popover-footer {
+  padding: 8px 11px;
+  background: #f6f3ec;
+  border-top: 0.5px solid #e7e2d6;
+  border-radius: 0 0 10px 10px;
+  margin: 0;
+}
+.episig-tour .driver-popover-progress-text {
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 500;
+}
+.episig-tour .driver-popover-next-btn,
+.episig-tour .driver-popover-next-btn:hover {
+  background: #C8102E;
+  color: #ffffff;
+  border: none;
+  text-shadow: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.episig-tour .driver-popover-prev-btn,
+.episig-tour .driver-popover-prev-btn:hover {
+  background: transparent;
+  color: #3d4757;
+  border: 0.5px solid #c9cdd4;
+  text-shadow: none;
+  border-radius: 6px;
+  font-size: 11px;
+}
+.episig-tour .driver-popover-close-btn { color: rgba(255, 255, 255, 0.8); }
+.episig-tour .driver-popover-close-btn:hover { color: #ffffff; }
+.episig-tour .driver-popover-arrow { border-color: #11243f; }
+
+.episig-tour__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  background: #fdeaec;
+  color: #A32D2D;
+  border: 0.5px solid #f3c2c7;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.episig-tour__badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #C8102E;
+  display: inline-block;
+}
+.episig-tour__proj {
+  margin-top: 10px;
+  border-left: 3px solid #C8102E;
+  background: #f6f3ec;
+  padding: 7px 9px;
+}
+.episig-tour__proj-label {
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: #C8102E;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.episig-tour__proj-name { font-size: 11px; color: #11243f; line-height: 1.4; }

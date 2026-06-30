@@ -56,7 +56,7 @@ export default function Sidebar() {
   return (
     <aside className="flex w-[296px] flex-shrink-0 flex-col overflow-y-auto border-r border-inspi-line bg-inspi-paper">
       {/* === Módulos analíticos (en su propia sección con border-bottom) === */}
-      <div className="border-b border-inspi-line p-[14px]">
+      <div data-tour="modules" className="border-b border-inspi-line p-[14px]">
         <SectionHeader icon={Layers} label="Módulo analítico" />
         <div className="mt-2 space-y-1">
           {MODULES.map(m => {

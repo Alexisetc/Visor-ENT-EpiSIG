@@ -13,7 +13,7 @@ export default function YearSlider() {
   const togglePlay = useStore(s => s.togglePlay)
 
   return (
-    <div className="space-y-2 rounded-[3px] border border-inspi-line bg-white p-2.5">
+    <div data-tour="yearplay" className="space-y-2 rounded-[3px] border border-inspi-line bg-white p-2.5">
       <div className="flex items-center gap-2.5">
         <button
           onClick={togglePlay}

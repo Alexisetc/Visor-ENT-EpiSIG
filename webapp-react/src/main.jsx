@@ -5,6 +5,8 @@ import { createRoot } from 'react-dom/client'
 // utilities de tailwind no sobreescriban estilos críticos del mapa.
 import 'leaflet/dist/leaflet.css'
 import './styles/tailwind.css'
+import 'driver.js/dist/driver.css'
+import './tour/tour.css'
 
 import App from './App.jsx'
 

@@ -15,6 +15,7 @@ import { X } from 'lucide-react'
 import { useStore } from '../../store'
 import EpiLogo from '../brand/EpiLogo'
 import GeoEntLogo from '../brand/GeoEntLogo'
+import { startTour } from '../../tour/tourController'
 
 // Bumpeada a v7 al renovar el copy (3 módulos + 3 preguntas).
 export const WELCOME_LS_KEY = 'episig:welcome-seen-v7'
@@ -156,16 +157,19 @@ export default function WelcomeModal() {
           </div>
         </div>
 
-        {/* === Footer con CTA grande rojo === */}
+        {/* === Footer con CTAs: explorar solo o iniciar recorrido guiado === */}
         <footer className="flex items-center justify-between gap-2 border-t border-inspi-line bg-inspi-bone px-5 py-3">
-          <span className="font-display text-[10px] font-medium uppercase tracking-[0.08em] text-inspi-muted">
-            v0.1.0 · Prototipo institucional
-          </span>
           <button
             onClick={dismiss}
+            className="font-display text-[11px] font-medium text-inspi-muted underline-offset-2 hover:text-inspi-navy hover:underline"
+          >
+            Explorar por mi cuenta
+          </button>
+          <button
+            onClick={() => { dismiss(); startTour('manual') }}
             className="rounded-[3px] bg-inspi-red px-5 py-2 font-display text-[13px] font-bold text-white shadow-sm transition hover:brightness-110"
           >
-            Empezar a explorar
+            ▶ Iniciar recorrido guiado
           </button>
         </footer>
       </div>
