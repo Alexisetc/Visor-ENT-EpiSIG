@@ -71,8 +71,9 @@ export function makeTourSteps(store) {
         align: 'start',
         title: 'Tres módulos, una misma evidencia',
         description:
-          'geoENT parte de un <b>estudio ya publicado</b> por el equipo EpiSIG y lo proyecta en tres módulos: ' +
-          '<b>dónde</b> golpean las ENT, <b>por qué</b>, y <b>dónde actuar primero</b>.',
+          'geoENT articula, en tres módulos complementarios, la evidencia generada por el equipo EpiSIG: ' +
+          'la <b>distribución territorial</b> de la mortalidad por ENT, sus <b>determinantes</b> ' +
+          'socioeconómicos y espaciales, y la <b>priorización</b> para la toma de decisiones en salud pública.',
       },
     },
     // 2 · Carga: magnitud (estudio)
@@ -92,10 +93,11 @@ export function makeTourSteps(store) {
       popover: {
         side: 'left',
         align: 'start',
-        title: '6 de cada 10 muertes son por ENT',
+        title: 'El 61,4% de la mortalidad corresponde a ENT',
         description:
-          'En Ecuador, el <b>61,4%</b> de las defunciones entre 2017 y 2023 fueron por enfermedades no ' +
-          'transmisibles. El mapa pinta esa mortalidad por parroquia: mientras más oscuro, mayor la carga.' +
+          'En Ecuador, <b>6 de cada 10 defunciones</b> registradas entre 2017 y 2023 fueron atribuibles ' +
+          'a enfermedades no transmisibles. El mapa representa esa mortalidad a nivel parroquial: ' +
+          'a mayor intensidad cromática, mayor es la tasa.' +
           BADGE_EVID +
           studyCard(),
       },
@@ -115,11 +117,11 @@ export function makeTourSteps(store) {
       popover: {
         side: 'right',
         align: 'center',
-        title: 'La carga se mueve y crece en lo rural',
+        title: 'Distribución espacio-temporal y brecha rural',
         description:
-          'Los conglomerados de alta mortalidad se desplazan en el tiempo. El estudio halló aumentos ' +
-          'significativos en <b>zonas rurales</b>: neoplasias (p=0,0005) y enfermedades cardiovasculares ' +
-          '(p=0,0121). Deje correr la serie <b>2013 → 2024</b>.' +
+          'Los conglomerados de alta mortalidad se desplazan a lo largo del período. El estudio identificó ' +
+          'incrementos estadísticamente significativos en <b>ámbito rural</b>: neoplasias (p=0,0005) y ' +
+          'enfermedades cardiovasculares (p=0,0121). Reproduzca la serie temporal <b>2013–2024</b>.' +
           BADGE_EVID +
           studyCard(),
       },
@@ -141,11 +143,12 @@ export function makeTourSteps(store) {
       popover: {
         side: 'left',
         align: 'start',
-        title: 'La tendencia, medida como en el estudio',
+        title: 'Tendencia territorial: metodología del estudio',
         description:
-          'Al seleccionar un territorio, el visor estima su <b>tendencia</b> con Mann-Kendall y pendiente ' +
-          'de Sen, corregida por <b>FDR</b> — la misma metodología del estudio. A nivel nacional, ' +
-          '<b>neoplasias</b> y <b>sistema nervioso</b> suben en ambos sexos (en mayores de 60 años, ' +
+          'Al seleccionar un territorio, el visor estima su <b>tendencia temporal</b> mediante ' +
+          'Mann-Kendall y pendiente de Sen, con corrección por <b>FDR</b> — la misma metodología ' +
+          'del estudio. A nivel nacional, <b>neoplasias</b> y <b>enfermedades del sistema nervioso</b> ' +
+          'presentan tendencias significativas al alza en ambos sexos (en mayores de 60 años, ' +
           'sistema nervioso <b>+5,47%/año</b>).' +
           BADGE_EVID +
           studyCard(),
@@ -165,11 +168,12 @@ export function makeTourSteps(store) {
       popover: {
         side: 'left',
         align: 'start',
-        title: 'Lo que sigue: ¿por qué?',
+        title: 'Determinantes: ¿qué factores explican la distribución?',
         description:
-          'El estudio nos dice <b>qué</b> sube y <b>dónde</b>. La siguiente pregunta es el <b>porqué</b>. ' +
-          'Este módulo lo abordará con betas locales de una <b>Regresión Geográficamente Ponderada ' +
-          'Multiescala (MGWR)</b>: cada factor pesa distinto según el territorio.' +
+          'La evidencia publicada establece <b>qué</b> enfermedades muestran incremento y <b>dónde</b>. ' +
+          'El módulo de Determinantes aborda los factores asociados mediante betas locales de una ' +
+          '<b>Regresión Geográficamente Ponderada Multiescala (MGWR)</b>: la ponderación espacial ' +
+          'varía según las características de cada territorio.' +
           BADGE_PROY +
           projectCard('Salud pública de precisión: estudio econométrico-espacial con IA (MGWR, ML y Deep Learning) · INSPI CZ9 – ESPE'),
       },
@@ -187,11 +191,12 @@ export function makeTourSteps(store) {
       popover: {
         side: 'left',
         align: 'start',
-        title: '¿Dónde actuar primero?',
+        title: 'Priorización territorial para la toma de decisiones',
         description:
-          'Con el porqué sobre la mesa, priorizar: un <b>ranking de ENT por territorio</b> que combina ' +
-          '<b>6 criterios ponderados</b> mediante análisis multicriterio (MCDA). De la evidencia a la ' +
-          'decisión de inversión.' +
+          'Identificados los determinantes, el siguiente paso es priorizar. Este módulo sintetiza ' +
+          '<b>seis criterios ponderados</b> en un índice compuesto de prioridad por territorio y ENT, ' +
+          'mediante análisis multicriterio (MCDA). El resultado: evidencia accionable para orientar la ' +
+          'inversión en salud pública.' +
           BADGE_PROY +
           projectCard('Priorización territorial de ENT a nivel cantonal (MCDA)'),
       },
@@ -200,12 +205,13 @@ export function makeTourSteps(store) {
     {
       autoMs: 12000,
       popover: {
-        title: 'De un estudio publicado a un instrumento de decisión',
+        title: 'De la evidencia publicada al instrumento de decisión',
         description:
-          'El módulo de carga no es un prototipo: refleja un <b>estudio ya publicado</b> por el equipo ' +
-          'EpiSIG (INSPILIP, 2026). Los módulos de determinantes y priorización son las <b>dos líneas de ' +
-          'investigación</b> que lo extienden con datos reales hacia un <b>instrumento de salud pública de ' +
-          'precisión</b> para el Ecuador.<br><br><b>INSPI · Centro de Investigación EpiSIG · CZ9</b>',
+          'El módulo de Carga de Enfermedad no es un prototipo: se sustenta en un <b>estudio ya ' +
+          'publicado</b> por el equipo EpiSIG (INSPILIP, 2026). Los módulos de Determinantes y ' +
+          'Priorización constituyen las <b>dos líneas de investigación</b> que ampliarán esa evidencia ' +
+          'con datos reales, consolidando un <b>instrumento de salud pública de precisión</b> ' +
+          'para el Ecuador.<br><br><b>INSPI · Centro de Investigación EpiSIG · CZ9</b>',
       },
     },
   ]
