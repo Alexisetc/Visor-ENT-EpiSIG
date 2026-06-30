@@ -71,9 +71,10 @@ export function makeTourSteps(store) {
         align: 'start',
         title: 'Las ENT son la principal causa de muerte en Ecuador',
         description:
-          'Y, sin embargo, sabemos poco sobre <b>dónde golpean más</b>, <b>por qué</b> y ' +
-          '<b>dónde deberíamos invertir primero</b>. En el Centro de Investigación EpiSIG del INSPI ' +
-          'estamos respondiendo esas tres preguntas. Le mostramos cómo, en menos de un minuto.',
+          'Y, sin embargo, persisten preguntas sin respuesta: <b>dónde se concentra la carga</b>, ' +
+          '<b>qué factores la explican</b> y <b>dónde priorizar la inversión sanitaria</b>. En el ' +
+          'Centro de Investigación EpiSIG del INSPI estamos trabajando en esas tres preguntas. ' +
+          'Permítanos mostrarle cómo, en menos de un minuto.',
       },
     },
     // 2 · Modulo 1: lo que el estudio publicado ya nos dijo (magnitud)
@@ -95,10 +96,10 @@ export function makeTourSteps(store) {
         align: 'start',
         title: '6 de cada 10 muertes son por una ENT',
         description:
-          'Este módulo se sustenta en un <b>estudio que ya publicamos</b>: entre 2017 y 2023, el ' +
-          '<b>61,4%</b> de las defunciones en Ecuador fueron por enfermedades no transmisibles. ' +
-          'El mapa muestra esa carga, parroquia por parroquia — la primera fotografía territorial ' +
-          'de las ENT en el país a este nivel de detalle.' +
+          'Este módulo se sustenta en un <b>estudio ya publicado</b> por el equipo: entre 2017 y ' +
+          '2023, el <b>61,4%</b> de las defunciones en Ecuador fueron atribuibles a enfermedades ' +
+          'no transmisibles. El mapa representa esa mortalidad a nivel parroquial — el primer ' +
+          'mapeo del país a este nivel de desagregación.' +
           BADGE_EVID +
           studyCard(),
       },
@@ -118,12 +119,13 @@ export function makeTourSteps(store) {
       popover: {
         side: 'right',
         align: 'center',
-        title: 'Lo que no esperábamos: la brecha rural',
+        title: 'Un hallazgo del estudio: la brecha rural',
         description:
-          'Al recorrer la serie <b>2013 → 2024</b>, los conglomerados de alta mortalidad se desplazan. ' +
-          'Lo más revelador del estudio: en las <b>zonas rurales</b> las muertes por neoplasias ' +
-          '(p=0,0005) y enfermedades cardiovasculares (p=0,0121) están aumentando de forma ' +
-          'estadísticamente significativa. La carga ya no es solo urbana.' +
+          'Al reproducir la serie <b>2013 → 2024</b>, los conglomerados de alta mortalidad se ' +
+          'desplazan territorialmente. El estudio documenta un patrón relevante: en el <b>ámbito ' +
+          'rural</b>, las muertes por neoplasias (p=0,0005) y por enfermedades cardiovasculares ' +
+          '(p=0,0121) presentan incrementos estadísticamente significativos. La carga ya no se ' +
+          'circunscribe a lo urbano.' +
           BADGE_EVID +
           studyCard(),
       },
@@ -145,12 +147,13 @@ export function makeTourSteps(store) {
       popover: {
         side: 'left',
         align: 'start',
-        title: 'Y un dato que cambia la conversación',
+        title: 'El envejecimiento que se acelera',
         description:
           'En adultos <b>mayores de 60 años</b>, la mortalidad por enfermedades del <b>sistema ' +
-          'nervioso</b> está creciendo a un ritmo de <b>+5,47% cada año</b>. Al seleccionar una ' +
+          'nervioso</b> se incrementa a un ritmo de <b>+5,47% anual</b>. Al seleccionar una ' +
           'parroquia, el visor estima su tendencia local con la misma metodología del estudio ' +
-          '(Mann-Kendall, pendiente de Sen y corrección por FDR): la evidencia baja al territorio.' +
+          '(Mann-Kendall, pendiente de Sen y corrección por FDR): la evidencia nacional se ' +
+          'traduce a escala territorial.' +
           BADGE_EVID +
           studyCard(),
       },
@@ -169,14 +172,14 @@ export function makeTourSteps(store) {
       popover: {
         side: 'left',
         align: 'start',
-        title: 'La siguiente pregunta: ¿por qué pasa esto?',
+        title: 'La siguiente pregunta: ¿qué explica esta distribución?',
         description:
-          'Conocer la carga abrió una pregunta más profunda. Para responderla presentamos una ' +
-          'propuesta de investigación que <b>ya ha sido considerada pertinente</b> por la ' +
-          'institución: cruzar los datos de ENT con factores socioeconómicos y ambientales mediante ' +
-          '<b>Regresión Geográficamente Ponderada Multiescala (MGWR)</b>, aprendizaje automático e IA. ' +
-          'Lo que ve a la izquierda es una <b>simulación del resultado esperado</b>: cómo se vería ' +
-          'el peso de cada determinante en cada territorio.' +
+          'Conocer la carga abre una pregunta de mayor profundidad: el porqué. Para abordarla ' +
+          'presentamos una propuesta de investigación que <b>ya ha sido considerada pertinente</b> ' +
+          'por la institución, basada en <b>Regresión Geográficamente Ponderada Multiescala ' +
+          '(MGWR)</b>, aprendizaje automático e inteligencia artificial. Lo que se observa en el ' +
+          'mapa es una <b>simulación del resultado esperado</b>: la distribución territorial del ' +
+          'peso de cada determinante sobre cada ENT.' +
           BADGE_PROY +
           projectCard('Salud pública de precisión: estudio econométrico-espacial con IA (MGWR, ML y Deep Learning) · INSPI CZ9 – ESPE'),
       },
@@ -194,13 +197,13 @@ export function makeTourSteps(store) {
       popover: {
         side: 'left',
         align: 'start',
-        title: '¿Y dónde se debería invertir primero?',
+        title: '¿Y dónde priorizar la inversión?',
         description:
-          'La tercera pregunta es la más difícil para el sistema de salud. Nuestra segunda ' +
-          'propuesta — también <b>considerada pertinente</b> — la responde combinando ' +
-          '<b>seis criterios</b> mediante análisis multicriterio (MCDA) para entregar un ' +
-          '<b>ranking de prioridad</b> por territorio y por ENT. Esta simulación anticipa cómo se ' +
-          'verá esa herramienta de decisión cuando se ejecute con datos reales.' +
+          'La tercera pregunta es la más compleja del ciclo de decisión sanitaria. Nuestra segunda ' +
+          'propuesta — también <b>considerada pertinente</b> — la aborda integrando <b>seis ' +
+          'criterios</b> mediante análisis multicriterio (MCDA), para generar un <b>índice de ' +
+          'prioridad</b> por territorio y por ENT. La simulación anticipa la estructura final de ' +
+          'esa herramienta de decisión cuando opere con datos reales.' +
           BADGE_PROY +
           projectCard('Priorización territorial de ENT a nivel cantonal (MCDA)'),
       },
@@ -209,12 +212,13 @@ export function makeTourSteps(store) {
     {
       autoMs: 13000,
       popover: {
-        title: 'Esto es lo que estamos investigando',
+        title: 'Esto es lo que el equipo EpiSIG está investigando',
         description:
-          'Un estudio ya publicado y dos investigaciones aprobadas como pertinentes que extenderán ' +
-          'esa evidencia con datos reales, hasta convertir a geoENT en un <b>instrumento de salud ' +
-          'pública de precisión</b> para el Ecuador. Si su trabajo se relaciona con <b>ENT, ' +
-          'territorio o políticas de salud</b>, conversemos: tenemos preguntas en común.' +
+          'Un estudio publicado y dos investigaciones aprobadas como pertinentes que extenderán ' +
+          'esa evidencia con datos reales, hasta consolidar a geoENT como <b>instrumento de salud ' +
+          'pública de precisión</b> para el Ecuador. Si su trabajo se vincula con <b>ENT, ' +
+          'territorio o políticas de salud</b>, le invitamos a conversar: existen líneas de ' +
+          'cooperación posibles.' +
           '<br><br><b>INSPI · Centro de Investigación EpiSIG · CZ9</b>',
       },
     },
