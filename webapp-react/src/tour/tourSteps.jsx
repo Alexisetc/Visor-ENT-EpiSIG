@@ -1,16 +1,32 @@
-// Guion del recorrido guiado de geoENT (7 paradas).
-// Cada paso apunta a un contenedor estable (data-tour) y expone before(): el
-// controlador lo invoca con un unico onHighlightStarted global ANTES de resaltar,
-// para conducir el store al estado que ilustra. autoMs controla el auto-avance.
+// Guion del recorrido guiado de geoENT (7 paradas) — v2 anclada al estudio.
+// El modulo de Carga refleja un ESTUDIO PUBLICADO (INSPILIP 2026, Nunez coautor):
+// badge "Evidencia publicada" + cita. Determinantes y MCDA son PROYECTOS en
+// formulacion: badge "Proyecto en formulacion - dato ilustrativo".
+// Cada paso expone before(): el controlador lo invoca con un unico
+// onHighlightStarted global ANTES de resaltar, para conducir el store.
 
-export const DEMO_DPA = '170150' // Inaquito (Quito): parroquia urbana representativa
+export const DEMO_DPA = '170150' // Iñaquito (Quito): parroquia urbana representativa
 
-const BADGE = '<span class="episig-tour__badge">Simulacion - ilustrativo</span>'
+const BADGE_EVID =
+  '<span class="episig-tour__badge episig-tour__badge--evidencia">Evidencia publicada</span>'
+const BADGE_PROY =
+  '<span class="episig-tour__badge">Proyecto en formulación · dato ilustrativo</span>'
+
+function studyCard() {
+  return (
+    '<div class="episig-tour__study">' +
+    '<div class="episig-tour__study-label">Estudio publicado</div>' +
+    '<div class="episig-tour__study-cite">Morales L, Sánchez M, Duque M, Núñez A, Chugá K. ' +
+    'Evolución de la mortalidad por ENT en Ecuador (2017-2023).</div>' +
+    '<div class="episig-tour__study-src">Rev. Ecuat. Cienc. Tecnol. Innov. Salud Pública · INSPILIP, 2026; 10(31)</div>' +
+    '</div>'
+  )
+}
 
 function projectCard(text) {
   return (
     '<div class="episig-tour__proj">' +
-    '<div class="episig-tour__proj-label">Proyecto asociado</div>' +
+    '<div class="episig-tour__proj-label">Línea de investigación</div>' +
     '<div class="episig-tour__proj-name">' + text + '</div></div>'
   )
 }
@@ -36,6 +52,7 @@ export function makeTourSteps(store) {
   }
 
   return [
+    // 1 · Orientacion
     {
       element: '[data-tour="modules"]',
       autoMs: 7000,
@@ -45,78 +62,99 @@ export function makeTourSteps(store) {
         toNacional()
         s.setModule('carga')
         s.setLayerType('coropleta')
-        s.setMapMetric('morbilidad')
+        s.setMapMetric('mortalidad')
+        s.setEnt('todas')
+        s.setYear(2023)
       },
       popover: {
         side: 'right',
         align: 'start',
-        title: 'Tres modulos, tres preguntas',
+        title: 'Tres módulos, una misma evidencia',
         description:
-          'geoENT organiza el analisis territorial de las ENT en tres modulos. Cada uno responde una pregunta: <b>donde</b> se concentra la carga, <b>por que</b>, y <b>donde actuar primero</b>.',
+          'geoENT parte de un <b>estudio ya publicado</b> por el equipo EpiSIG y lo proyecta en tres módulos: ' +
+          '<b>dónde</b> golpean las ENT, <b>por qué</b>, y <b>dónde actuar primero</b>.',
       },
     },
+    // 2 · Carga: magnitud (estudio)
     {
       element: '[data-tour="map"]',
-      autoMs: 8000,
+      autoMs: 8500,
       before: () => {
         const s = st()
         if (s.playing) s.togglePlay()
         toNacional()
         s.setModule('carga')
         s.setLayerType('coropleta')
-        s.setYear(2024)
+        s.setMapMetric('mortalidad')
+        s.setEnt('todas')
+        s.setYear(2023)
       },
       popover: {
         side: 'left',
         align: 'start',
-        title: 'Donde se concentra la carga?',
+        title: '6 de cada 10 muertes son por ENT',
         description:
-          'El mapa pinta la <b>tasa de morbilidad por 100 mil habitantes</b> en cada parroquia. Mientras mas oscuro, mayor es la carga de enfermedad.' +
-          BADGE,
+          'En Ecuador, el <b>61,4%</b> de las defunciones entre 2017 y 2023 fueron por enfermedades no ' +
+          'transmisibles. El mapa pinta esa mortalidad por parroquia: mientras más oscuro, mayor la carga.' +
+          BADGE_EVID +
+          studyCard(),
       },
     },
+    // 3 · Carga: conglomerados en el tiempo + brecha rural (estudio)
     {
       element: '[data-tour="yearplay"]',
-      autoMs: 9000,
+      autoMs: 9500,
       before: () => {
         const s = st()
+        toNacional()
         s.setModule('carga')
+        s.setMapMetric('mortalidad')
         s.setLayerType('heatmap')
         if (!s.playing) s.togglePlay()
       },
       popover: {
         side: 'right',
         align: 'center',
-        title: 'Conglomerados en el tiempo',
+        title: 'La carga se mueve y crece en lo rural',
         description:
-          'Las zonas en rojo son <b>hot spots</b>: conglomerados de alta carga (estilo Getis-Ord). Deje correr la serie <b>2013 a 2024</b> y observe como se desplazan.' +
-          BADGE,
+          'Los conglomerados de alta mortalidad se desplazan en el tiempo. El estudio halló aumentos ' +
+          'significativos en <b>zonas rurales</b>: neoplasias (p=0,0005) y enfermedades cardiovasculares ' +
+          '(p=0,0121). Deje correr la serie <b>2013 → 2024</b>.' +
+          BADGE_EVID +
+          studyCard(),
       },
     },
+    // 4 · Carga: tendencia con la metodologia del estudio
     {
       element: '[data-tour="ficha"]',
-      autoMs: 9000,
+      autoMs: 9500,
       before: () => {
         const s = st()
         if (s.playing) s.togglePlay()
         s.setModule('carga')
         s.setLayerType('coropleta')
+        s.setMapMetric('mortalidad')
+        s.setYear(2023)
         const f = findFeat(DEMO_DPA)
         if (f) s.setSelected(DEMO_DPA, f.properties)
       },
       popover: {
         side: 'left',
         align: 'start',
-        title: 'Del territorio a la tendencia',
+        title: 'La tendencia, medida como en el estudio',
         description:
-          'Al seleccionar una parroquia, el visor estima su <b>tendencia temporal</b> con Mann-Kendall y pendiente de Sen, corregida por <b>FDR</b>. Esta es la linea base que orientaria la priorizacion.' +
-          BADGE +
-          projectCard('Priorizacion territorial de ENT (MCDA cantonal)'),
+          'Al seleccionar un territorio, el visor estima su <b>tendencia</b> con Mann-Kendall y pendiente ' +
+          'de Sen, corregida por <b>FDR</b> — la misma metodología del estudio. A nivel nacional, ' +
+          '<b>neoplasias</b> y <b>sistema nervioso</b> suben en ambos sexos (en mayores de 60 años, ' +
+          'sistema nervioso <b>+5,47%/año</b>).' +
+          BADGE_EVID +
+          studyCard(),
       },
     },
+    // 5 · Determinantes (proyecto en formulacion)
     {
       element: '[data-tour="map"]',
-      autoMs: 9000,
+      autoMs: 9500,
       before: () => {
         const s = st()
         if (s.playing) s.togglePlay()
@@ -127,16 +165,19 @@ export function makeTourSteps(store) {
       popover: {
         side: 'left',
         align: 'start',
-        title: 'El porque: determinantes',
+        title: 'Lo que sigue: ¿por qué?',
         description:
-          'Aqui se exploran los <b>factores asociados</b>. Los colores muestran betas locales de una <b>Regresion Geograficamente Ponderada Multiescala (MGWR)</b>: cada factor pesa distinto segun el territorio.' +
-          BADGE +
-          projectCard('Salud publica de precision: estudio econometrico-espacial con IA (MGWR, ML y Deep Learning) - INSPI CZ9 - ESPE'),
+          'El estudio nos dice <b>qué</b> sube y <b>dónde</b>. La siguiente pregunta es el <b>porqué</b>. ' +
+          'Este módulo lo abordará con betas locales de una <b>Regresión Geográficamente Ponderada ' +
+          'Multiescala (MGWR)</b>: cada factor pesa distinto según el territorio.' +
+          BADGE_PROY +
+          projectCard('Salud pública de precisión: estudio econométrico-espacial con IA (MGWR, ML y Deep Learning) · INSPI CZ9 – ESPE'),
       },
     },
+    // 6 · Priorizacion MCDA (proyecto en formulacion)
     {
       element: '[data-tour="map"]',
-      autoMs: 9000,
+      autoMs: 9500,
       before: () => {
         const s = st()
         toNacional()
@@ -146,19 +187,25 @@ export function makeTourSteps(store) {
       popover: {
         side: 'left',
         align: 'start',
-        title: 'Donde actuar primero?',
+        title: '¿Dónde actuar primero?',
         description:
-          'La priorizacion combina <b>6 criterios ponderados</b> en un <b>ranking de ENT por territorio</b> mediante analisis multicriterio (MCDA): de la evidencia a la decision.' +
-          BADGE +
-          projectCard('Priorizacion territorial de ENT a nivel cantonal (MCDA)'),
+          'Con el porqué sobre la mesa, priorizar: un <b>ranking de ENT por territorio</b> que combina ' +
+          '<b>6 criterios ponderados</b> mediante análisis multicriterio (MCDA). De la evidencia a la ' +
+          'decisión de inversión.' +
+          BADGE_PROY +
+          projectCard('Priorización territorial de ENT a nivel cantonal (MCDA)'),
       },
     },
+    // 7 · Cierre (encuadre honesto)
     {
       autoMs: 12000,
       popover: {
-        title: 'De prototipo a instrumento de decision',
+        title: 'De un estudio publicado a un instrumento de decisión',
         description:
-          'Lo que vio es un <b>prototipo con datos simulados</b>. Con datos reales, estos dos proyectos del Centro EpiSIG convierten a geoENT en un <b>instrumento de salud publica de precision</b> para orientar la inversion sanitaria en el Ecuador.<br><br><b>INSPI - Centro de Investigacion EpiSIG - CZ9</b>',
+          'El módulo de carga no es un prototipo: refleja un <b>estudio ya publicado</b> por el equipo ' +
+          'EpiSIG (INSPILIP, 2026). Los módulos de determinantes y priorización son las <b>dos líneas de ' +
+          'investigación</b> que lo extienden con datos reales hacia un <b>instrumento de salud pública de ' +
+          'precisión</b> para el Ecuador.<br><br><b>INSPI · Centro de Investigación EpiSIG · CZ9</b>',
       },
     },
   ]
