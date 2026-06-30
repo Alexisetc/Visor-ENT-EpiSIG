@@ -52,10 +52,10 @@ export function makeTourSteps(store) {
   }
 
   return [
-    // 1 · Orientacion
+    // 1 · Apertura: que hace EpiSIG y por que importa
     {
       element: '[data-tour="modules"]',
-      autoMs: 7000,
+      autoMs: 8000,
       before: () => {
         const s = st()
         if (s.playing) s.togglePlay()
@@ -69,17 +69,17 @@ export function makeTourSteps(store) {
       popover: {
         side: 'right',
         align: 'start',
-        title: 'Tres módulos, una misma evidencia',
+        title: 'Las ENT son la principal causa de muerte en Ecuador',
         description:
-          'geoENT articula, en tres módulos complementarios, la evidencia generada por el equipo EpiSIG: ' +
-          'la <b>distribución territorial</b> de la mortalidad por ENT, sus <b>determinantes</b> ' +
-          'socioeconómicos y espaciales, y la <b>priorización</b> para la toma de decisiones en salud pública.',
+          'Y, sin embargo, sabemos poco sobre <b>dónde golpean más</b>, <b>por qué</b> y ' +
+          '<b>dónde deberíamos invertir primero</b>. En el Centro de Investigación EpiSIG del INSPI ' +
+          'estamos respondiendo esas tres preguntas. Le mostramos cómo, en menos de un minuto.',
       },
     },
-    // 2 · Carga: magnitud (estudio)
+    // 2 · Modulo 1: lo que el estudio publicado ya nos dijo (magnitud)
     {
       element: '[data-tour="map"]',
-      autoMs: 8500,
+      autoMs: 9000,
       before: () => {
         const s = st()
         if (s.playing) s.togglePlay()
@@ -93,19 +93,20 @@ export function makeTourSteps(store) {
       popover: {
         side: 'left',
         align: 'start',
-        title: 'El 61,4% de la mortalidad corresponde a ENT',
+        title: '6 de cada 10 muertes son por una ENT',
         description:
-          'En Ecuador, <b>6 de cada 10 defunciones</b> registradas entre 2017 y 2023 fueron atribuibles ' +
-          'a enfermedades no transmisibles. El mapa representa esa mortalidad a nivel parroquial: ' +
-          'a mayor intensidad cromática, mayor es la tasa.' +
+          'Este módulo se sustenta en un <b>estudio que ya publicamos</b>: entre 2017 y 2023, el ' +
+          '<b>61,4%</b> de las defunciones en Ecuador fueron por enfermedades no transmisibles. ' +
+          'El mapa muestra esa carga, parroquia por parroquia — la primera fotografía territorial ' +
+          'de las ENT en el país a este nivel de detalle.' +
           BADGE_EVID +
           studyCard(),
       },
     },
-    // 3 · Carga: conglomerados en el tiempo + brecha rural (estudio)
+    // 3 · Modulo 1: hallazgo clave - la brecha rural en el tiempo
     {
       element: '[data-tour="yearplay"]',
-      autoMs: 9500,
+      autoMs: 10000,
       before: () => {
         const s = st()
         toNacional()
@@ -117,19 +118,20 @@ export function makeTourSteps(store) {
       popover: {
         side: 'right',
         align: 'center',
-        title: 'Distribución espacio-temporal y brecha rural',
+        title: 'Lo que no esperábamos: la brecha rural',
         description:
-          'Los conglomerados de alta mortalidad se desplazan a lo largo del período. El estudio identificó ' +
-          'incrementos estadísticamente significativos en <b>ámbito rural</b>: neoplasias (p=0,0005) y ' +
-          'enfermedades cardiovasculares (p=0,0121). Reproduzca la serie temporal <b>2013–2024</b>.' +
+          'Al recorrer la serie <b>2013 → 2024</b>, los conglomerados de alta mortalidad se desplazan. ' +
+          'Lo más revelador del estudio: en las <b>zonas rurales</b> las muertes por neoplasias ' +
+          '(p=0,0005) y enfermedades cardiovasculares (p=0,0121) están aumentando de forma ' +
+          'estadísticamente significativa. La carga ya no es solo urbana.' +
           BADGE_EVID +
           studyCard(),
       },
     },
-    // 4 · Carga: tendencia con la metodologia del estudio
+    // 4 · Modulo 1: hallazgo clave - el sistema nervioso en mayores de 60
     {
       element: '[data-tour="ficha"]',
-      autoMs: 9500,
+      autoMs: 10000,
       before: () => {
         const s = st()
         if (s.playing) s.togglePlay()
@@ -143,21 +145,20 @@ export function makeTourSteps(store) {
       popover: {
         side: 'left',
         align: 'start',
-        title: 'Tendencia territorial: metodología del estudio',
+        title: 'Y un dato que cambia la conversación',
         description:
-          'Al seleccionar un territorio, el visor estima su <b>tendencia temporal</b> mediante ' +
-          'Mann-Kendall y pendiente de Sen, con corrección por <b>FDR</b> — la misma metodología ' +
-          'del estudio. A nivel nacional, <b>neoplasias</b> y <b>enfermedades del sistema nervioso</b> ' +
-          'presentan tendencias significativas al alza en ambos sexos (en mayores de 60 años, ' +
-          'sistema nervioso <b>+5,47%/año</b>).' +
+          'En adultos <b>mayores de 60 años</b>, la mortalidad por enfermedades del <b>sistema ' +
+          'nervioso</b> está creciendo a un ritmo de <b>+5,47% cada año</b>. Al seleccionar una ' +
+          'parroquia, el visor estima su tendencia local con la misma metodología del estudio ' +
+          '(Mann-Kendall, pendiente de Sen y corrección por FDR): la evidencia baja al territorio.' +
           BADGE_EVID +
           studyCard(),
       },
     },
-    // 5 · Determinantes (proyecto en formulacion)
+    // 5 · Modulo 2: la primera propuesta aprobada como pertinente
     {
       element: '[data-tour="map"]',
-      autoMs: 9500,
+      autoMs: 11000,
       before: () => {
         const s = st()
         if (s.playing) s.togglePlay()
@@ -168,20 +169,22 @@ export function makeTourSteps(store) {
       popover: {
         side: 'left',
         align: 'start',
-        title: 'Determinantes: ¿qué factores explican la distribución?',
+        title: 'La siguiente pregunta: ¿por qué pasa esto?',
         description:
-          'La evidencia publicada establece <b>qué</b> enfermedades muestran incremento y <b>dónde</b>. ' +
-          'El módulo de Determinantes aborda los factores asociados mediante betas locales de una ' +
-          '<b>Regresión Geográficamente Ponderada Multiescala (MGWR)</b>: la ponderación espacial ' +
-          'varía según las características de cada territorio.' +
+          'Conocer la carga abrió una pregunta más profunda. Para responderla presentamos una ' +
+          'propuesta de investigación que <b>ya ha sido considerada pertinente</b> por la ' +
+          'institución: cruzar los datos de ENT con factores socioeconómicos y ambientales mediante ' +
+          '<b>Regresión Geográficamente Ponderada Multiescala (MGWR)</b>, aprendizaje automático e IA. ' +
+          'Lo que ve a la izquierda es una <b>simulación del resultado esperado</b>: cómo se vería ' +
+          'el peso de cada determinante en cada territorio.' +
           BADGE_PROY +
           projectCard('Salud pública de precisión: estudio econométrico-espacial con IA (MGWR, ML y Deep Learning) · INSPI CZ9 – ESPE'),
       },
     },
-    // 6 · Priorizacion MCDA (proyecto en formulacion)
+    // 6 · Modulo 3: la segunda propuesta aprobada como pertinente
     {
       element: '[data-tour="map"]',
-      autoMs: 9500,
+      autoMs: 11000,
       before: () => {
         const s = st()
         toNacional()
@@ -191,27 +194,28 @@ export function makeTourSteps(store) {
       popover: {
         side: 'left',
         align: 'start',
-        title: 'Priorización territorial para la toma de decisiones',
+        title: '¿Y dónde se debería invertir primero?',
         description:
-          'Identificados los determinantes, el siguiente paso es priorizar. Este módulo sintetiza ' +
-          '<b>seis criterios ponderados</b> en un índice compuesto de prioridad por territorio y ENT, ' +
-          'mediante análisis multicriterio (MCDA). El resultado: evidencia accionable para orientar la ' +
-          'inversión en salud pública.' +
+          'La tercera pregunta es la más difícil para el sistema de salud. Nuestra segunda ' +
+          'propuesta — también <b>considerada pertinente</b> — la responde combinando ' +
+          '<b>seis criterios</b> mediante análisis multicriterio (MCDA) para entregar un ' +
+          '<b>ranking de prioridad</b> por territorio y por ENT. Esta simulación anticipa cómo se ' +
+          'verá esa herramienta de decisión cuando se ejecute con datos reales.' +
           BADGE_PROY +
           projectCard('Priorización territorial de ENT a nivel cantonal (MCDA)'),
       },
     },
-    // 7 · Cierre (encuadre honesto)
+    // 7 · Invitacion a colaborar
     {
-      autoMs: 12000,
+      autoMs: 13000,
       popover: {
-        title: 'De la evidencia publicada al instrumento de decisión',
+        title: 'Esto es lo que estamos investigando',
         description:
-          'El módulo de Carga de Enfermedad no es un prototipo: se sustenta en un <b>estudio ya ' +
-          'publicado</b> por el equipo EpiSIG (INSPILIP, 2026). Los módulos de Determinantes y ' +
-          'Priorización constituyen las <b>dos líneas de investigación</b> que ampliarán esa evidencia ' +
-          'con datos reales, consolidando un <b>instrumento de salud pública de precisión</b> ' +
-          'para el Ecuador.<br><br><b>INSPI · Centro de Investigación EpiSIG · CZ9</b>',
+          'Un estudio ya publicado y dos investigaciones aprobadas como pertinentes que extenderán ' +
+          'esa evidencia con datos reales, hasta convertir a geoENT en un <b>instrumento de salud ' +
+          'pública de precisión</b> para el Ecuador. Si su trabajo se relaciona con <b>ENT, ' +
+          'territorio o políticas de salud</b>, conversemos: tenemos preguntas en común.' +
+          '<br><br><b>INSPI · Centro de Investigación EpiSIG · CZ9</b>',
       },
     },
   ]
