@@ -99,3 +99,29 @@
   margin-bottom: 2px;
 }
 .episig-tour__proj-name { font-size: 11px; color: #11243f; line-height: 1.4; }
+
+/* Variante "Evidencia publicada" (modulo de Carga = estudio real) */
+.episig-tour__badge--evidencia {
+  background: #e8f0ff;
+  color: #11407a;
+  border-color: #bcd2f0;
+}
+.episig-tour__badge--evidencia::before { background: #1f6feb; }
+
+/* Tarjeta de cita del estudio publicado */
+.episig-tour__study {
+  margin-top: 10px;
+  border-left: 3px solid #11243f;
+  background: #eef2f8;
+  padding: 7px 9px;
+}
+.episig-tour__study-label {
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: #11407a;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.episig-tour__study-cite { font-size: 10.5px; color: #11243f; line-height: 1.4; }
+.episig-tour__study-src { font-size: 9.5px; color: #6b7280; margin-top: 3px; }
