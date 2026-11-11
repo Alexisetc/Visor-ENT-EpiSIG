@@ -51,6 +51,8 @@ jobs:
 
       - name: Build
         working-directory: webapp-react
+        env:
+          VITE_CARTO_BASEMAP_KEY: ${{ secrets.CARTO_BASEMAP_KEY }}
         run: npm run build
 
       - name: Setup Pages

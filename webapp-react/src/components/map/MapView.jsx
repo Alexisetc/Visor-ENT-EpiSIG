@@ -32,6 +32,9 @@ import Legend              from './Legend'
 import MapTopOverlay       from './MapTopOverlay'
 import { DEFAULT_CENTER, DEFAULT_ZOOM } from '../../lib/mapDefaults'
 
+const CARTO_BASEMAP_KEY = import.meta.env.VITE_CARTO_BASEMAP_KEY
+const CARTO_TILE_URL = `https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(CARTO_BASEMAP_KEY || '')}`
+
 // --- helper: hace fitBounds a la provincia seleccionada (o a Ecuador entero) ---
 function FitToProvince() {
   const map        = useMap()
@@ -126,8 +129,8 @@ export default function MapView() {
 
         {/* Basemap SIN nombres de ciudades (light_nolabels) */}
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CartoDB</a> · OSM'
-          url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>, &copy; <a href="https://carto.com/">CARTO</a>'
+          url={CARTO_TILE_URL}
         />
 
         {renderLayer()}
